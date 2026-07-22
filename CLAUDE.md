@@ -143,8 +143,9 @@ Kako Gains rastu, telo prelazi u sledeći tier. **Najzadovoljavajući vizuelni f
 Kustomizacija = zamena sprite-a u sloju.
 
 ### Pravila za AI art (i buduću zamenu kvalitetnijim)
+> **Puni standard: [`docs/art-brief.md`](docs/art-brief.md)** — stil (pixel art, front-view), canvas 128×192, PPU 128, pivot bottom-center, slojevi, imenovanje, folderi, Unity import, animacije. Odluka o stilu: **pixel art, front-view** (po referenci koju je korisnik dao).
 - **Fiksne anchor tačke i rezolucija** (rame, kuk, glava, canvas veličina) — dogovoreni standard. Svaki art (AI ili budući) poštuje iste anchore → sve se poravna bez prepravki.
-- **Style guide od prve**: rezolucija, side-view ugao kamere, proporcije, paleta. Isti brief za AI i budućeg umetnika.
+- **Style guide od prve**: rezolucija, **front-view** ugao kamere, proporcije, paleta. Isti brief za AI i budućeg umetnika.
 - **Imenovani slotovi**: `body_tier3`, `hair_01`, `beard_02`... → zamena arta = zamena fajla u slotu, ne refaktor.
 - **MVP**: 1 muscle tier + par slojeva. Sistem prvo, art posle. NE generisati gomilu arta pre nego sistem proradi s placeholderima.
 
