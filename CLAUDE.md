@@ -296,4 +296,6 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 ### Radni model (arhitekta + pod-agenti)
 Opus (arhitekta) piše „Nalog za Pod-Agenta" → jeftiniji model (Sonnet/Haiku) piše kod → arhitekta radi pregled (konvencije, leak-ovi, data-driven, compile) → commit. Pod-agent ne commit-uje.
 
+> **Pun protokol orkestracije** (role, pravila, sub-agent profili, format naloga, execution workflow): [`docs/agent-workflow.md`](docs/agent-workflow.md).
+
 *(Claude: ažuriraj ovu sekciju posle svakog urađenog koraka.)*
