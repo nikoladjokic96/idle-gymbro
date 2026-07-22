@@ -287,8 +287,8 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 - [x] Core backbone: `EventBus`, `TickSystem`, `TickEvent`, `GameConfig`, `GameManager` — NALOG #001 (Sonnet, review-ovan, kompajlira)
 - [x] EnergySystem (troši energiju na rep, regen kroz `TickEvent`) — NALOG #002
 - [x] CurrencyManager (Gains, `double`) + TapController (hold → rep kadenca) — NALOG #002
+- [x] Placeholder + minimalni HUD (energy bar + gains counter) — NALOG #003
 - [ ] SaveSystem (JSON/Newtonsoft, enkriptovan) + offline zarada
-- [ ] Placeholder kocka umesto lika
 
 **NALOG #002 (Sonnet, review-ovan Opus, batchmode kompajlira):** potpuno event-driven core loop.
 Lanac: `TapController` (hold → `TapEvent` na `RepIntervalSeconds`) → `EnergySystem` (troši `EnergyPerRep` ako ima energije, regen na `TickEvent`, publikuje `EnergyChangedEvent` + `RepPerformedEvent`) → `CurrencyManager` (dodaje `GainsPerRep`, publikuje `GainsChangedEvent`).
@@ -297,7 +297,13 @@ Lanac: `TapController` (hold → `TapEvent` na `RepIntervalSeconds`) → `Energy
 - Input: novi Input System (`Pointer.current.press.isPressed`) — hold ceo ekran za MVP.
 - **Manuelni Unity korak (blokira testiranje u editoru):** napravi `GameConfig.asset` (Create → IdleGymBro/Config/GameConfig), dodaj `TickSystem`/`GameManager`/`EnergySystem`/`CurrencyManager`/`TapController` na scenu i dodeli `GameConfig` referencu svakom. Bez toga loop postoji ali nije ožičen.
 
-> **Sledeći korak:** NALOG #003 — `SaveSystem` (JSON/Newtonsoft, enkriptovan; snima `TotalGains` + energiju + `lastSaveTime`) → onda offline zarada. Alternativa: placeholder kocka + minimalni UI (energy bar + gains counter) da se loop vidi na ekranu.
+**NALOG #003 (Sonnet, review-ovan Opus, batchmode kompajlira):** vizuelni sloj da se loop vidi/testira.
+- `UI/HudController` — event-driven, sluša `GainsChangedEvent` (→ gains counter) i `EnergyChangedEvent` (→ energy bar `Image.fillAmount` + „cur/max" tekst). Ne drži ref na sisteme.
+- `UI/NumberFormatter` — idle-stil skraćivanje (`1.23K`, `4.5M`...).
+- `Character/PlaceholderCharacter` — scale-punch na `RepPerformedEvent` (coroutine, bez DOTween — DOTween tek u Fazi 4).
+- TMP dolazi u `com.unity.ugui` 2.0.0; treba jednom **Window → TextMeshPro → Import TMP Essential Resources** da se tekst renderuje.
+
+> **Sledeći korak:** NALOG #004 — `SaveSystem` (JSON/Newtonsoft, enkriptovan; snima `TotalGains` + energiju + `lastSaveTime`, restore preko `ISaveable` ili DTO) → onda offline zarada. Prvo ožičiti scenu (gore) i playtestovati #002/#003.
 > Setup na drugom PC-u: `scripts/setup-dev-env.ps1` (vidi `SETUP.md`).
 
 ### Radni model (arhitekta + pod-agenti)
