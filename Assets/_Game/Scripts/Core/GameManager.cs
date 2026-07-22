@@ -3,6 +3,9 @@ using IdleGymBro.Data;
 
 namespace IdleGymBro.Core
 {
+    // Runs first so EventBus.Clear() in Awake happens before any system subscribes
+    // (in OnEnable), otherwise a stale-state wipe could delete live subscriptions.
+    [DefaultExecutionOrder(-1000)]
     public class GameManager : MonoBehaviour
     {
         public static GameManager Instance { get; private set; }

@@ -285,12 +285,19 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 
 **Faza 1 (Core loop) — u toku:**
 - [x] Core backbone: `EventBus`, `TickSystem`, `TickEvent`, `GameConfig`, `GameManager` — NALOG #001 (Sonnet, review-ovan, kompajlira)
-- [ ] EnergySystem (energija: trošenje na tap, regen kroz TickSystem)
-- [ ] CurrencyManager (Gains valuta) + TapController (tap → gains)
+- [x] EnergySystem (troši energiju na rep, regen kroz `TickEvent`) — NALOG #002
+- [x] CurrencyManager (Gains, `double`) + TapController (hold → rep kadenca) — NALOG #002
 - [ ] SaveSystem (JSON/Newtonsoft, enkriptovan) + offline zarada
 - [ ] Placeholder kocka umesto lika
 
-> **Sledeći korak:** NALOG #002 — sledeći sistem koji se kači na backbone (npr. `EnergySystem` + `CurrencyManager` koji slušaju `TickEvent`).
+**NALOG #002 (Sonnet, review-ovan Opus, batchmode kompajlira):** potpuno event-driven core loop.
+Lanac: `TapController` (hold → `TapEvent` na `RepIntervalSeconds`) → `EnergySystem` (troši `EnergyPerRep` ako ima energije, regen na `TickEvent`, publikuje `EnergyChangedEvent` + `RepPerformedEvent`) → `CurrencyManager` (dodaje `GainsPerRep`, publikuje `GainsChangedEvent`).
+- Base tuning vrednosti (`MaxEnergy`, `EnergyPerRep`, `EnergyRegenPerSecond`, `GainsPerRep`, `RepIntervalSeconds`) su u `GameConfig` (§16 „jedan SO po sistemu" svesno odloženo za MVP — upgrade sistem u Fazi 2 razdvaja base od runtime).
+- `GameManager` dobio `[DefaultExecutionOrder(-1000)]` da `EventBus.Clear()` u `Awake` ide pre svih pretplata.
+- Input: novi Input System (`Pointer.current.press.isPressed`) — hold ceo ekran za MVP.
+- **Manuelni Unity korak (blokira testiranje u editoru):** napravi `GameConfig.asset` (Create → IdleGymBro/Config/GameConfig), dodaj `TickSystem`/`GameManager`/`EnergySystem`/`CurrencyManager`/`TapController` na scenu i dodeli `GameConfig` referencu svakom. Bez toga loop postoji ali nije ožičen.
+
+> **Sledeći korak:** NALOG #003 — `SaveSystem` (JSON/Newtonsoft, enkriptovan; snima `TotalGains` + energiju + `lastSaveTime`) → onda offline zarada. Alternativa: placeholder kocka + minimalni UI (energy bar + gains counter) da se loop vidi na ekranu.
 > Setup na drugom PC-u: `scripts/setup-dev-env.ps1` (vidi `SETUP.md`).
 
 ### Radni model (arhitekta + pod-agenti)
