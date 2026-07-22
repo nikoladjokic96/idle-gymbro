@@ -274,17 +274,26 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 
 ## 17. Trenutni status
 
-**Faza: 0 (Setup) — skoro gotova. Sledi Faza 1.**
+**Faza: 0 (Setup) — GOTOVA. Faza 1 (Core loop) — u toku.**
 
 - [x] Dizajn i plan zaključani (ovaj dokument)
 - [x] Unity projekat kreiran (2D URP, Unity **6000.0.79f1**, iz template-a u repo root)
-- [ ] Folder struktura (`_Game/…`) — sledi kroz NALOG #001 (Faza 1)
+- [x] Folder struktura (`_Game/…`) postavljena — NALOG #001
 - [x] Paketi instalirani — core: URP, 2D feature, Input System, TMP, Newtonsoft *(DOTween/LevelPlay/IAP se dodaju u svojim fazama)*
 - [x] Git inicijalizovan + povezan sa GitHub-om (`origin` → github.com/nikoladjokic96/idle-gymbro, javni repo)
 - [~] Android Build Support: editor + build support OK; **SDK/NDK parcijalno** — dovršiti kroz Hub GUI pred prvi APK build
-- [ ] Faza 1: Core loop
 
-> **Sledeći korak:** Faza 1 — pustiti **NALOG #001** (EventBus/TickSystem/GameManager/GameConfig) pod-agentu.
+**Faza 1 (Core loop) — u toku:**
+- [x] Core backbone: `EventBus`, `TickSystem`, `TickEvent`, `GameConfig`, `GameManager` — NALOG #001 (Sonnet, review-ovan, kompajlira)
+- [ ] EnergySystem (energija: trošenje na tap, regen kroz TickSystem)
+- [ ] CurrencyManager (Gains valuta) + TapController (tap → gains)
+- [ ] SaveSystem (JSON/Newtonsoft, enkriptovan) + offline zarada
+- [ ] Placeholder kocka umesto lika
+
+> **Sledeći korak:** NALOG #002 — sledeći sistem koji se kači na backbone (npr. `EnergySystem` + `CurrencyManager` koji slušaju `TickEvent`).
 > Setup na drugom PC-u: `scripts/setup-dev-env.ps1` (vidi `SETUP.md`).
+
+### Radni model (arhitekta + pod-agenti)
+Opus (arhitekta) piše „Nalog za Pod-Agenta" → jeftiniji model (Sonnet/Haiku) piše kod → arhitekta radi pregled (konvencije, leak-ovi, data-driven, compile) → commit. Pod-agent ne commit-uje.
 
 *(Claude: ažuriraj ovu sekciju posle svakog urađenog koraka.)*
