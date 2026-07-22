@@ -41,16 +41,19 @@ namespace IdleGymBro.Core
 
         private void Start()
         {
-            if (!TryLoad(out SaveData data))
+            bool hadSave = TryLoad(out SaveData data);
+
+            if (hadSave)
             {
-                // No/corrupt save: leave every system's fresh defaults (full energy, zero gains) as-is.
-                return;
+                foreach (ISaveable saveable in FindSaveables())
+                {
+                    saveable.RestoreState(data);
+                }
             }
 
-            foreach (ISaveable saveable in FindSaveables())
-            {
-                saveable.RestoreState(data);
-            }
+            // Always published (even with no/corrupt save) so downstream systems (e.g. offline
+            // earnings) can react to load state instead of depending on SaveSystem directly.
+            EventBus.Publish(new GameLoadedEvent(hadSave, hadSave ? data.LastSaveTimeTicks : 0L));
         }
 
         private void Update()

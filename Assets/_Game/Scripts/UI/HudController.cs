@@ -18,16 +18,21 @@ namespace IdleGymBro.UI
         [SerializeField]
         private TMP_Text _energyText;
 
+        [SerializeField]
+        private TMP_Text _passiveRateText;
+
         private void OnEnable()
         {
             EventBus.Subscribe<GainsChangedEvent>(HandleGainsChanged);
             EventBus.Subscribe<EnergyChangedEvent>(HandleEnergyChanged);
+            EventBus.Subscribe<PassiveIncomeChangedEvent>(HandlePassiveIncomeChanged);
         }
 
         private void OnDisable()
         {
             EventBus.Unsubscribe<GainsChangedEvent>(HandleGainsChanged);
             EventBus.Unsubscribe<EnergyChangedEvent>(HandleEnergyChanged);
+            EventBus.Unsubscribe<PassiveIncomeChangedEvent>(HandlePassiveIncomeChanged);
         }
 
         private void HandleGainsChanged(GainsChangedEvent e)
@@ -48,6 +53,14 @@ namespace IdleGymBro.UI
             if (_energyText != null)
             {
                 _energyText.text = $"{Mathf.CeilToInt(e.Current)}/{Mathf.CeilToInt(e.Max)}";
+            }
+        }
+
+        private void HandlePassiveIncomeChanged(PassiveIncomeChangedEvent e)
+        {
+            if (_passiveRateText != null)
+            {
+                _passiveRateText.text = NumberFormatter.Format(e.GainsPerSecond) + "/s";
             }
         }
     }

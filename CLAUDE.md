@@ -291,7 +291,10 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 - [x] Placeholder + minimalni HUD (energy bar + gains counter) — NALOG #003
 - [x] Scena ožičena iz koda (bootstrap tool) — NALOG #004
 - [x] SaveSystem (JSON/Newtonsoft, **enkriptovan AES**) — NALOG #005
-- [→] Offline zarada — premešteno u **Fazu 2** (traži pasivni prihod `gainsPerSecond` koji još ne postoji)
+
+**Faza 2 (Ekonomija) — u toku:**
+- [x] Pasivni prihod (`gainsPerSecond` kroz `TickEvent`) + offline zarada (§5 formula) — NALOG #006
+- [ ] Upgrade sistem (delovi tela → dižu `gainsPerRep`/`gainsPerSecond`/`maxEnergy`; cost `baseCost × growthRate^level` §6) — **za razmatranje** (dizajn krivih cena + koji apgrejdovi)
 
 **NALOG #002 (Sonnet, review-ovan Opus, batchmode kompajlira):** potpuno event-driven core loop.
 Lanac: `TapController` (hold → `TapEvent` na `RepIntervalSeconds`) → `EnergySystem` (troši `EnergyPerRep` ako ima energije, regen na `TickEvent`, publikuje `EnergyChangedEvent` + `RepPerformedEvent`) → `CurrencyManager` (dodaje `GainsPerRep`, publikuje `GainsChangedEvent`).
@@ -316,7 +319,15 @@ Lanac: `TapController` (hold → `TapEvent` na `RepIntervalSeconds`) → `Energy
 - Opus fix: `SHA256.HashData` (.NET 5+) → `SHA256.Create().ComputeHash()` (projekat je .NET Standard 2.1). Helperi `Serialize/Encrypt/Decrypt/Deserialize` su `public static` (testabilni).
 - Verifikacija: `Editor/SaveSystemSmokeTest` (headless `-executeMethod`) — round-trip lossless + garbage odbačen = **PASS**. SaveSystem ožičen u scenu (6/6 sistema).
 
-> **Sledeći korak:** **Faza 2 (Ekonomija)** — NALOG #006: upgrade sistem (delovi tela → povećavaju `gainsPerRep`/`maxEnergy`...) i **pasivni prihod** (`gainsPerSecond` kroz `TickEvent`); zatim **offline zarada** (formula §5, koristi `LastSaveTimeTicks` + `gainsPerSecond` + `offlineCap`). Vidi §6 (skaliranje cena, growthRate) i §10 (soft-wall filozofija).
+**NALOG #006 (Faza 2, workflow implement + Opus review/integracija, batchmode kompajlira):** pasivni prihod + offline zarada.
+- `Economy/PassiveIncomeSystem` — na svaki `TickEvent` publikuje `GainsEarnedEvent(gainsPerSecond × dt)`; rate = `GameConfig.BasePassiveGainsPerSecond` (upgrade-i dodaju kasnije). Publikuje `PassiveIncomeChangedEvent` za HUD („X/s").
+- `Economy/OfflineEarningsSystem` — sluša `GameLoadedEvent` (SaveSystem ga publikuje posle load-a); računa `min(timeAway, OfflineCapSeconds) × gainsPerSecond × OfflineEfficiency` (§5), grantuje preko `GainsEarnedEvent`, publikuje `OfflineProgressEvent`.
+- `CurrencyManager` — dodat `GainsEarnedEvent` listener (`Add`) uz postojeći rep handling. **Ordering korektan:** restore (save) → pa offline gains se dodaju na restore-ovan balans (sinhrono).
+- `UI/OfflineClaimPopup` — panel + poruka + „OK" dugme; sluša `OfflineProgressEvent`. `HudController` dobio passive-rate tekst.
+- `GameConfig` [Economy]: `BasePassiveGainsPerSecond` (1), `OfflineCapSeconds` (7200=2h), `OfflineEfficiency` (0.5).
+- Verifikacija: batchmode kompajlira; scena regenerisana `wired 8/8` sa svim ref-ovima (popup panel/text/button, passive rate). *(3 review agenta pala na session-limit → Opus radio review.)*
+
+> **Sledeći korak (za razmatranje):** **Upgrade sistem** — `UpgradeData` SO + `UpgradeManager`, cost `baseCost × growthRate^level` (§6). Pre koda dogovoriti: koji apgrejdovi (delovi tela?), krive cena (growthRate 1.07–1.15), kako efekti stižu do sistema (predlog: `PlayerStats` servis koji agregira base+upgrade → publikuje `StatsChangedEvent`, sistemi čitaju). Poštovati §10 soft-wall.
 > Setup na drugom PC-u: `scripts/setup-dev-env.ps1` (vidi `SETUP.md`).
 
 ### Radni model (arhitekta + pod-agenti)

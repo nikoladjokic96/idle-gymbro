@@ -44,5 +44,22 @@ namespace IdleGymBro.Data
         private float _autoSaveIntervalSeconds = 30f;
 
         public float AutoSaveIntervalSeconds => _autoSaveIntervalSeconds;
+
+        [Header("Economy")]
+        [SerializeField]
+        [Min(0f)]
+        private float _basePassiveGainsPerSecond = 1f;
+
+        [SerializeField]
+        [Min(0f)]
+        private float _offlineCapSeconds = 7200f; // 2h
+
+        [SerializeField]
+        [Range(0f, 1f)]
+        private float _offlineEfficiency = 0.5f;
+
+        public float BasePassiveGainsPerSecond => _basePassiveGainsPerSecond;
+        public float OfflineCapSeconds => _offlineCapSeconds;
+        public float OfflineEfficiency => _offlineEfficiency;
     }
 }

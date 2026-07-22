@@ -27,11 +27,13 @@ namespace IdleGymBro.Economy
         private void OnEnable()
         {
             EventBus.Subscribe<RepPerformedEvent>(HandleRepPerformed);
+            EventBus.Subscribe<GainsEarnedEvent>(HandleGainsEarned);
         }
 
         private void OnDisable()
         {
             EventBus.Unsubscribe<RepPerformedEvent>(HandleRepPerformed);
+            EventBus.Unsubscribe<GainsEarnedEvent>(HandleGainsEarned);
         }
 
         private void Start()
@@ -47,6 +49,12 @@ namespace IdleGymBro.Economy
             }
 
             TotalGains += _gameConfig.GainsPerRep;
+            EventBus.Publish(new GainsChangedEvent(TotalGains));
+        }
+
+        private void HandleGainsEarned(GainsEarnedEvent e)
+        {
+            TotalGains += e.Amount;
             EventBus.Publish(new GainsChangedEvent(TotalGains));
         }
 

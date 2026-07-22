@@ -60,6 +60,8 @@ namespace IdleGymBro.EditorTools
             var currencyManager = gameSystems.AddComponent<CurrencyManager>();
             var tapController = gameSystems.AddComponent<TapController>();
             var saveSystem = gameSystems.AddComponent<SaveSystem>();
+            var passiveIncome = gameSystems.AddComponent<PassiveIncomeSystem>();
+            var offlineEarnings = gameSystems.AddComponent<OfflineEarningsSystem>();
 
             AssignRef(gameManager, "_gameConfig", config);
             AssignRef(tickSystem, "_gameConfig", config);
@@ -67,10 +69,12 @@ namespace IdleGymBro.EditorTools
             AssignRef(currencyManager, "_gameConfig", config);
             AssignRef(tapController, "_gameConfig", config);
             AssignRef(saveSystem, "_gameConfig", config);
+            AssignRef(passiveIncome, "_gameConfig", config);
+            AssignRef(offlineEarnings, "_gameConfig", config);
 
             // Self-check: verify the asset reference actually serialized (asset refs are
             // more timing-sensitive in batchmode than scene-object refs).
-            var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem };
+            var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem, passiveIncome, offlineEarnings };
             int wired = 0;
             foreach (var s in systems)
             {
@@ -107,6 +111,10 @@ namespace IdleGymBro.EditorTools
             var gainsText = CreateText("GainsText", canvasGo.transform, "0", 80f, TextAlignmentOptions.Center);
             SetRect(gainsText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -160f), new Vector2(700f, 120f));
 
+            // --- Passive income rate ---
+            var passiveRateText = CreateText("PassiveRateText", canvasGo.transform, "0/s", 40f, TextAlignmentOptions.Center);
+            SetRect(passiveRateText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -250f), new Vector2(700f, 50f));
+
             // --- Energy bar ---
             var energyBarBg = CreateImage("EnergyBarBG", canvasGo.transform, uiSprite, new Color(0.15f, 0.15f, 0.15f));
             SetRect(energyBarBg.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -320f), new Vector2(700f, 60f));
@@ -129,6 +137,33 @@ namespace IdleGymBro.EditorTools
             AssignRef(hudController, "_gainsText", gainsText);
             AssignRef(hudController, "_energyFill", energyBar);
             AssignRef(hudController, "_energyText", energyText);
+            AssignRef(hudController, "_passiveRateText", passiveRateText);
+
+            // --- Offline claim popup ---
+            // Component lives on an always-active object; the panel it toggles is a child,
+            // so hiding the panel never disables the component (which would kill OnEnable).
+            var popupGo = new GameObject("OfflinePopup");
+            popupGo.transform.SetParent(canvasGo.transform, false);
+            var popup = popupGo.AddComponent<OfflineClaimPopup>();
+
+            var panel = CreateImage("Panel", popupGo.transform, uiSprite, new Color(0f, 0f, 0f, 0.85f));
+            StretchFull(panel.rectTransform);
+
+            var offlineMessage = CreateText("Message", panel.transform, string.Empty, 48f, TextAlignmentOptions.Center);
+            SetRect(offlineMessage.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 90f), new Vector2(900f, 320f));
+
+            var claimBtnImage = CreateImage("ClaimButton", panel.transform, uiSprite, new Color(0.20f, 0.80f, 0.35f));
+            SetRect(claimBtnImage.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -140f), new Vector2(360f, 110f));
+            var claimButton = claimBtnImage.gameObject.AddComponent<Button>();
+            var claimLabel = CreateText("Label", claimBtnImage.transform, "OK", 44f, TextAlignmentOptions.Center);
+            SetRect(claimLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(360f, 110f));
+
+            AssignRef(popup, "_panel", panel.gameObject);
+            AssignRef(popup, "_messageText", offlineMessage);
+            AssignRef(popup, "_claimButton", claimButton);
+
+            // Hidden by default in the scene too (runtime Awake also hides it).
+            panel.gameObject.SetActive(false);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
@@ -205,6 +240,15 @@ namespace IdleGymBro.EditorTools
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.sizeDelta = size;
             rt.anchoredPosition = anchoredPos;
+        }
+
+        private static void StretchFull(RectTransform rt)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
         }
     }
 }
