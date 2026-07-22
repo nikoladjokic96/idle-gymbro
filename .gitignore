@@ -1,0 +1,70 @@
+# ==============================================================
+# Unity .gitignore
+# Fajlovi koje Unity sam generiše — NE idu u git.
+# ==============================================================
+
+# Unity generated folders
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+
+# Recordings / crash reports
+[Rr]ecordings/
+sysinfo.txt
+crashlytics-build.properties
+
+# Asset meta files: ignoriši .meta SAMO ako je i asset ignorisan
+!/[Aa]ssets/**/*.meta
+
+# Visual Studio / Rider / IDE generated
+.vs/
+.vsconfig
+.idea/
+.vscode/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+ExportedObj/
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Builds / packages
+*.apk
+*.aab
+*.unitypackage*
+*.app
+
+# Addressables build output
+/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# OS junk
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+
+# Secrets (nikad ne commit-uj keystore / API ključeve)
+*.keystore
+*.jks
+/secrets/
+google-services.json
+GoogleService-Info.plist
