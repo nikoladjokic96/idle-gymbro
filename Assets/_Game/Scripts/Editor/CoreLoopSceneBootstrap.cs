@@ -59,16 +59,18 @@ namespace IdleGymBro.EditorTools
             var energySystem = gameSystems.AddComponent<EnergySystem>();
             var currencyManager = gameSystems.AddComponent<CurrencyManager>();
             var tapController = gameSystems.AddComponent<TapController>();
+            var saveSystem = gameSystems.AddComponent<SaveSystem>();
 
             AssignRef(gameManager, "_gameConfig", config);
             AssignRef(tickSystem, "_gameConfig", config);
             AssignRef(energySystem, "_gameConfig", config);
             AssignRef(currencyManager, "_gameConfig", config);
             AssignRef(tapController, "_gameConfig", config);
+            AssignRef(saveSystem, "_gameConfig", config);
 
             // Self-check: verify the asset reference actually serialized (asset refs are
             // more timing-sensitive in batchmode than scene-object refs).
-            var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController };
+            var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem };
             int wired = 0;
             foreach (var s in systems)
             {

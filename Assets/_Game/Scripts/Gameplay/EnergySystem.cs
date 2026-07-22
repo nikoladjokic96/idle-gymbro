@@ -18,7 +18,7 @@ namespace IdleGymBro.Gameplay
 
     public readonly struct RepPerformedEvent : IGameEvent { }
 
-    public class EnergySystem : MonoBehaviour
+    public class EnergySystem : MonoBehaviour, ISaveable
     {
         [SerializeField]
         private GameConfig _gameConfig;
@@ -104,6 +104,17 @@ namespace IdleGymBro.Gameplay
             }
 
             return false;
+        }
+
+        public void CaptureState(SaveData data)
+        {
+            data.CurrentEnergy = _currentEnergy;
+        }
+
+        public void RestoreState(SaveData data)
+        {
+            _currentEnergy = Mathf.Clamp(data.CurrentEnergy, 0f, MaxEnergy);
+            EventBus.Publish(new EnergyChangedEvent(_currentEnergy, MaxEnergy));
         }
     }
 }

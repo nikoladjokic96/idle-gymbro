@@ -37,5 +37,12 @@ namespace IdleGymBro.Data
         public float EnergyRegenPerSecond => _energyRegenPerSecond;
         public float GainsPerRep => _gainsPerRep;
         public float RepIntervalSeconds => _repIntervalSeconds;
+
+        [Header("Save System")]
+        [SerializeField]
+        [Min(1f)]
+        private float _autoSaveIntervalSeconds = 30f;
+
+        public float AutoSaveIntervalSeconds => _autoSaveIntervalSeconds;
     }
 }

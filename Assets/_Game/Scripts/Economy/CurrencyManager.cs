@@ -15,7 +15,7 @@ namespace IdleGymBro.Economy
         }
     }
 
-    public class CurrencyManager : MonoBehaviour
+    public class CurrencyManager : MonoBehaviour, ISaveable
     {
         [SerializeField]
         private GameConfig _gameConfig;
@@ -64,6 +64,17 @@ namespace IdleGymBro.Economy
             }
 
             return false;
+        }
+
+        public void CaptureState(SaveData data)
+        {
+            data.TotalGains = TotalGains;
+        }
+
+        public void RestoreState(SaveData data)
+        {
+            TotalGains = data.TotalGains;
+            EventBus.Publish(new GainsChangedEvent(TotalGains));
         }
     }
 }

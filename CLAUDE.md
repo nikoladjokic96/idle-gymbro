@@ -284,12 +284,14 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 - [x] Git inicijalizovan + povezan sa GitHub-om (`origin` → github.com/nikoladjokic96/idle-gymbro, javni repo)
 - [x] Android Build Support: editor + Android SDK (platforme 34/35/36) + NDK r27c + OpenJDK + Build Tools + CMake — sada ih `scripts/setup-dev-env.ps1` instalira automatski (`-m android android-sdk-ndk-tools --childModules`) i verifikuje na disku
 
-**Faza 1 (Core loop) — u toku:**
+**Faza 1 (Core loop) — GOTOVA.**
 - [x] Core backbone: `EventBus`, `TickSystem`, `TickEvent`, `GameConfig`, `GameManager` — NALOG #001 (Sonnet, review-ovan, kompajlira)
 - [x] EnergySystem (troši energiju na rep, regen kroz `TickEvent`) — NALOG #002
 - [x] CurrencyManager (Gains, `double`) + TapController (hold → rep kadenca) — NALOG #002
 - [x] Placeholder + minimalni HUD (energy bar + gains counter) — NALOG #003
-- [ ] SaveSystem (JSON/Newtonsoft, enkriptovan) + offline zarada
+- [x] Scena ožičena iz koda (bootstrap tool) — NALOG #004
+- [x] SaveSystem (JSON/Newtonsoft, **enkriptovan AES**) — NALOG #005
+- [→] Offline zarada — premešteno u **Fazu 2** (traži pasivni prihod `gainsPerSecond` koji još ne postoji)
 
 **NALOG #002 (Sonnet, review-ovan Opus, batchmode kompajlira):** potpuno event-driven core loop.
 Lanac: `TapController` (hold → `TapEvent` na `RepIntervalSeconds`) → `EnergySystem` (troši `EnergyPerRep` ako ima energije, regen na `TickEvent`, publikuje `EnergyChangedEvent` + `RepPerformedEvent`) → `CurrencyManager` (dodaje `GainsPerRep`, publikuje `GainsChangedEvent`).
@@ -307,7 +309,14 @@ Lanac: `TapController` (hold → `TapEvent` na `RepIntervalSeconds`) → `Energy
 - TMP Essential Resources i `GameConfig.asset` su commit-ovani → projekat radi out-of-the-box (nema manuelnog TMP importa).
 - Verifikacija: `SampleScene.unity` ima svih 5 `_gameConfig` kao `type:2` asset-ref i HUD ref-ove; batchmode bez grešaka.
 
-> **Sledeći korak:** playtest #002/#003 u editoru (drži klik → gains raste, energy bar se prazni, placeholder pumpa). Zatim NALOG #005 — `SaveSystem` (JSON/Newtonsoft, enkriptovan; `TotalGains` + energija + `lastSaveTime`, restore preko `ISaveable`/DTO) → offline zarada.
+**NALOG #005 (Sonnet + Opus integracija, batchmode kompajlira + smoke test PASS):** enkriptovan save/load.
+- `Core/SaveSystem` — `[DefaultExecutionOrder(1000)]` (učitava POSLE default state-a sistema). Save na autosave interval (`GameConfig.AutoSaveIntervalSeconds`, 30s), `OnApplicationPause(true)`, `OnApplicationQuit`. AES-CBC (ključ = SHA256 passphrase, IV prepend), JSON preko Newtonsoft, fajl `persistentDataPath/gymbro.sav`.
+- `Core/ISaveable` (`CaptureState`/`RestoreState`) — `CurrencyManager` i `EnergySystem` ga implementiraju; SaveSystem ih skuplja preko `FindObjectsByType().OfType<ISaveable>()`. Restore publikuje `Gains/EnergyChangedEvent` da UI osveži.
+- `Data/SaveData` — DTO (`Version`, `TotalGains`, `CurrentEnergy`, `LastSaveTimeTicks`). Korumpiran/nedostajući save → fresh (bez crash-a).
+- Opus fix: `SHA256.HashData` (.NET 5+) → `SHA256.Create().ComputeHash()` (projekat je .NET Standard 2.1). Helperi `Serialize/Encrypt/Decrypt/Deserialize` su `public static` (testabilni).
+- Verifikacija: `Editor/SaveSystemSmokeTest` (headless `-executeMethod`) — round-trip lossless + garbage odbačen = **PASS**. SaveSystem ožičen u scenu (6/6 sistema).
+
+> **Sledeći korak:** **Faza 2 (Ekonomija)** — NALOG #006: upgrade sistem (delovi tela → povećavaju `gainsPerRep`/`maxEnergy`...) i **pasivni prihod** (`gainsPerSecond` kroz `TickEvent`); zatim **offline zarada** (formula §5, koristi `LastSaveTimeTicks` + `gainsPerSecond` + `offlineCap`). Vidi §6 (skaliranje cena, growthRate) i §10 (soft-wall filozofija).
 > Setup na drugom PC-u: `scripts/setup-dev-env.ps1` (vidi `SETUP.md`).
 
 ### Radni model (arhitekta + pod-agenti)
