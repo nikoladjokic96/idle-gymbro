@@ -6,5 +6,6 @@ namespace IdleGymBro.Data
         public double TotalGains;
         public float CurrentEnergy;
         public long LastSaveTimeTicks;
+        public System.Collections.Generic.Dictionary<string, int> UpgradeLevels = new System.Collections.Generic.Dictionary<string, int>();
     }
 }

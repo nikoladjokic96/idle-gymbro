@@ -48,6 +48,14 @@ namespace IdleGymBro.EditorTools
                 return;
             }
 
+            // Placeholder upgrades (data-driven; tune values in the .asset inspectors later).
+            var upgrades = new UpgradeData[]
+            {
+                GetOrCreateUpgrade("stronger_arms", "Stronger Arms", StatType.GainsPerRep, 1d, 10d, 1.10f),
+                GetOrCreateUpgrade("protein_shake", "Protein Shake", StatType.GainsPerRep, 5d, 100d, 1.12f),
+                GetOrCreateUpgrade("training_partner", "Training Partner", StatType.PassiveGainsPerSecond, 0.5d, 50d, 1.11f),
+            };
+
             var root = new GameObject(RootName);
 
             // --- Systems ---
@@ -62,6 +70,7 @@ namespace IdleGymBro.EditorTools
             var saveSystem = gameSystems.AddComponent<SaveSystem>();
             var passiveIncome = gameSystems.AddComponent<PassiveIncomeSystem>();
             var offlineEarnings = gameSystems.AddComponent<OfflineEarningsSystem>();
+            var upgradeManager = gameSystems.AddComponent<UpgradeManager>();
 
             AssignRef(gameManager, "_gameConfig", config);
             AssignRef(tickSystem, "_gameConfig", config);
@@ -71,10 +80,12 @@ namespace IdleGymBro.EditorTools
             AssignRef(saveSystem, "_gameConfig", config);
             AssignRef(passiveIncome, "_gameConfig", config);
             AssignRef(offlineEarnings, "_gameConfig", config);
+            AssignRef(upgradeManager, "_gameConfig", config);
+            AssignArray(upgradeManager, "_upgrades", upgrades);
 
             // Self-check: verify the asset reference actually serialized (asset refs are
             // more timing-sensitive in batchmode than scene-object refs).
-            var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem, passiveIncome, offlineEarnings };
+            var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem, passiveIncome, offlineEarnings, upgradeManager };
             int wired = 0;
             foreach (var s in systems)
             {
@@ -139,6 +150,24 @@ namespace IdleGymBro.EditorTools
             AssignRef(hudController, "_energyText", energyText);
             AssignRef(hudController, "_passiveRateText", passiveRateText);
 
+            // --- Upgrade buttons (one per placeholder upgrade, stacked at the bottom) ---
+            var upgradePanel = new GameObject("UpgradePanel", typeof(RectTransform));
+            upgradePanel.transform.SetParent(canvasGo.transform, false);
+            for (int i = 0; i < upgrades.Length; i++)
+            {
+                var btnImage = CreateImage("UpgradeBtn_" + upgrades[i].Id, upgradePanel.transform, uiSprite, new Color(0.18f, 0.30f, 0.45f));
+                SetRect(btnImage.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 130f + i * 140f), new Vector2(760f, 120f));
+                var button = btnImage.gameObject.AddComponent<Button>();
+                button.targetGraphic = btnImage;
+                var buttonLabel = CreateText("Label", btnImage.transform, string.Empty, 34f, TextAlignmentOptions.Center);
+                SetRect(buttonLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760f, 120f));
+
+                var upgradeButton = btnImage.gameObject.AddComponent<UpgradeButton>();
+                AssignRef(upgradeButton, "_upgrade", upgrades[i]);
+                AssignRef(upgradeButton, "_button", button);
+                AssignRef(upgradeButton, "_label", buttonLabel);
+            }
+
             // --- Offline claim popup ---
             // Component lives on an always-active object; the panel it toggles is a child,
             // so hiding the panel never disables the component (which would kill OnEnable).
@@ -188,6 +217,57 @@ namespace IdleGymBro.EditorTools
             // (an in-memory CreateInstance object would serialize as {fileID: 0}).
             AssetDatabase.ImportAsset(ConfigPath, ImportAssetOptions.ForceSynchronousImport);
             return AssetDatabase.LoadAssetAtPath<GameConfig>(ConfigPath);
+        }
+
+        private const string UpgradesFolder = "Assets/_Game/Data/Upgrades";
+
+        private static UpgradeData GetOrCreateUpgrade(string id, string displayName, StatType statType, double effectPerLevel, double baseCost, float growthRate)
+        {
+            if (!AssetDatabase.IsValidFolder(UpgradesFolder))
+            {
+                AssetDatabase.CreateFolder("Assets/_Game/Data", "Upgrades");
+            }
+
+            string path = $"{UpgradesFolder}/{id}.asset";
+            var upgrade = AssetDatabase.LoadAssetAtPath<UpgradeData>(path);
+            if (upgrade == null)
+            {
+                upgrade = ScriptableObject.CreateInstance<UpgradeData>();
+                AssetDatabase.CreateAsset(upgrade, path);
+            }
+
+            var so = new SerializedObject(upgrade);
+            so.FindProperty("_id").stringValue = id;
+            so.FindProperty("_displayName").stringValue = displayName;
+            so.FindProperty("_statType").enumValueIndex = (int)statType;
+            so.FindProperty("_effectPerLevel").doubleValue = effectPerLevel;
+            so.FindProperty("_baseCost").doubleValue = baseCost;
+            so.FindProperty("_growthRate").floatValue = growthRate;
+            so.ApplyModifiedProperties();
+
+            AssetDatabase.SaveAssets();
+            // Reload the canonical, imported instance so it serializes as an asset reference.
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            return AssetDatabase.LoadAssetAtPath<UpgradeData>(path);
+        }
+
+        private static void AssignArray(Component c, string field, Object[] values)
+        {
+            var so = new SerializedObject(c);
+            var prop = so.FindProperty(field);
+            if (prop == null || !prop.isArray)
+            {
+                Debug.LogError($"[CoreLoopSceneBootstrap] Array field '{field}' not found on {c.GetType().Name}.");
+                return;
+            }
+
+            prop.arraySize = values.Length;
+            for (int i = 0; i < values.Length; i++)
+            {
+                prop.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+            }
+
+            so.ApplyModifiedProperties();
         }
 
         // The fields this builds wires (_gameConfig, _gainsText, _energyFill, _energyText)

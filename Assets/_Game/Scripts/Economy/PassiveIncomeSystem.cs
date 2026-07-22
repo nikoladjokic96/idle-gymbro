@@ -11,17 +11,27 @@ namespace IdleGymBro.Economy
 
         private bool _missingConfigLogged;
 
-        // Upgrades will add to this later; for now it is just the base config rate.
-        public double GainsPerSecond => _gameConfig != null ? _gameConfig.BasePassiveGainsPerSecond : 0d;
+        // Effective passive rate, defaults to config base and is overridden by upgrades
+        // once UpgradeManager publishes its first StatsChangedEvent.
+        private double _gainsPerSecond;
+
+        public double GainsPerSecond => _gainsPerSecond;
+
+        private void Awake()
+        {
+            _gainsPerSecond = _gameConfig != null ? _gameConfig.BasePassiveGainsPerSecond : 0d;
+        }
 
         private void OnEnable()
         {
             EventBus.Subscribe<TickEvent>(HandleTick);
+            EventBus.Subscribe<StatsChangedEvent>(HandleStatsChanged);
         }
 
         private void OnDisable()
         {
             EventBus.Unsubscribe<TickEvent>(HandleTick);
+            EventBus.Unsubscribe<StatsChangedEvent>(HandleStatsChanged);
         }
 
         private void Start()
@@ -45,6 +55,12 @@ namespace IdleGymBro.Economy
             }
 
             EventBus.Publish(new GainsEarnedEvent(gainsPerSecond * e.DeltaTime));
+        }
+
+        private void HandleStatsChanged(StatsChangedEvent e)
+        {
+            _gainsPerSecond = e.PassiveGainsPerSecond;
+            EventBus.Publish(new PassiveIncomeChangedEvent(_gainsPerSecond));
         }
 
         private bool ValidateConfig()

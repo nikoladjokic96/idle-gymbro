@@ -292,9 +292,10 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 - [x] Scena ožičena iz koda (bootstrap tool) — NALOG #004
 - [x] SaveSystem (JSON/Newtonsoft, **enkriptovan AES**) — NALOG #005
 
-**Faza 2 (Ekonomija) — u toku:**
+**Faza 2 (Ekonomija) — skoro gotova:**
 - [x] Pasivni prihod (`gainsPerSecond` kroz `TickEvent`) + offline zarada (§5 formula) — NALOG #006
-- [ ] Upgrade sistem (delovi tela → dižu `gainsPerRep`/`gainsPerSecond`/`maxEnergy`; cost `baseCost × growthRate^level` §6) — **za razmatranje** (dizajn krivih cena + koji apgrejdovi)
+- [x] Upgrade sistem (data-driven, cost `baseCost × growthRate^level`) + `PlayerStats` agregacija preko `StatsChangedEvent` — NALOG #007
+- [ ] *(kasnije)* više stat tipova (maxEnergy/regen), prestige (§6), više upgrade-ova + balans tuning
 
 **NALOG #002 (Sonnet, review-ovan Opus, batchmode kompajlira):** potpuno event-driven core loop.
 Lanac: `TapController` (hold → `TapEvent` na `RepIntervalSeconds`) → `EnergySystem` (troši `EnergyPerRep` ako ima energije, regen na `TickEvent`, publikuje `EnergyChangedEvent` + `RepPerformedEvent`) → `CurrencyManager` (dodaje `GainsPerRep`, publikuje `GainsChangedEvent`).
@@ -327,7 +328,15 @@ Lanac: `TapController` (hold → `TapEvent` na `RepIntervalSeconds`) → `Energy
 - `GameConfig` [Economy]: `BasePassiveGainsPerSecond` (1), `OfflineCapSeconds` (7200=2h), `OfflineEfficiency` (0.5).
 - Verifikacija: batchmode kompajlira; scena regenerisana `wired 8/8` sa svim ref-ovima (popup panel/text/button, passive rate). *(3 review agenta pala na session-limit → Opus radio review.)*
 
-> **Sledeći korak (za razmatranje):** **Upgrade sistem** — `UpgradeData` SO + `UpgradeManager`, cost `baseCost × growthRate^level` (§6). Pre koda dogovoriti: koji apgrejdovi (delovi tela?), krive cena (growthRate 1.07–1.15), kako efekti stižu do sistema (predlog: `PlayerStats` servis koji agregira base+upgrade → publikuje `StatsChangedEvent`, sistemi čitaju). Poštovati §10 soft-wall.
+**NALOG #007 (Faza 2, agent implement + Opus review/integracija, batchmode kompajlira):** data-driven upgrade sistem.
+- `Data/UpgradeData` (SO) + `Data/StatType` (`GainsPerRep`, `PassiveGainsPerSecond`). `Economy/UpgradeManager` (`ISaveable`) — `TryBuy(id)`: cost `BaseCost × GrowthRate^level`, spend preko `CurrencyManager.TrySpend`, level++, `RecomputeAndPublish` + `UpgradePurchasedEvent`.
+- **`PlayerStats` agregacija:** `UpgradeManager` računa `base(config) + Σ(effectPerLevel × level)` i publikuje `StatsChangedEvent(gainsPerRep, passiveGainsPerSecond)`. `CurrencyManager`/`PassiveIncomeSystem` čitaju efektivne vrednosti iz eventa (default = config base pre prvog eventa). Ordering: Start publikuje base → SaveSystem restore recompute-uje sa levelima.
+- `CurrencyManager.TrySpend(double)`; `SaveData.UpgradeLevels` (Dictionary) — leveli se snimaju/restore-uju.
+- `UI/UpgradeButton` — bind na jedan `UpgradeData`; klik → `TryBuy`; refresh (level, cost, affordability) na `Gains/UpgradePurchased/StatsChangedEvent`.
+- 3 placeholder asseta (`Data/Upgrades/`): stronger_arms, protein_shake (GainsPerRep), training_partner (passive). Bootstrap ih kreira + ožičava 3 dugmeta.
+- Verifikacija: batchmode `wired 9/9`; UpgradeManager `_upgrades` niz (3 asset-ref) + 3 UpgradeButton-a ožičeni u sceni.
+
+> **Sledeći korak (za razmatranje):** balans tuning (probati krive cena/prihoda, §6/§10 soft-wall) · ILI više upgrade tipova (maxEnergy) · ILI **Faza 3 (karakter/pixel art)** — vidi [`docs/art-brief.md`](docs/art-brief.md), sistem slojeva + muscle tiers. Prestige (§6) je post-MVP.
 > Setup na drugom PC-u: `scripts/setup-dev-env.ps1` (vidi `SETUP.md`).
 
 ### Radni model (arhitekta + pod-agenti)
