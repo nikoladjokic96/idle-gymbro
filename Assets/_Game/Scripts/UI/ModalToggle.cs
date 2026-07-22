@@ -17,6 +17,9 @@ namespace IdleGymBro.UI
         [SerializeField]
         private Button _closeButton;
 
+        [SerializeField]
+        private Button _backdropButton;
+
         public bool IsOpen => _panel != null && _panel.activeSelf;
 
         private void Awake()
@@ -38,6 +41,11 @@ namespace IdleGymBro.UI
             {
                 _closeButton.onClick.AddListener(Close);
             }
+
+            if (_backdropButton != null)
+            {
+                _backdropButton.onClick.AddListener(Close);
+            }
         }
 
         private void OnDisable()
@@ -50,6 +58,11 @@ namespace IdleGymBro.UI
             if (_closeButton != null)
             {
                 _closeButton.onClick.RemoveListener(Close);
+            }
+
+            if (_backdropButton != null)
+            {
+                _backdropButton.onClick.RemoveListener(Close);
             }
         }
 

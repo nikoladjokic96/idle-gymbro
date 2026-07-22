@@ -109,6 +109,9 @@ namespace IdleGymBro.EditorTools
             var scaler = canvasGo.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1080, 1920);
+            // Expand: pick the smaller scale so the full 1080x1920 design space always fits the
+            // screen (portrait phone or landscape editor Game view) — modals can never overflow.
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
 
             // EventSystem is REQUIRED for UI buttons (Upgrades / offline claim / close) to be
             // clickable. Uses the new Input System UI module with its default UI action maps.
@@ -126,15 +129,15 @@ namespace IdleGymBro.EditorTools
 
             // --- Gains text ---
             var gainsText = CreateText("GainsText", canvasGo.transform, "0", 80f, TextAlignmentOptions.Center);
-            SetRect(gainsText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -160f), new Vector2(700f, 120f));
+            SetRect(gainsText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -140f), new Vector2(700f, 110f));
 
             // --- Passive income rate ---
             var passiveRateText = CreateText("PassiveRateText", canvasGo.transform, "0/s", 40f, TextAlignmentOptions.Center);
-            SetRect(passiveRateText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -250f), new Vector2(700f, 50f));
+            SetRect(passiveRateText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -240f), new Vector2(700f, 50f));
 
             // --- Energy bar ---
             var energyBarBg = CreateImage("EnergyBarBG", canvasGo.transform, uiSprite, new Color(0.15f, 0.15f, 0.15f));
-            SetRect(energyBarBg.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -320f), new Vector2(700f, 60f));
+            SetRect(energyBarBg.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -330f), new Vector2(700f, 60f));
 
             var energyBar = CreateImage("EnergyBar", energyBarBg.transform, uiSprite, new Color(0.20f, 0.80f, 0.35f));
             energyBar.type = Image.Type.Filled;
@@ -158,7 +161,7 @@ namespace IdleGymBro.EditorTools
 
             // --- Upgrades: "UPGRADES" open button on the HUD + a modal with the upgrade buttons ---
             var openBtnImage = CreateImage("UpgradesOpenButton", canvasGo.transform, uiSprite, new Color(0.18f, 0.30f, 0.45f));
-            SetRect(openBtnImage.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 100f), new Vector2(460f, 130f));
+            SetRect(openBtnImage.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 110f), new Vector2(460f, 130f));
             var openButton = openBtnImage.gameObject.AddComponent<Button>();
             openButton.targetGraphic = openBtnImage;
             var openLabel = CreateText("Label", openBtnImage.transform, "UPGRADES", 46f, TextAlignmentOptions.Center);
@@ -173,14 +176,18 @@ namespace IdleGymBro.EditorTools
             var dimmer = CreateImage("Dimmer", modal.transform, uiSprite, new Color(0f, 0f, 0f, 0.75f));
             StretchFull(dimmer.rectTransform);
 
+            var backdropButton = dimmer.gameObject.AddComponent<Button>();
+            backdropButton.transition = Selectable.Transition.None; // no hover tint on a fullscreen dimmer
+            backdropButton.targetGraphic = dimmer;
+
             var window = CreateImage("Window", modal.transform, uiSprite, new Color(0.12f, 0.14f, 0.18f, 1f));
-            SetRect(window.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(860f, 1040f));
+            SetRect(window.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760f, 980f));
 
             var modalTitle = CreateText("Title", window.transform, "UPGRADES", 60f, TextAlignmentOptions.Center);
-            SetRect(modalTitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -90f), new Vector2(760f, 100f));
+            SetRect(modalTitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -90f), new Vector2(600f, 90f));
 
             var closeBtnImage = CreateImage("CloseButton", window.transform, uiSprite, new Color(0.55f, 0.20f, 0.20f));
-            SetRect(closeBtnImage.rectTransform, new Vector2(1f, 1f), new Vector2(-70f, -70f), new Vector2(90f, 90f));
+            SetRect(closeBtnImage.rectTransform, new Vector2(1f, 1f), new Vector2(-65f, -65f), new Vector2(90f, 90f));
             var closeButton = closeBtnImage.gameObject.AddComponent<Button>();
             closeButton.targetGraphic = closeBtnImage;
             var closeLabel = CreateText("Label", closeBtnImage.transform, "X", 52f, TextAlignmentOptions.Center);
@@ -189,11 +196,11 @@ namespace IdleGymBro.EditorTools
             for (int i = 0; i < upgrades.Length; i++)
             {
                 var btnImage = CreateImage("UpgradeBtn_" + upgrades[i].Id, window.transform, uiSprite, new Color(0.18f, 0.30f, 0.45f));
-                SetRect(btnImage.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 200f - i * 190f), new Vector2(760f, 160f));
+                SetRect(btnImage.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -300f - i * 180f), new Vector2(640f, 150f));
                 var button = btnImage.gameObject.AddComponent<Button>();
                 button.targetGraphic = btnImage;
                 var buttonLabel = CreateText("Label", btnImage.transform, string.Empty, 36f, TextAlignmentOptions.Center);
-                SetRect(buttonLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760f, 160f));
+                SetRect(buttonLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(640f, 150f));
 
                 var upgradeButton = btnImage.gameObject.AddComponent<UpgradeButton>();
                 AssignRef(upgradeButton, "_upgrade", upgrades[i]);
@@ -207,6 +214,7 @@ namespace IdleGymBro.EditorTools
             AssignRef(modalToggle, "_panel", modal);
             AssignRef(modalToggle, "_openButton", openButton);
             AssignRef(modalToggle, "_closeButton", closeButton);
+            AssignRef(modalToggle, "_backdropButton", backdropButton);
 
             // --- Offline claim popup ---
             // Component lives on an always-active object; the panel it toggles is a child,
