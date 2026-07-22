@@ -295,15 +295,18 @@ Lanac: `TapController` (hold → `TapEvent` na `RepIntervalSeconds`) → `Energy
 - Base tuning vrednosti (`MaxEnergy`, `EnergyPerRep`, `EnergyRegenPerSecond`, `GainsPerRep`, `RepIntervalSeconds`) su u `GameConfig` (§16 „jedan SO po sistemu" svesno odloženo za MVP — upgrade sistem u Fazi 2 razdvaja base od runtime).
 - `GameManager` dobio `[DefaultExecutionOrder(-1000)]` da `EventBus.Clear()` u `Awake` ide pre svih pretplata.
 - Input: novi Input System (`Pointer.current.press.isPressed`) — hold ceo ekran za MVP.
-- **Manuelni Unity korak (blokira testiranje u editoru):** napravi `GameConfig.asset` (Create → IdleGymBro/Config/GameConfig), dodaj `TickSystem`/`GameManager`/`EnergySystem`/`CurrencyManager`/`TapController` na scenu i dodeli `GameConfig` referencu svakom. Bez toga loop postoji ali nije ožičen.
-
 **NALOG #003 (Sonnet, review-ovan Opus, batchmode kompajlira):** vizuelni sloj da se loop vidi/testira.
 - `UI/HudController` — event-driven, sluša `GainsChangedEvent` (→ gains counter) i `EnergyChangedEvent` (→ energy bar `Image.fillAmount` + „cur/max" tekst). Ne drži ref na sisteme.
 - `UI/NumberFormatter` — idle-stil skraćivanje (`1.23K`, `4.5M`...).
 - `Character/PlaceholderCharacter` — scale-punch na `RepPerformedEvent` (coroutine, bez DOTween — DOTween tek u Fazi 4).
-- TMP dolazi u `com.unity.ugui` 2.0.0; treba jednom **Window → TextMeshPro → Import TMP Essential Resources** da se tekst renderuje.
 
-> **Sledeći korak:** NALOG #004 — `SaveSystem` (JSON/Newtonsoft, enkriptovan; snima `TotalGains` + energiju + `lastSaveTime`, restore preko `ISaveable` ili DTO) → onda offline zarada. Prvo ožičiti scenu (gore) i playtestovati #002/#003.
+**NALOG #004 (Sonnet + Opus integracija, batchmode izvršeno i verifikovano):** scena ožičena iz koda.
+- `Editor/CoreLoopSceneBootstrap` — editor tool (`IdleGymBro → Build Core Loop Scene`, i headless `-executeMethod`) koji pravi `GameConfig.asset`, dodaje 5 sistema + HUD + placeholder na `SampleScene` i ožičava sve reference preko `SerializedObject`. **Zamena za raniji manuelni wiring korak.**
+- Gotcha rešen: config asset se učitava **posle** `EditorSceneManager.OpenScene(Single)` — otvaranje scene u Single modu invalidira ref-ove uzete ranije (posledica: `_gameConfig` je bio `{fileID:0}`). Self-check u toolu loguje `_gameConfig wired on N/5`.
+- TMP Essential Resources i `GameConfig.asset` su commit-ovani → projekat radi out-of-the-box (nema manuelnog TMP importa).
+- Verifikacija: `SampleScene.unity` ima svih 5 `_gameConfig` kao `type:2` asset-ref i HUD ref-ove; batchmode bez grešaka.
+
+> **Sledeći korak:** playtest #002/#003 u editoru (drži klik → gains raste, energy bar se prazni, placeholder pumpa). Zatim NALOG #005 — `SaveSystem` (JSON/Newtonsoft, enkriptovan; `TotalGains` + energija + `lastSaveTime`, restore preko `ISaveable`/DTO) → offline zarada.
 > Setup na drugom PC-u: `scripts/setup-dev-env.ps1` (vidi `SETUP.md`).
 
 ### Radni model (arhitekta + pod-agenti)
