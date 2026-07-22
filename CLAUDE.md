@@ -274,15 +274,17 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 
 ## 17. Trenutni status
 
-**Faza: 0 (Setup) — u toku.**
+**Faza: 0 (Setup) — skoro gotova. Sledi Faza 1.**
 
 - [x] Dizajn i plan zaključani (ovaj dokument)
-- [ ] Unity projekat kreiran
-- [ ] Folder struktura postavljena
-- [ ] Paketi instalirani
+- [x] Unity projekat kreiran (2D URP, Unity **6000.0.79f1**, iz template-a u repo root)
+- [ ] Folder struktura (`_Game/…`) — sledi kroz NALOG #001 (Faza 1)
+- [x] Paketi instalirani — core: URP, 2D feature, Input System, TMP, Newtonsoft *(DOTween/LevelPlay/IAP se dodaju u svojim fazama)*
 - [x] Git inicijalizovan + povezan sa GitHub-om (`origin` → github.com/nikoladjokic96/idle-gymbro, javni repo)
+- [~] Android Build Support: editor + build support OK; **SDK/NDK parcijalno** — dovršiti kroz Hub GUI pred prvi APK build
 - [ ] Faza 1: Core loop
 
-> **Sledeći korak:** Faza 0 — setup Unity projekta i skeleta. Krenuti tek kad korisnik kaže.
+> **Sledeći korak:** Faza 1 — pustiti **NALOG #001** (EventBus/TickSystem/GameManager/GameConfig) pod-agentu.
+> Setup na drugom PC-u: `scripts/setup-dev-env.ps1` (vidi `SETUP.md`).
 
 *(Claude: ažuriraj ovu sekciju posle svakog urađenog koraka.)*
