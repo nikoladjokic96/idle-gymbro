@@ -2,7 +2,8 @@
 
 > Ovaj fajl je glavni kontekst i vodič za razvoj igre **Idle GymBro**.
 > Claude Code ga automatski učitava. Pročitaj ga PRE bilo kakvog rada na projektu.
-> Kada nešto uradiš, **ažuriraj sekciju [Trenutni status](#17-trenutni-status)**.
+> Kada nešto uradiš, **ažuriraj [Trenutni status](#17-trenutni-status)** (kompaktno)
+> i dopiši detalje/gotchas u [`docs/dev-log.md`](docs/dev-log.md).
 
 ---
 
@@ -29,7 +30,7 @@ Jak, deljiv identitet = besplatni viralni marketing.
 |---|---|
 | Engine | **Unity 6 (LTS)**, 2D URP |
 | Jezik | **C#** |
-| Art | **AI-generisan za sada**, kasnije moguća zamena kvalitetnijim → **sve mora biti swappable** |
+| Art | **Pixel art, front-view** (standard: [`docs/art-brief.md`](docs/art-brief.md) — canvas 128×192, PPU 128, pivot bottom-center). Izvor: Aseprite/umetnik/AI → **sve mora biti swappable** kroz imenovane slotove |
 | Platforma | **Android prvo** (min API 24, IL2CPP, ARM64) |
 | Data | **ScriptableObjects** (data-driven, balans bez koda) |
 | Monetizacija | **Soft "Medieval Idle Prayer" model** — duga progresija, opt-in reklame, soft wall, zarada nenametljiva (vidi [sekciju 10](#10-monetizacija)) |
@@ -46,10 +47,11 @@ Jak, deljiv identitet = besplatni viralni marketing.
 | Animacije / juice | Animator + **DOTween** |
 | Reklame | **Unity LevelPlay** (mediation) + AdMob/Unity Ads |
 | IAP | **Unity IAP** |
-| Save | **JSON (Newtonsoft)**, lokalni fajl, **enkriptovan** |
+| Save | **JSON (Newtonsoft)**, lokalni fajl, **enkriptovan** (AES-CBC — implementirano) |
 | Analytics | GameAnalytics ili Unity Analytics (besplatno) |
 
-**Instalirati na startu:** URP, Input System, TextMeshPro, DOTween, Newtonsoft JSON, LevelPlay, Unity IAP.
+**Instalirano (core):** URP, 2D feature, Input System, TMP, Newtonsoft. **Dodaje se u svojoj fazi:** DOTween (Faza 4), LevelPlay + Unity IAP (Faza 5), Analytics (Faza 8).
+> Napomena (Unity 6): TextMeshPro dolazi **unutar `com.unity.ugui`** — nema zasebnog TMP paketa; Essentials resursi su commit-ovani u repo.
 
 ---
 
@@ -76,9 +78,18 @@ Assets/
 
 1. **Data-driven** — sve brojke (cene, gains, growth rate, energija) žive u ScriptableObject-ima, NIKAD hardkodovane u logici. Balansira se kao dizajner, bez rebuild-a.
 2. **Art odvojen od logike** — sprite-ovi se referenciraju kroz ScriptableObject slotove. Zamena arta = zamena `.png` fajla u slotu, bez diranja koda.
-3. **EventBus (observer pattern)** — sistemi emituju evente (`OnGainsChanged`, `OnUpgradePurchased`), UI sluša. UI ne poziva logiku direktno.
+3. **EventBus (observer pattern)** — sistemi emituju evente (`GainsChangedEvent`, `UpgradePurchasedEvent`...), UI sluša. UI ne poziva logiku direktno.
 4. **TickSystem** — centralni tick (npr. svakih 100ms) ažurira energiju/regen, pasivni prihod, boostere.
 5. **Scope discipline** — sve van trenutne faze roadmapa je POST-MVP. Ne dodavati feature-e unapred.
+6. **Scena se GENERIŠE, ne edituje ručno** — `SampleScene` gradi `Editor/CoreLoopSceneBootstrap` (menu **IdleGymBro → Build Core Loop Scene**, ili headless `-executeMethod`). Tool je idempotentan (briše i ponovo gradi `CoreLoop` root) → **svaka ručna izmena scene se GUBI na sledeći rebuild**. Nova UI/sistem komponenta u sceni = izmena bootstrap tool-a, pa rebuild.
+
+### Verifikacioni protokol (svaki nalog pre commit-a)
+
+- **Compile:** Unity batchmode (`-batchmode -quit -nographics -logFile`) — log bez `error CS`.
+- **Scena:** rebuild kroz bootstrap; self-check u logu mora reći `_gameConfig wired on N/N`.
+- **Smoke testovi:** headless `-executeMethod` (npr. `SaveSystemSmokeTest.RunSaveRoundTrip`).
+- Editor i batchmode **ne mogu istovremeno** (project lock). Prvi batchmode posle novih skripti ume samo da kompajlira — ponovi run.
+- Pun spisak naučenih gotcha-a: [`docs/dev-log.md`](docs/dev-log.md#poznati-gotchas).
 
 ---
 
@@ -215,12 +226,18 @@ Ekskluzivni outfiti/tetovaže — čisto vizuelno, **ne pay-to-win**.
 
 ## 11. UI ekrani (MVP)
 - Main game (karakter + energy bar + gains counter + tap zona + booster dugmad)
-- Upgrade panel (delovi tela, pasivni prihod)
+- Upgrade panel (delovi tela, pasivni prihod) — *implementiran kao modal*
 - Wardrobe / kustomizacija
 - Offline claim popup
 - Shop (Gear, kozmetika)
 - Prestige ekran *(post-MVP)*
 - Daily / Quests *(post-MVP)*
+
+### UI standard (zaključano kroz Fazu 2)
+- **Dizajn prostor: portrait 1080×1920**; `CanvasScaler` = ScaleWithScreenSize + **`ScreenMatchMode.Expand`** (dizajn uvek staje na ekran — i na telefonu i u landscape Game view; modali ne mogu da prelete ekran).
+- **`EventSystem` + `InputSystemUIInputModule` (AssignDefaultActions) je OBAVEZAN** — bez njega nijedno UI dugme ne prima klik. Bootstrap ga pravi.
+- **Modali kroz `UI/ModalToggle`** — open dugme + „X" + klik na dimmer zatvara; panel počinje skriven; dimmer je raycast target (blokira igru ispod).
+- **Tap nad UI-jem ne trenira** — `TapController` preskače input kad je `EventSystem.IsPointerOverGameObject()`.
 
 ---
 
@@ -265,83 +282,45 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 ---
 
 ## 16. Konvencije koda
-- C# naming: `PascalCase` za klase/metode/properties, `camelCase` za lokalne/parametre, `_camelCase` za privatna polja.
+- C# naming: `PascalCase` za klase/metode/properties, `camelCase` za lokalne/parametre, `_camelCase` za privatna polja. Inspector reference: `[SerializeField] private`. 4-space indent, Allman zagrade.
 - Jedan ScriptableObject tip po sistemu (npr. `ExerciseData`, `UpgradeData`, `LocationData`, `CosmeticData`).
 - Logika ne referencira art direktno — uvek preko data slota.
 - Manageri komuniciraju kroz EventBus, ne međusobnim direktnim pozivima gde god je moguće.
 - Komentari samo gde objašnjavaju "zašto"/constraint, ne "šta".
 
+### Ustaljeni obrasci (primenjuju se u svakom novom sistemu)
+- **Eventi:** `public readonly struct XyzEvent : IGameEvent` sa ctor-om; žive uz svog primarnog publisher-a ili u `*Events.cs`.
+- **Pretplate:** `Subscribe` u `OnEnable`, simetričan `Unsubscribe` u `OnDisable` — bez izuzetka (leak-ovi).
+- **Null-config guard:** sistem sa `_gameConfig` loguje grešku JEDNOM (`_missingConfigLogged`) i gasi svoju funkciju, nikad ne baca.
+- **Inicijalni event u `Start()`** (ne u `OnEnable`) — da su svi subscriberi spremni. Redosled izvršavanja: `GameManager` je `-1000` (EventBus.Clear pre pretplata), `SaveSystem` je `+1000` (restore posle default state-a).
+- **Efektivne stat vrednosti:** sistemi keširaju vrednost iz `StatsChangedEvent` (default = config base pre prvog eventa); `UpgradeManager` je jedini koji agregira.
+- **Valuta:** `double` za Gains (idle brojevi rastu); trošenje isključivo kroz `CurrencyManager.TrySpend`.
+
 ---
 
 ## 17. Trenutni status
 
-**Faza: 0 (Setup) — GOTOVA. Faza 1 (Core loop) — u toku.**
+> Detaljna istorija svakog naloga (šta, kako verifikovano, gotchas): [`docs/dev-log.md`](docs/dev-log.md).
 
-- [x] Dizajn i plan zaključani (ovaj dokument)
-- [x] Unity projekat kreiran (2D URP, Unity **6000.0.79f1**, iz template-a u repo root)
-- [x] Folder struktura (`_Game/…`) postavljena — NALOG #001
-- [x] Paketi instalirani — core: URP, 2D feature, Input System, TMP, Newtonsoft *(DOTween/LevelPlay/IAP se dodaju u svojim fazama)*
-- [x] Git inicijalizovan + povezan sa GitHub-om (`origin` → github.com/nikoladjokic96/idle-gymbro, javni repo)
-- [x] Android Build Support: editor + Android SDK (platforme 34/35/36) + NDK r27c + OpenJDK + Build Tools + CMake — sada ih `scripts/setup-dev-env.ps1` instalira automatski (`-m android android-sdk-ndk-tools --childModules`) i verifikuje na disku
+**Faza 0 (Setup) — GOTOVA · Faza 1 (Core loop) — GOTOVA · Faza 2 (Ekonomija) — funkcionalna**
 
-**Faza 1 (Core loop) — GOTOVA.**
-- [x] Core backbone: `EventBus`, `TickSystem`, `TickEvent`, `GameConfig`, `GameManager` — NALOG #001 (Sonnet, review-ovan, kompajlira)
-- [x] EnergySystem (troši energiju na rep, regen kroz `TickEvent`) — NALOG #002
-- [x] CurrencyManager (Gains, `double`) + TapController (hold → rep kadenca) — NALOG #002
-- [x] Placeholder + minimalni HUD (energy bar + gains counter) — NALOG #003
-- [x] Scena ožičena iz koda (bootstrap tool) — NALOG #004
-- [x] SaveSystem (JSON/Newtonsoft, **enkriptovan AES**) — NALOG #005
+- [x] #001 Projekat + paketi + git + core backbone (`EventBus`, `TickSystem`, `GameConfig`, `GameManager`); Android SDK/NDK kroz `scripts/setup-dev-env.ps1`
+- [x] #002 Core loop: hold → `TapEvent` → energija → `RepPerformedEvent` → Gains (event-driven)
+- [x] #003 HUD (gains/energy/passive rate) + `NumberFormatter` + `PlaceholderCharacter`
+- [x] #004 Scena iz koda: `Editor/CoreLoopSceneBootstrap` + TMP Essentials + `GameConfig.asset`
+- [x] #005 `SaveSystem` (AES + Newtonsoft, autosave/pause/quit) + `ISaveable` + smoke test
+- [x] #006 Pasivni prihod + offline zarada (§5 formula) + `OfflineClaimPopup`
+- [x] #007 Upgrade sistem (`UpgradeData` SO, `StatsChangedEvent` agregacija, `TrySpend`) + 3 placeholder upgrade-a
+- [x] Fix: `EventSystem` (klikabilna dugmad) + upgrade **modal** (`ModalToggle`) + tap-over-UI guard + `CanvasScaler.Expand`
+- [ ] Balans tuning (krive cena/prihoda kroz playtest — §6/§10)
+- [ ] Više stat tipova (maxEnergy/regen), još upgrade-ova; prestige je post-MVP
 
-**Faza 2 (Ekonomija) — skoro gotova:**
-- [x] Pasivni prihod (`gainsPerSecond` kroz `TickEvent`) + offline zarada (§5 formula) — NALOG #006
-- [x] Upgrade sistem (data-driven, cost `baseCost × growthRate^level`) + `PlayerStats` agregacija preko `StatsChangedEvent` — NALOG #007
-- [ ] *(kasnije)* više stat tipova (maxEnergy/regen), prestige (§6), više upgrade-ova + balans tuning
-
-**NALOG #002 (Sonnet, review-ovan Opus, batchmode kompajlira):** potpuno event-driven core loop.
-Lanac: `TapController` (hold → `TapEvent` na `RepIntervalSeconds`) → `EnergySystem` (troši `EnergyPerRep` ako ima energije, regen na `TickEvent`, publikuje `EnergyChangedEvent` + `RepPerformedEvent`) → `CurrencyManager` (dodaje `GainsPerRep`, publikuje `GainsChangedEvent`).
-- Base tuning vrednosti (`MaxEnergy`, `EnergyPerRep`, `EnergyRegenPerSecond`, `GainsPerRep`, `RepIntervalSeconds`) su u `GameConfig` (§16 „jedan SO po sistemu" svesno odloženo za MVP — upgrade sistem u Fazi 2 razdvaja base od runtime).
-- `GameManager` dobio `[DefaultExecutionOrder(-1000)]` da `EventBus.Clear()` u `Awake` ide pre svih pretplata.
-- Input: novi Input System (`Pointer.current.press.isPressed`) — hold ceo ekran za MVP.
-**NALOG #003 (Sonnet, review-ovan Opus, batchmode kompajlira):** vizuelni sloj da se loop vidi/testira.
-- `UI/HudController` — event-driven, sluša `GainsChangedEvent` (→ gains counter) i `EnergyChangedEvent` (→ energy bar `Image.fillAmount` + „cur/max" tekst). Ne drži ref na sisteme.
-- `UI/NumberFormatter` — idle-stil skraćivanje (`1.23K`, `4.5M`...).
-- `Character/PlaceholderCharacter` — scale-punch na `RepPerformedEvent` (coroutine, bez DOTween — DOTween tek u Fazi 4).
-
-**NALOG #004 (Sonnet + Opus integracija, batchmode izvršeno i verifikovano):** scena ožičena iz koda.
-- `Editor/CoreLoopSceneBootstrap` — editor tool (`IdleGymBro → Build Core Loop Scene`, i headless `-executeMethod`) koji pravi `GameConfig.asset`, dodaje 5 sistema + HUD + placeholder na `SampleScene` i ožičava sve reference preko `SerializedObject`. **Zamena za raniji manuelni wiring korak.**
-- Gotcha rešen: config asset se učitava **posle** `EditorSceneManager.OpenScene(Single)` — otvaranje scene u Single modu invalidira ref-ove uzete ranije (posledica: `_gameConfig` je bio `{fileID:0}`). Self-check u toolu loguje `_gameConfig wired on N/5`.
-- TMP Essential Resources i `GameConfig.asset` su commit-ovani → projekat radi out-of-the-box (nema manuelnog TMP importa).
-- Verifikacija: `SampleScene.unity` ima svih 5 `_gameConfig` kao `type:2` asset-ref i HUD ref-ove; batchmode bez grešaka.
-
-**NALOG #005 (Sonnet + Opus integracija, batchmode kompajlira + smoke test PASS):** enkriptovan save/load.
-- `Core/SaveSystem` — `[DefaultExecutionOrder(1000)]` (učitava POSLE default state-a sistema). Save na autosave interval (`GameConfig.AutoSaveIntervalSeconds`, 30s), `OnApplicationPause(true)`, `OnApplicationQuit`. AES-CBC (ključ = SHA256 passphrase, IV prepend), JSON preko Newtonsoft, fajl `persistentDataPath/gymbro.sav`.
-- `Core/ISaveable` (`CaptureState`/`RestoreState`) — `CurrencyManager` i `EnergySystem` ga implementiraju; SaveSystem ih skuplja preko `FindObjectsByType().OfType<ISaveable>()`. Restore publikuje `Gains/EnergyChangedEvent` da UI osveži.
-- `Data/SaveData` — DTO (`Version`, `TotalGains`, `CurrentEnergy`, `LastSaveTimeTicks`). Korumpiran/nedostajući save → fresh (bez crash-a).
-- Opus fix: `SHA256.HashData` (.NET 5+) → `SHA256.Create().ComputeHash()` (projekat je .NET Standard 2.1). Helperi `Serialize/Encrypt/Decrypt/Deserialize` su `public static` (testabilni).
-- Verifikacija: `Editor/SaveSystemSmokeTest` (headless `-executeMethod`) — round-trip lossless + garbage odbačen = **PASS**. SaveSystem ožičen u scenu (6/6 sistema).
-
-**NALOG #006 (Faza 2, workflow implement + Opus review/integracija, batchmode kompajlira):** pasivni prihod + offline zarada.
-- `Economy/PassiveIncomeSystem` — na svaki `TickEvent` publikuje `GainsEarnedEvent(gainsPerSecond × dt)`; rate = `GameConfig.BasePassiveGainsPerSecond` (upgrade-i dodaju kasnije). Publikuje `PassiveIncomeChangedEvent` za HUD („X/s").
-- `Economy/OfflineEarningsSystem` — sluša `GameLoadedEvent` (SaveSystem ga publikuje posle load-a); računa `min(timeAway, OfflineCapSeconds) × gainsPerSecond × OfflineEfficiency` (§5), grantuje preko `GainsEarnedEvent`, publikuje `OfflineProgressEvent`.
-- `CurrencyManager` — dodat `GainsEarnedEvent` listener (`Add`) uz postojeći rep handling. **Ordering korektan:** restore (save) → pa offline gains se dodaju na restore-ovan balans (sinhrono).
-- `UI/OfflineClaimPopup` — panel + poruka + „OK" dugme; sluša `OfflineProgressEvent`. `HudController` dobio passive-rate tekst.
-- `GameConfig` [Economy]: `BasePassiveGainsPerSecond` (1), `OfflineCapSeconds` (7200=2h), `OfflineEfficiency` (0.5).
-- Verifikacija: batchmode kompajlira; scena regenerisana `wired 8/8` sa svim ref-ovima (popup panel/text/button, passive rate). *(3 review agenta pala na session-limit → Opus radio review.)*
-
-**NALOG #007 (Faza 2, agent implement + Opus review/integracija, batchmode kompajlira):** data-driven upgrade sistem.
-- `Data/UpgradeData` (SO) + `Data/StatType` (`GainsPerRep`, `PassiveGainsPerSecond`). `Economy/UpgradeManager` (`ISaveable`) — `TryBuy(id)`: cost `BaseCost × GrowthRate^level`, spend preko `CurrencyManager.TrySpend`, level++, `RecomputeAndPublish` + `UpgradePurchasedEvent`.
-- **`PlayerStats` agregacija:** `UpgradeManager` računa `base(config) + Σ(effectPerLevel × level)` i publikuje `StatsChangedEvent(gainsPerRep, passiveGainsPerSecond)`. `CurrencyManager`/`PassiveIncomeSystem` čitaju efektivne vrednosti iz eventa (default = config base pre prvog eventa). Ordering: Start publikuje base → SaveSystem restore recompute-uje sa levelima.
-- `CurrencyManager.TrySpend(double)`; `SaveData.UpgradeLevels` (Dictionary) — leveli se snimaju/restore-uju.
-- `UI/UpgradeButton` — bind na jedan `UpgradeData`; klik → `TryBuy`; refresh (level, cost, affordability) na `Gains/UpgradePurchased/StatsChangedEvent`.
-- 3 placeholder asseta (`Data/Upgrades/`): stronger_arms, protein_shake (GainsPerRep), training_partner (passive). Bootstrap ih kreira + ožičava 3 dugmeta.
-- Verifikacija: batchmode `wired 9/9`; UpgradeManager `_upgrades` niz (3 asset-ref) + 3 UpgradeButton-a ožičeni u sceni.
-
-> **Sledeći korak (za razmatranje):** balans tuning (probati krive cena/prihoda, §6/§10 soft-wall) · ILI više upgrade tipova (maxEnergy) · ILI **Faza 3 (karakter/pixel art)** — vidi [`docs/art-brief.md`](docs/art-brief.md), sistem slojeva + muscle tiers. Prestige (§6) je post-MVP.
-> Setup na drugom PC-u: `scripts/setup-dev-env.ps1` (vidi `SETUP.md`).
+> **Sledeći korak (za razmatranje):** balans tuning · ILI više upgrade tipova · ILI **Faza 3 (karakter/pixel art)** — sistem slojeva + muscle tiers po [`docs/art-brief.md`](docs/art-brief.md).
+> Setup na novom PC-u: `scripts/setup-dev-env.ps1` (vidi `SETUP.md`).
 
 ### Radni model (arhitekta + pod-agenti)
-Opus (arhitekta) piše „Nalog za Pod-Agenta" → jeftiniji model (Sonnet/Haiku) piše kod → arhitekta radi pregled (konvencije, leak-ovi, data-driven, compile) → commit. Pod-agent ne commit-uje.
+Arhitekta (Opus/Fable) piše „Nalog za Pod-Agenta" → jeftiniji model (Sonnet/Haiku) piše kod → arhitekta radi pregled (konvencije §16, leak-ovi, data-driven, event ordering) → **verifikacioni protokol iz §4** → commit + push (samo arhitekta). Pod-agent ne commit-uje.
 
-> **Pun protokol orkestracije** (role, pravila, sub-agent profili, format naloga, execution workflow): [`docs/agent-workflow.md`](docs/agent-workflow.md).
+> **Pun protokol orkestracije** (role, pravila, sub-agent profili, format naloga): [`docs/agent-workflow.md`](docs/agent-workflow.md).
 
-*(Claude: ažuriraj ovu sekciju posle svakog urađenog koraka.)*
+*(Claude: posle svakog koraka ažuriraj checklistu gore + dopiši detalje u `docs/dev-log.md`.)*
