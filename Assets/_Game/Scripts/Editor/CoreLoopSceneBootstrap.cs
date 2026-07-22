@@ -2,6 +2,8 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using TMPro;
 using IdleGymBro.Core;
 using IdleGymBro.Data;
@@ -108,8 +110,12 @@ namespace IdleGymBro.EditorTools
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1080, 1920);
 
-            // No EventSystem needed here - input is read directly via the Input System
-            // (TapController polls Pointer.current), not through UI button events.
+            // EventSystem is REQUIRED for UI buttons (Upgrades / offline claim / close) to be
+            // clickable. Uses the new Input System UI module with its default UI action maps.
+            var eventSystemGo = new GameObject("EventSystem", typeof(EventSystem));
+            eventSystemGo.transform.SetParent(root.transform, false);
+            var uiInputModule = eventSystemGo.AddComponent<InputSystemUIInputModule>();
+            uiInputModule.AssignDefaultActions();
 
             Sprite uiSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
 
@@ -150,23 +156,57 @@ namespace IdleGymBro.EditorTools
             AssignRef(hudController, "_energyText", energyText);
             AssignRef(hudController, "_passiveRateText", passiveRateText);
 
-            // --- Upgrade buttons (one per placeholder upgrade, stacked at the bottom) ---
-            var upgradePanel = new GameObject("UpgradePanel", typeof(RectTransform));
-            upgradePanel.transform.SetParent(canvasGo.transform, false);
+            // --- Upgrades: "UPGRADES" open button on the HUD + a modal with the upgrade buttons ---
+            var openBtnImage = CreateImage("UpgradesOpenButton", canvasGo.transform, uiSprite, new Color(0.18f, 0.30f, 0.45f));
+            SetRect(openBtnImage.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 100f), new Vector2(460f, 130f));
+            var openButton = openBtnImage.gameObject.AddComponent<Button>();
+            openButton.targetGraphic = openBtnImage;
+            var openLabel = CreateText("Label", openBtnImage.transform, "UPGRADES", 46f, TextAlignmentOptions.Center);
+            SetRect(openLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(460f, 130f));
+
+            // Modal root (starts hidden via ModalToggle). Dimmer fills the screen and, being a
+            // raycast target, both blocks clicks to the game and makes TapController skip taps.
+            var modal = new GameObject("UpgradesModal", typeof(RectTransform));
+            modal.transform.SetParent(canvasGo.transform, false);
+            StretchFull(modal.GetComponent<RectTransform>());
+
+            var dimmer = CreateImage("Dimmer", modal.transform, uiSprite, new Color(0f, 0f, 0f, 0.75f));
+            StretchFull(dimmer.rectTransform);
+
+            var window = CreateImage("Window", modal.transform, uiSprite, new Color(0.12f, 0.14f, 0.18f, 1f));
+            SetRect(window.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(860f, 1040f));
+
+            var modalTitle = CreateText("Title", window.transform, "UPGRADES", 60f, TextAlignmentOptions.Center);
+            SetRect(modalTitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -90f), new Vector2(760f, 100f));
+
+            var closeBtnImage = CreateImage("CloseButton", window.transform, uiSprite, new Color(0.55f, 0.20f, 0.20f));
+            SetRect(closeBtnImage.rectTransform, new Vector2(1f, 1f), new Vector2(-70f, -70f), new Vector2(90f, 90f));
+            var closeButton = closeBtnImage.gameObject.AddComponent<Button>();
+            closeButton.targetGraphic = closeBtnImage;
+            var closeLabel = CreateText("Label", closeBtnImage.transform, "X", 52f, TextAlignmentOptions.Center);
+            SetRect(closeLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(90f, 90f));
+
             for (int i = 0; i < upgrades.Length; i++)
             {
-                var btnImage = CreateImage("UpgradeBtn_" + upgrades[i].Id, upgradePanel.transform, uiSprite, new Color(0.18f, 0.30f, 0.45f));
-                SetRect(btnImage.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 130f + i * 140f), new Vector2(760f, 120f));
+                var btnImage = CreateImage("UpgradeBtn_" + upgrades[i].Id, window.transform, uiSprite, new Color(0.18f, 0.30f, 0.45f));
+                SetRect(btnImage.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 200f - i * 190f), new Vector2(760f, 160f));
                 var button = btnImage.gameObject.AddComponent<Button>();
                 button.targetGraphic = btnImage;
-                var buttonLabel = CreateText("Label", btnImage.transform, string.Empty, 34f, TextAlignmentOptions.Center);
-                SetRect(buttonLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760f, 120f));
+                var buttonLabel = CreateText("Label", btnImage.transform, string.Empty, 36f, TextAlignmentOptions.Center);
+                SetRect(buttonLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760f, 160f));
 
                 var upgradeButton = btnImage.gameObject.AddComponent<UpgradeButton>();
                 AssignRef(upgradeButton, "_upgrade", upgrades[i]);
                 AssignRef(upgradeButton, "_button", button);
                 AssignRef(upgradeButton, "_label", buttonLabel);
             }
+
+            var modalControllerGo = new GameObject("UpgradesModalController");
+            modalControllerGo.transform.SetParent(root.transform, false);
+            var modalToggle = modalControllerGo.AddComponent<ModalToggle>();
+            AssignRef(modalToggle, "_panel", modal);
+            AssignRef(modalToggle, "_openButton", openButton);
+            AssignRef(modalToggle, "_closeButton", closeButton);
 
             // --- Offline claim popup ---
             // Component lives on an always-active object; the panel it toggles is a child,

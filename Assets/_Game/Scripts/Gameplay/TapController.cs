@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using IdleGymBro.Core;
 using IdleGymBro.Data;
@@ -28,7 +29,10 @@ namespace IdleGymBro.Gameplay
                 return;
             }
 
-            bool held = Pointer.current != null && Pointer.current.press.isPressed;
+            // Taps that land on UI (a button, or the modal's full-screen dimmer) must not
+            // train — otherwise pressing "Upgrades" or buying would also drain energy.
+            bool overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+            bool held = !overUi && Pointer.current != null && Pointer.current.press.isPressed;
 
             if (held)
             {
