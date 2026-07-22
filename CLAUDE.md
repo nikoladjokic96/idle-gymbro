@@ -274,13 +274,13 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 
 ## 17. Trenutni status
 
-**Faza: 0 (Setup) — još nije počela.**
+**Faza: 0 (Setup) — u toku.**
 
 - [x] Dizajn i plan zaključani (ovaj dokument)
 - [ ] Unity projekat kreiran
 - [ ] Folder struktura postavljena
 - [ ] Paketi instalirani
-- [ ] Git inicijalizovan
+- [x] Git inicijalizovan + povezan sa GitHub-om (`origin` → github.com/nikoladjokic96/idle-gymbro, javni repo)
 - [ ] Faza 1: Core loop
 
 > **Sledeći korak:** Faza 0 — setup Unity projekta i skeleta. Krenuti tek kad korisnik kaže.
