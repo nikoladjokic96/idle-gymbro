@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Podiže dev okruženje za Idle GymBro na čistom Windows PC-u.
 
@@ -27,6 +27,7 @@
 
 param(
     [string]$UnityVersion = "6000.0.79f1",
+    [string]$UnityChangeset = "4e8d7afad3cd",
     [string]$EditorInstallPath = "$env:USERPROFILE\Unity\Hub\Editor"
 )
 
@@ -66,9 +67,24 @@ New-Item -ItemType Directory -Force -Path $EditorInstallPath | Out-Null
 & $hub @("--", "--headless", "ip", "--set", $EditorInstallPath)
 
 Write-Host "`n[4/4] Instaliram Unity $UnityVersion + Android module (veliki download)..." -ForegroundColor Yellow
+# --changeset je obavezan kad verzija (npr. sveža LTS zakrpa) još nije u Hub-ovoj
+# listi promovisanih izdanja — vidi `Unity Hub.exe -- --headless install --help`.
 # --childModules povlači i OpenJDK/NDK/SDK/CMake kao zavisnosti Android podrške.
-& $hub @("--", "--headless", "install", "--version", $UnityVersion,
+& $hub @("--", "--headless", "install", "--version", $UnityVersion, "--changeset", $UnityChangeset,
          "-m", "android", "android-sdk-ndk-tools", "--childModules")
+
+# NE oslanjaj se na exit code: Unity Hub CLI ume da vrati non-zero i posle
+# "All Tasks Completed Successfully." Umesto toga proveri stvarno stanje na disku.
+$editorExe   = Join-Path $EditorInstallPath "$UnityVersion\Editor\Unity.exe"
+$androidPath = Join-Path $EditorInstallPath "$UnityVersion\Editor\Data\PlaybackEngines\AndroidPlayer"
+if (-not (Test-Path $editorExe)) {
+    throw "Unity editor nije nađen na '$editorExe' — instalacija verovatno nije prošla. Proveri log iznad."
+}
+if (-not (Test-Path $androidPath)) {
+    Write-Warning "Unity editor OK, ali Android Build Support ($androidPath) nije nađen — dovrši ga kroz Unity Hub GUI."
+} else {
+    Write-Host "OK: Unity editor + Android Build Support verifikovani na disku." -ForegroundColor Green
+}
 
 Write-Host "`n=== Automatizovani koraci gotovi ===" -ForegroundColor Green
 Write-Host @"

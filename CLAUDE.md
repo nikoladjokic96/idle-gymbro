@@ -281,7 +281,7 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 - [x] Folder struktura (`_Game/…`) postavljena — NALOG #001
 - [x] Paketi instalirani — core: URP, 2D feature, Input System, TMP, Newtonsoft *(DOTween/LevelPlay/IAP se dodaju u svojim fazama)*
 - [x] Git inicijalizovan + povezan sa GitHub-om (`origin` → github.com/nikoladjokic96/idle-gymbro, javni repo)
-- [~] Android Build Support: editor + build support OK; **SDK/NDK parcijalno** — dovršiti kroz Hub GUI pred prvi APK build
+- [x] Android Build Support: editor + Android SDK (platforme 34/35/36) + NDK r27c + OpenJDK + Build Tools + CMake — sada ih `scripts/setup-dev-env.ps1` instalira automatski (`-m android android-sdk-ndk-tools --childModules`) i verifikuje na disku
 
 **Faza 1 (Core loop) — u toku:**
 - [x] Core backbone: `EventBus`, `TickSystem`, `TickEvent`, `GameConfig`, `GameManager` — NALOG #001 (Sonnet, review-ovan, kompajlira)

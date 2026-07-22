@@ -62,6 +62,9 @@ ExportedObj/
 Thumbs.db
 Desktop.ini
 
+# Claude Code lokalni session/settings artefakti (specifični za mašinu)
+.claude/
+
 # Secrets (nikad ne commit-uj keystore / API ključeve)
 *.keystore
 *.jks
