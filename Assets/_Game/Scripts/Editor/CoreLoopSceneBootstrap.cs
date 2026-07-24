@@ -13,6 +13,7 @@ using IdleGymBro.Character;
 using IdleGymBro.UI;
 using IdleGymBro.Monetization;
 using IdleGymBro.Progression;
+using IdleGymBro.Meta;
 using Object = UnityEngine.Object;
 
 namespace IdleGymBro.EditorTools
@@ -141,6 +142,7 @@ namespace IdleGymBro.EditorTools
             // MOCK rewarded-ad provider (§10 opt-in monetization). No _gameConfig field, so —
             // like BoosterManager/AudioManager — it's excluded from the self-check below.
             var adManager = gameSystems.AddComponent<AdManager>();
+            var periodicRewardManager = gameSystems.AddComponent<PeriodicRewardManager>();
 
             AssignRef(gameManager, "_gameConfig", config);
             AssignRef(tickSystem, "_gameConfig", config);
@@ -156,12 +158,13 @@ namespace IdleGymBro.EditorTools
             AssignArray(locationManager, "_locations", locations);
             AssignRef(audioManager, "_library", audioLibrary);
             AssignRef(audioManager, "_source", audioSource);
+            AssignRef(periodicRewardManager, "_gameConfig", config);
 
             // Self-check: verify the asset reference actually serialized (asset refs are
             // more timing-sensitive in batchmode than scene-object refs). BoosterManager,
             // AudioManager, AdManager, and LocationManager have no _gameConfig field, so
             // they're intentionally excluded from this check.
-            var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem, passiveIncome, offlineEarnings, upgradeManager };
+            var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem, passiveIncome, offlineEarnings, upgradeManager, periodicRewardManager };
             int wired = 0;
             foreach (var s in systems)
             {
@@ -411,6 +414,17 @@ namespace IdleGymBro.EditorTools
             settingsOpenButton.targetGraphic = settingsOpenImage;
             var settingsOpenLabel = CreateText("Label", settingsOpenImage.transform, "SETTINGS", 34f, TextAlignmentOptions.Center);
             StretchFull(settingsOpenLabel.rectTransform);
+
+            // --- Periodic reward button (bottom-right per docs/ui-layout.md) ---
+            var rewardImage = CreateImage("PeriodicRewardButton", canvasGo.transform, uiSprite, new Color(0.20f, 0.55f, 0.30f));
+            SetRect(rewardImage.rectTransform, new Vector2(1f, 0f), new Vector2(-130f, 110f), new Vector2(220f, 130f));
+            var rewardButton = rewardImage.gameObject.AddComponent<Button>();
+            rewardButton.targetGraphic = rewardImage;
+            var rewardLabel = CreateText("Label", rewardImage.transform, string.Empty, 28f, TextAlignmentOptions.Center);
+            StretchFull(rewardLabel.rectTransform);
+            var periodicRewardUi = rewardImage.gameObject.AddComponent<PeriodicRewardButton>();
+            AssignRef(periodicRewardUi, "_button", rewardButton);
+            AssignRef(periodicRewardUi, "_label", rewardLabel);
 
             var settingsModal = new GameObject("SettingsModal", typeof(RectTransform));
             settingsModal.transform.SetParent(canvasGo.transform, false);

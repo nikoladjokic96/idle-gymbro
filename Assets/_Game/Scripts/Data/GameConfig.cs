@@ -61,5 +61,17 @@ namespace IdleGymBro.Data
         public float BasePassiveGainsPerSecond => _basePassiveGainsPerSecond;
         public float OfflineCapSeconds => _offlineCapSeconds;
         public float OfflineEfficiency => _offlineEfficiency;
+
+        [Header("Periodic Reward")]
+        [SerializeField]
+        [Min(1f)]
+        private float _periodicRewardIntervalSeconds = 900f; // 15 min
+
+        [SerializeField]
+        [Min(1f)]
+        private float _periodicRewardSeconds = 300f; // reward = passive rate x this (worth ~5 min)
+
+        public float PeriodicRewardIntervalSeconds => _periodicRewardIntervalSeconds;
+        public float PeriodicRewardSeconds => _periodicRewardSeconds;
     }
 }
