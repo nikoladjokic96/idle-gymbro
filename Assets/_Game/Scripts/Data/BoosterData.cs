@@ -32,11 +32,15 @@ namespace IdleGymBro.Data
         [Min(0f)]
         private float _cooldownSeconds = 180f;
 
+        [SerializeField]
+        private bool _requiresAd = false;
+
         public string Id => _id;
         public string DisplayName => _displayName;
         public BoosterTarget Target => _target;
         public float Multiplier => _multiplier;
         public float DurationSeconds => _durationSeconds;
         public float CooldownSeconds => _cooldownSeconds;
+        public bool RequiresAd => _requiresAd;
     }
 }

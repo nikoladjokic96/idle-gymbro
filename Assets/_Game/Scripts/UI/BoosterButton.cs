@@ -4,6 +4,7 @@ using TMPro;
 using IdleGymBro.Core;
 using IdleGymBro.Economy;
 using IdleGymBro.Data;
+using IdleGymBro.Monetization;
 
 namespace IdleGymBro.UI
 {
@@ -20,6 +21,7 @@ namespace IdleGymBro.UI
         private TMP_Text _label;
 
         private BoosterManager _manager;
+        private AdManager _adManager;
 
         private void Awake()
         {
@@ -28,13 +30,14 @@ namespace IdleGymBro.UI
             // would run, and that richer label must not be stomped afterwards.
             if (_label != null && _booster != null)
             {
-                _label.text = _booster.DisplayName;
+                _label.text = (_booster.RequiresAd ? "▶ " : string.Empty) + _booster.DisplayName;
             }
         }
 
         private void Start()
         {
             _manager = FindAnyObjectByType<BoosterManager>();
+            _adManager = FindAnyObjectByType<AdManager>();
         }
 
         private void OnEnable()
@@ -59,9 +62,21 @@ namespace IdleGymBro.UI
 
         private void OnClick()
         {
-            if (_booster != null)
+            if (_booster == null || _manager == null)
             {
-                _manager?.TryActivate(_booster.Id);
+                return;
+            }
+
+            if (_booster.RequiresAd && _adManager != null)
+            {
+                // Capture the id: by the time the mock ad completes, _booster is still the
+                // same reference, but the local copy keeps the closure's intent explicit.
+                string id = _booster.Id;
+                _adManager.ShowRewarded("booster_" + id, () => _manager.TryActivate(id));
+            }
+            else
+            {
+                _manager.TryActivate(_booster.Id);
             }
         }
 
@@ -100,7 +115,8 @@ namespace IdleGymBro.UI
             {
                 if (_label != null)
                 {
-                    _label.text = $"{_booster.DisplayName}\n{_booster.Multiplier}x";
+                    string prefix = _booster.RequiresAd ? "▶ " : string.Empty;
+                    _label.text = $"{prefix}{_booster.DisplayName}\n{_booster.Multiplier}x";
                 }
 
                 if (_button != null)

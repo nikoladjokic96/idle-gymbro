@@ -11,6 +11,7 @@ using IdleGymBro.Gameplay;
 using IdleGymBro.Economy;
 using IdleGymBro.Character;
 using IdleGymBro.UI;
+using IdleGymBro.Monetization;
 using Object = UnityEngine.Object;
 
 namespace IdleGymBro.EditorTools
@@ -71,7 +72,8 @@ namespace IdleGymBro.EditorTools
             // Boosters (opt-in, rewarded-ad-flavored per §10; consumable-style temporary buffs).
             var boosters = new BoosterData[]
             {
-                GetOrCreateBooster("preworkout", "Pre-Workout", 0 /* BoosterTarget.TapIncome */, 2f, 60f, 180f),
+                GetOrCreateBooster("preworkout", "Pre-Workout", 0 /* BoosterTarget.TapIncome */, 2f, 60f, 180f, true),
+                GetOrCreateBooster("protein_shake", "Protein Shake", 1 /* BoosterTarget.PassiveIncome */, 2f, 60f, 180f, true),
             };
 
             // Muscle tiers (data-driven; thresholds are lifetime TotalEarned, not balance).
@@ -116,6 +118,9 @@ namespace IdleGymBro.EditorTools
             var audioSource = gameSystems.AddComponent<AudioSource>();
             audioSource.playOnAwake = false;
             var audioManager = gameSystems.AddComponent<AudioManager>();
+            // MOCK rewarded-ad provider (§10 opt-in monetization). No _gameConfig field, so —
+            // like BoosterManager/AudioManager — it's excluded from the self-check below.
+            var adManager = gameSystems.AddComponent<AdManager>();
 
             AssignRef(gameManager, "_gameConfig", config);
             AssignRef(tickSystem, "_gameConfig", config);
@@ -132,9 +137,9 @@ namespace IdleGymBro.EditorTools
             AssignRef(audioManager, "_source", audioSource);
 
             // Self-check: verify the asset reference actually serialized (asset refs are
-            // more timing-sensitive in batchmode than scene-object refs). BoosterManager and
-            // AudioManager have no _gameConfig field, so they're intentionally excluded from
-            // this check.
+            // more timing-sensitive in batchmode than scene-object refs). BoosterManager,
+            // AudioManager, and AdManager have no _gameConfig field, so they're intentionally
+            // excluded from this check.
             var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem, passiveIncome, offlineEarnings, upgradeManager };
             int wired = 0;
             foreach (var s in systems)
@@ -243,9 +248,9 @@ namespace IdleGymBro.EditorTools
             var openLabel = CreateText("Label", openBtnImage.transform, "UPGRADES", 36f, TextAlignmentOptions.Center);
             SetRect(openLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(220f, 130f));
 
-            // --- Booster button: left-middle edge (docs/ui-layout.md "Boost: 2x tap") ---
+            // --- Booster buttons: left edge, stacked (docs/ui-layout.md "Boost: 2x tap" / "2x passive") ---
             var boosterBtnImage = CreateImage("BoosterButton_preworkout", canvasGo.transform, uiSprite, new Color(0.60f, 0.35f, 0.15f));
-            SetRect(boosterBtnImage.rectTransform, new Vector2(0f, 0.5f), new Vector2(130f, 0f), new Vector2(220f, 130f));
+            SetRect(boosterBtnImage.rectTransform, new Vector2(0f, 0.5f), new Vector2(130f, 80f), new Vector2(220f, 130f));
             var boosterButtonComponent = boosterBtnImage.gameObject.AddComponent<Button>();
             boosterButtonComponent.targetGraphic = boosterBtnImage;
             var boosterLabel = CreateText("Label", boosterBtnImage.transform, string.Empty, 30f, TextAlignmentOptions.Center);
@@ -255,6 +260,18 @@ namespace IdleGymBro.EditorTools
             AssignRef(boosterButton, "_booster", boosters[0]);
             AssignRef(boosterButton, "_button", boosterButtonComponent);
             AssignRef(boosterButton, "_label", boosterLabel);
+
+            var proteinBtnImage = CreateImage("BoosterButton_protein_shake", canvasGo.transform, uiSprite, new Color(0.35f, 0.50f, 0.20f));
+            SetRect(proteinBtnImage.rectTransform, new Vector2(0f, 0.5f), new Vector2(130f, -80f), new Vector2(220f, 130f));
+            var proteinButtonComponent = proteinBtnImage.gameObject.AddComponent<Button>();
+            proteinButtonComponent.targetGraphic = proteinBtnImage;
+            var proteinLabel = CreateText("Label", proteinBtnImage.transform, string.Empty, 30f, TextAlignmentOptions.Center);
+            StretchFull(proteinLabel.rectTransform);
+
+            var proteinButton = proteinBtnImage.gameObject.AddComponent<BoosterButton>();
+            AssignRef(proteinButton, "_booster", boosters[1]);
+            AssignRef(proteinButton, "_button", proteinButtonComponent);
+            AssignRef(proteinButton, "_label", proteinLabel);
 
             // Modal root (starts hidden via ModalToggle). Dimmer fills the screen and, being a
             // raycast target, both blocks clicks to the game and makes TapController skip taps.
@@ -424,12 +441,36 @@ namespace IdleGymBro.EditorTools
             var claimLabel = CreateText("Label", claimBtnImage.transform, "OK", 44f, TextAlignmentOptions.Center);
             SetRect(claimLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(360f, 110f));
 
+            // "Double via ad" (§10 opt-in rewarded): sits below the OK button, no overlap
+            // (OK spans -195..-85, this spans -335..-225).
+            var doubleBtnImage = CreateImage("DoubleButton", panel.transform, uiSprite, new Color(0.20f, 0.60f, 0.85f));
+            SetRect(doubleBtnImage.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -280f), new Vector2(420f, 110f));
+            var doubleButton = doubleBtnImage.gameObject.AddComponent<Button>();
+            doubleButton.targetGraphic = doubleBtnImage;
+            var doubleLabel = CreateText("Label", doubleBtnImage.transform, "UDVOSTRUČI ▶", 40f, TextAlignmentOptions.Center);
+            SetRect(doubleLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(420f, 110f));
+
             AssignRef(popup, "_panel", panel.gameObject);
             AssignRef(popup, "_messageText", offlineMessage);
             AssignRef(popup, "_claimButton", claimButton);
+            AssignRef(popup, "_doubleButton", doubleButton);
 
             // Hidden by default in the scene too (runtime Awake also hides it).
             panel.gameObject.SetActive(false);
+
+            // --- Ad overlay: created LAST among canvas children so it renders on top of every
+            // other UI (modals included) while a mock rewarded ad "plays". ---
+            var adOverlay = CreateImage("AdOverlay", canvasGo.transform, uiSprite, new Color(0f, 0f, 0f, 0.92f));
+            StretchFull(adOverlay.rectTransform);
+            // raycastTarget stays true (Image default) so the overlay blocks input to everything beneath it.
+
+            var adOverlayText = CreateText("Label", adOverlay.transform, "▶ REKLAMA...", 64f, TextAlignmentOptions.Center);
+            SetRect(adOverlayText.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(800f, 160f));
+
+            AssignRef(adManager, "_adOverlay", adOverlay.gameObject);
+
+            // Hidden by default in the scene too (runtime Awake also hides it).
+            adOverlay.gameObject.SetActive(false);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
@@ -516,7 +557,7 @@ namespace IdleGymBro.EditorTools
 
         private const string BoostersFolder = "Assets/_Game/Data/Boosters";
 
-        private static BoosterData GetOrCreateBooster(string id, string displayName, int targetEnumDeclarationIndex, float multiplier, float durationSeconds, float cooldownSeconds)
+        private static BoosterData GetOrCreateBooster(string id, string displayName, int targetEnumDeclarationIndex, float multiplier, float durationSeconds, float cooldownSeconds, bool requiresAd)
         {
             if (!AssetDatabase.IsValidFolder(BoostersFolder))
             {
@@ -539,6 +580,7 @@ namespace IdleGymBro.EditorTools
             so.FindProperty("_multiplier").floatValue = multiplier;
             so.FindProperty("_durationSeconds").floatValue = durationSeconds;
             so.FindProperty("_cooldownSeconds").floatValue = cooldownSeconds;
+            so.FindProperty("_requiresAd").boolValue = requiresAd;
             so.ApplyModifiedProperties();
 
             AssetDatabase.SaveAssets();

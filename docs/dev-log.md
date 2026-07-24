@@ -180,3 +180,15 @@ upgrade rework + booster sistem + HUD ivice.
 - Verifikacija posle fix-a: batchmode PASS (0 error CS, 10 sprites + 4 clips generated, wired 9/9),
   WAV veličine tačne u bajt, AudioLibrary guid-ovi = .wav.meta guid-ovi, scena: AudioManager/_library/_source,
   SettingsPanel, oba ModalToggle-a kompletno ožičena — FULL PASS.
+
+**NALOG #012** (Sonnet implement + Sonnet verify; Fable review) — mock monetizacija.
+- **Odluka (korisnik):** realan LevelPlay/Unity IAP ide NA SAMOM KRAJU projekta; do tada mock
+  iza istog javnog API-ja — `Monetization/AdManager.ShowRewarded(placement, Action onReward)`.
+  Mock: fullscreen „▶ REKLAMA..." overlay (blokira input) ~1s pa reward; `OnDisable` cleanup
+  (overlay ne sme da ostane zaglavljen); `IsShowingAd` guard.
+- `BoosterData.RequiresAd` (data-driven) — oba boostera ad-gated; „▶ " prefiks na ready labelu.
+  NOVI booster: protein_shake (2x passive 60s / CD 180s) — drugi levi slot po ui-layout.md.
+- Offline popup: „UDVOSTRUČI ▶" — mock reklama → drugi `GainsEarnedEvent(amount)`;
+  `_pendingDoubleAmount` se nuluje PRE reklame (nema double-claim-a klikom u nizu).
+- Verifikacija: batchmode PASS prvi run; oba booster asseta `_requiresAd:1`; scena: AdManager→AdOverlay,
+  2 BoosterButton-a → 2 RAZLIČITA asset guid-a, popup `_doubleButton` — sve verifikovano guid/fileID-jem.

@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3b988788f72896d41b22e9a610467668, type: 3}
-  m_Name: preworkout
+  m_Name: protein_shake
   m_EditorClassIdentifier: 
-  _id: preworkout
-  _displayName: Pre-Workout
-  _target: 0
+  _id: protein_shake
+  _displayName: Protein Shake
+  _target: 1
   _multiplier: 2
   _durationSeconds: 60
   _cooldownSeconds: 180

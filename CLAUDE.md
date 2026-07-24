@@ -317,8 +317,9 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 - [x] #009 Upgrade rework (mišićne grupe: Chest/Arms/Back/Legs + Training Partner/Gym Membership) + **booster sistem** (`BoosterData`/`BoosterManager`, pre-workout 2x tap 60s/CD 180s, multiplikativno preko §5 formule) + scroll upgrade lista + HUD ivice po [`docs/ui-layout.md`](docs/ui-layout.md) (UPGRADES desno-sredina, boost levo)
 - [x] #010 Juice sloj (coroutine-based; **DOTween odložen** — nije na UPM/OpenUPM, Asset Store import je manuelni korak): floating „+X" (pooled), gains counter pop na tap, smooth energy bar, TIER UP banner. Novi `TapGainsEvent` (iznos po repu posle boostera)
 - [x] #011 Zvuk + settings: `PlaceholderSfxGenerator` (4 deterministička WAV placeholder-a), `AudioLibrary` SO, `Core/AudioManager` (event→SFX; booster samo na aktivaciju; mute u PlayerPrefs), SETTINGS dugme gore desno + modal sa sound toggle-om
+- [x] #012 **Mock monetizacija** (odluka: pravi LevelPlay/IAP idu NA KRAJU projekta, iza istog API-ja): `Monetization/AdManager` (mock `ShowRewarded(placement, onReward)` + fullscreen „▶ REKLAMA..." overlay), boosteri ad-gated (`BoosterData.RequiresAd`; preworkout 2x tap + NOVI protein_shake 2x passive), offline popup „UDVOSTRUČI ▶" (mock reklama → dupli grant, zaštićeno od double-claim-a)
 
-**MVP status: faze 0–4 funkcionalno kompletne sa placeholderima** — sledeće je pravi art (čeka assete), balans tuning kroz playtest, pa Faza 5 (monetizacija).
+**MVP status: faze 0–4 funkcionalno kompletne sa placeholderima; monetizacioni TOKOVI mockovani (§10 poštovan — sve opt-in)** — sledeće: pravi art (čeka assete), balans tuning kroz playtest, animacije; realan LevelPlay/IAP na samom kraju.
 - [ ] Faza 3 nastavak: animacije (idle + rep po tieru), wardrobe/kustomizacija UI, pravi pixel art (čeka assete — [`docs/asset-checklist.md`](docs/asset-checklist.md))
 - [ ] Balans tuning (krive cena/prihoda kroz playtest — §6/§10)
 - [ ] Više stat tipova (maxEnergy/regen), još upgrade-ova; prestige je post-MVP
