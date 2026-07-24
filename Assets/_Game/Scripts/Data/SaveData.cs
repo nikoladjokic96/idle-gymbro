@@ -8,6 +8,10 @@ namespace IdleGymBro.Data
         public float CurrentEnergy;
         public long LastSaveTimeTicks;
         public int CurrentLocationIndex;
+        public long AchievementReps;
+        public int AchievementUpgradesBought;
+        public int MaxLocationIndex;
+        public System.Collections.Generic.List<string> ClaimedAchievements = new System.Collections.Generic.List<string>();
         public System.Collections.Generic.Dictionary<string, int> UpgradeLevels = new System.Collections.Generic.Dictionary<string, int>();
     }
 }

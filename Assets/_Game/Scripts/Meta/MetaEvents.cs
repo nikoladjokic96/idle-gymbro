@@ -16,4 +16,15 @@ namespace IdleGymBro.Meta
             RewardAmount = rewardAmount;
         }
     }
+
+    // Published when the number of claimable achievements changes (for the HUD badge / panel).
+    public readonly struct AchievementsChangedEvent : IGameEvent
+    {
+        public int ClaimableCount { get; }
+
+        public AchievementsChangedEvent(int claimableCount)
+        {
+            ClaimableCount = claimableCount;
+        }
+    }
 }

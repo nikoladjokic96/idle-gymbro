@@ -94,6 +94,18 @@ namespace IdleGymBro.EditorTools
                 GetOrCreateLocation("olympia", "Mr. Olympia", 800, 75f, $"{BackgroundArtFolder}/bg_olympia.png"),
             };
 
+            // Achievements (§12 retention). Type index = AchievementType declaration order:
+            // TotalGainsEarned=0, RepsPerformed=1, UpgradesBought=2, LocationReached=3.
+            var achievements = new AchievementData[]
+            {
+                GetOrCreateAchievement("first_grind", "First Grind", 0, 1000d, 500d),
+                GetOrCreateAchievement("getting_swole", "Getting Swole", 0, 100000d, 25000d),
+                GetOrCreateAchievement("rep_machine", "Rep Machine", 1, 500d, 2000d),
+                GetOrCreateAchievement("gym_rat", "Gym Rat", 1, 5000d, 50000d),
+                GetOrCreateAchievement("shopaholic", "Shopaholic", 2, 10d, 5000d),
+                GetOrCreateAchievement("world_tour", "World Tour", 3, 2d, 100000d),
+            };
+
             // Muscle tiers (data-driven; thresholds are lifetime TotalEarned, not balance).
             var tiers = new MuscleTierData[]
             {
@@ -143,6 +155,8 @@ namespace IdleGymBro.EditorTools
             // like BoosterManager/AudioManager — it's excluded from the self-check below.
             var adManager = gameSystems.AddComponent<AdManager>();
             var periodicRewardManager = gameSystems.AddComponent<PeriodicRewardManager>();
+            // Meta/retention: no _gameConfig field (drives off gameplay events) — excluded from self-check.
+            var achievementManager = gameSystems.AddComponent<AchievementManager>();
 
             AssignRef(gameManager, "_gameConfig", config);
             AssignRef(tickSystem, "_gameConfig", config);
@@ -159,6 +173,7 @@ namespace IdleGymBro.EditorTools
             AssignRef(audioManager, "_library", audioLibrary);
             AssignRef(audioManager, "_source", audioSource);
             AssignRef(periodicRewardManager, "_gameConfig", config);
+            AssignArray(achievementManager, "_achievements", achievements);
 
             // Self-check: verify the asset reference actually serialized (asset refs are
             // more timing-sensitive in batchmode than scene-object refs). BoosterManager,
@@ -530,6 +545,65 @@ namespace IdleGymBro.EditorTools
             AssignRef(locationsModalToggle, "_closeButton", locationsCloseButton);
             AssignRef(locationsModalToggle, "_backdropButton", locationsBackdropButton);
 
+            // --- Achievements: "GOALS" open button (bottom-left per docs/ui-layout.md, with a
+            // (N) claimable badge) + a modal listing achievements with a CLAIM ALL action. ---
+            var goalsOpenImage = CreateImage("AchievementsButton", canvasGo.transform, uiSprite, new Color(0.45f, 0.25f, 0.45f));
+            SetRect(goalsOpenImage.rectTransform, new Vector2(0f, 0f), new Vector2(130f, 110f), new Vector2(220f, 130f));
+            var goalsOpenButton = goalsOpenImage.gameObject.AddComponent<Button>();
+            goalsOpenButton.targetGraphic = goalsOpenImage;
+            var goalsOpenLabel = CreateText("Label", goalsOpenImage.transform, "GOALS", 30f, TextAlignmentOptions.Center);
+            StretchFull(goalsOpenLabel.rectTransform);
+            var achievementsButton = goalsOpenImage.gameObject.AddComponent<AchievementsButton>();
+            AssignRef(achievementsButton, "_label", goalsOpenLabel);
+
+            var goalsModal = new GameObject("AchievementsModal", typeof(RectTransform));
+            goalsModal.transform.SetParent(canvasGo.transform, false);
+            StretchFull(goalsModal.GetComponent<RectTransform>());
+
+            var goalsDimmer = CreateImage("Dimmer", goalsModal.transform, uiSprite, new Color(0f, 0f, 0f, 0.75f));
+            StretchFull(goalsDimmer.rectTransform);
+            var goalsBackdropButton = goalsDimmer.gameObject.AddComponent<Button>();
+            goalsBackdropButton.transition = Selectable.Transition.None;
+            goalsBackdropButton.targetGraphic = goalsDimmer;
+
+            var goalsWindow = CreateImage("Window", goalsModal.transform, uiSprite, new Color(0.12f, 0.14f, 0.18f, 1f));
+            SetRect(goalsWindow.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760f, 980f));
+
+            var goalsTitle = CreateText("Title", goalsWindow.transform, "ACHIEVEMENTS", 44f, TextAlignmentOptions.Center);
+            SetRect(goalsTitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(600f, 80f));
+
+            var goalsCloseImage = CreateImage("CloseButton", goalsWindow.transform, uiSprite, new Color(0.55f, 0.20f, 0.20f));
+            SetRect(goalsCloseImage.rectTransform, new Vector2(1f, 1f), new Vector2(-60f, -60f), new Vector2(80f, 80f));
+            var goalsCloseButton = goalsCloseImage.gameObject.AddComponent<Button>();
+            goalsCloseButton.targetGraphic = goalsCloseImage;
+            var goalsCloseLabel = CreateText("Label", goalsCloseImage.transform, "X", 52f, TextAlignmentOptions.Center);
+            StretchFull(goalsCloseLabel.rectTransform);
+
+            var goalsRowsGo = new GameObject("Rows", typeof(RectTransform));
+            goalsRowsGo.transform.SetParent(goalsWindow.transform, false);
+            var goalsRowsRect = goalsRowsGo.GetComponent<RectTransform>();
+            SetRect(goalsRowsRect, new Vector2(0.5f, 1f), new Vector2(0f, -150f), new Vector2(680f, 620f));
+
+            var claimAllImage = CreateImage("ClaimAllButton", goalsWindow.transform, uiSprite, new Color(0.20f, 0.70f, 0.30f));
+            SetRect(claimAllImage.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 110f), new Vector2(420f, 110f));
+            var claimAllButton = claimAllImage.gameObject.AddComponent<Button>();
+            claimAllButton.targetGraphic = claimAllImage;
+            var claimAllLabel = CreateText("Label", claimAllImage.transform, "CLAIM ALL", 40f, TextAlignmentOptions.Center);
+            StretchFull(claimAllLabel.rectTransform);
+
+            var achievementsPanel = goalsWindow.gameObject.AddComponent<AchievementsPanel>();
+            AssignRef(achievementsPanel, "_rowsContainer", goalsRowsRect);
+            AssignRef(achievementsPanel, "_claimAllButton", claimAllButton);
+            AssignRef(achievementsPanel, "_claimAllLabel", claimAllLabel);
+
+            var goalsModalControllerGo = new GameObject("AchievementsModalController");
+            goalsModalControllerGo.transform.SetParent(root.transform, false);
+            var goalsModalToggle = goalsModalControllerGo.AddComponent<ModalToggle>();
+            AssignRef(goalsModalToggle, "_panel", goalsModal);
+            AssignRef(goalsModalToggle, "_openButton", goalsOpenButton);
+            AssignRef(goalsModalToggle, "_closeButton", goalsCloseButton);
+            AssignRef(goalsModalToggle, "_backdropButton", goalsBackdropButton);
+
             // --- Offline claim popup ---
             // Component lives on an always-active object; the panel it toggles is a child,
             // so hiding the panel never disables the component (which would kill OnEnable).
@@ -726,6 +800,37 @@ namespace IdleGymBro.EditorTools
             // Reload the canonical, imported instance so it serializes as an asset reference.
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
             return AssetDatabase.LoadAssetAtPath<LocationData>(path);
+        }
+
+        private const string AchievementsFolder = "Assets/_Game/Data/Achievements";
+
+        private static AchievementData GetOrCreateAchievement(string id, string displayName, int typeDeclarationIndex, double threshold, double rewardGains)
+        {
+            if (!AssetDatabase.IsValidFolder(AchievementsFolder))
+            {
+                AssetDatabase.CreateFolder("Assets/_Game/Data", "Achievements");
+            }
+
+            string path = $"{AchievementsFolder}/{id}.asset";
+            var achievement = AssetDatabase.LoadAssetAtPath<AchievementData>(path);
+            if (achievement == null)
+            {
+                achievement = ScriptableObject.CreateInstance<AchievementData>();
+                AssetDatabase.CreateAsset(achievement, path);
+            }
+
+            var so = new SerializedObject(achievement);
+            so.FindProperty("_id").stringValue = id;
+            so.FindProperty("_displayName").stringValue = displayName;
+            // enumValueIndex is the enum's DECLARATION-ORDER index, not its underlying int value.
+            so.FindProperty("_type").enumValueIndex = typeDeclarationIndex;
+            so.FindProperty("_threshold").doubleValue = threshold;
+            so.FindProperty("_rewardGains").doubleValue = rewardGains;
+            so.ApplyModifiedProperties();
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            return AssetDatabase.LoadAssetAtPath<AchievementData>(path);
         }
 
         private const string MuscleTiersFolder = "Assets/_Game/Data/MuscleTiers";
