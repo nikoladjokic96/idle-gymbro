@@ -220,3 +220,20 @@ upgrade rework + booster sistem + HUD ivice.
   (topmost) canvas child.
 - Verifikacija (agent): batchmode PASS prvi run; 6 location asseta tačnih vrednosti; scena — LocationManager
   `_locations` 6/6 u redosledu, 3× ModalToggle svi ref-ovi, AdOverlay poslednje dete — sve PASS.
+
+## Faza 7 — Meta/retencija (SOLO — pod-agenti na account spend-limitu)
+
+> Od #016 nadalje agenti padaju na „monthly spend limit"; Fable radi direktno u glavnoj petlji,
+> verifikacija batchmode-om. Naloga su namerno mali i nezavisno commit-ovani (ako limit udari
+> usred posla, prethodni je već siguran).
+
+**NALOG #016** — Periodic Reward (dole desno): `Meta/PeriodicRewardManager` (time chest — na
+`PeriodicRewardIntervalSeconds`=900 spremna nagrada = kеširani passive rate × `PeriodicRewardSeconds`=300;
+throttle na celu sekundu; NE persistuje se — offline zarada pokriva odsustvo) + `PeriodicRewardStateChangedEvent`
++ `UI/PeriodicRewardButton` (M:SS → „COLLECT +X"). Self-check 9/9 → **10/10**.
+
+**NALOG #017** — Achievements (dole levo): `Data/AchievementData`+`AchievementType`
+(TotalGainsEarned/RepsPerformed/UpgradesBought/LocationReached), `Meta/AchievementManager` (`ISaveable`;
+counteri reps/upgrades/maxLocation + claimed set persistovani, TotalEarned iz `GainsChangedEvent`),
+6 asseta, `UI/AchievementsButton` (GOALS + „(N)" badge) + `AchievementsPanel` (runtime redovi + CLAIM ALL),
+**4. ModalToggle**. `SaveData` +4 polja. HUD sada kompletan po `ui-layout.md`.

@@ -27,4 +27,17 @@ namespace IdleGymBro.Meta
             ClaimableCount = claimableCount;
         }
     }
+
+    // Published once on load when today's daily reward is available to claim (drives the popup).
+    public readonly struct DailyRewardAvailableEvent : IGameEvent
+    {
+        public int StreakDay { get; }
+        public double RewardAmount { get; }
+
+        public DailyRewardAvailableEvent(int streakDay, double rewardAmount)
+        {
+            StreakDay = streakDay;
+            RewardAmount = rewardAmount;
+        }
+    }
 }

@@ -157,6 +157,7 @@ namespace IdleGymBro.EditorTools
             var periodicRewardManager = gameSystems.AddComponent<PeriodicRewardManager>();
             // Meta/retention: no _gameConfig field (drives off gameplay events) — excluded from self-check.
             var achievementManager = gameSystems.AddComponent<AchievementManager>();
+            var dailyRewardManager = gameSystems.AddComponent<DailyRewardManager>();
 
             AssignRef(gameManager, "_gameConfig", config);
             AssignRef(tickSystem, "_gameConfig", config);
@@ -173,13 +174,14 @@ namespace IdleGymBro.EditorTools
             AssignRef(audioManager, "_library", audioLibrary);
             AssignRef(audioManager, "_source", audioSource);
             AssignRef(periodicRewardManager, "_gameConfig", config);
+            AssignRef(dailyRewardManager, "_gameConfig", config);
             AssignArray(achievementManager, "_achievements", achievements);
 
             // Self-check: verify the asset reference actually serialized (asset refs are
             // more timing-sensitive in batchmode than scene-object refs). BoosterManager,
             // AudioManager, AdManager, and LocationManager have no _gameConfig field, so
             // they're intentionally excluded from this check.
-            var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem, passiveIncome, offlineEarnings, upgradeManager, periodicRewardManager };
+            var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem, passiveIncome, offlineEarnings, upgradeManager, periodicRewardManager, dailyRewardManager };
             int wired = 0;
             foreach (var s in systems)
             {
@@ -639,6 +641,30 @@ namespace IdleGymBro.EditorTools
 
             // Hidden by default in the scene too (runtime Awake also hides it).
             panel.gameObject.SetActive(false);
+
+            // --- Daily reward popup (shown on launch when today's streak reward is available) ---
+            var dailyPopupGo = new GameObject("DailyRewardPopup");
+            dailyPopupGo.transform.SetParent(canvasGo.transform, false);
+            var dailyPopup = dailyPopupGo.AddComponent<DailyRewardPopup>();
+
+            var dailyPanel = CreateImage("Panel", dailyPopupGo.transform, uiSprite, new Color(0f, 0f, 0f, 0.85f));
+            StretchFull(dailyPanel.rectTransform);
+
+            var dailyMessage = CreateText("Message", dailyPanel.transform, string.Empty, 52f, TextAlignmentOptions.Center);
+            SetRect(dailyMessage.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 80f), new Vector2(900f, 360f));
+
+            var dailyClaimImage = CreateImage("ClaimButton", dailyPanel.transform, uiSprite, new Color(0.20f, 0.80f, 0.35f));
+            SetRect(dailyClaimImage.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -160f), new Vector2(420f, 120f));
+            var dailyClaimButton = dailyClaimImage.gameObject.AddComponent<Button>();
+            dailyClaimButton.targetGraphic = dailyClaimImage;
+            var dailyClaimLabel = CreateText("Label", dailyClaimImage.transform, "CLAIM", 44f, TextAlignmentOptions.Center);
+            StretchFull(dailyClaimLabel.rectTransform);
+
+            AssignRef(dailyPopup, "_panel", dailyPanel.gameObject);
+            AssignRef(dailyPopup, "_messageText", dailyMessage);
+            AssignRef(dailyPopup, "_claimButton", dailyClaimButton);
+
+            dailyPanel.gameObject.SetActive(false);
 
             // --- Ad overlay: created LAST among canvas children so it renders on top of every
             // other UI (modals included) while a mock rewarded ad "plays". ---

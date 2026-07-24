@@ -12,6 +12,8 @@ namespace IdleGymBro.Data
         public int AchievementUpgradesBought;
         public int MaxLocationIndex;
         public System.Collections.Generic.List<string> ClaimedAchievements = new System.Collections.Generic.List<string>();
+        public long LastDailyClaimDay;
+        public int DailyStreak;
         public System.Collections.Generic.Dictionary<string, int> UpgradeLevels = new System.Collections.Generic.Dictionary<string, int>();
     }
 }

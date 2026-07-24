@@ -328,7 +328,10 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 - [x] #016 **Faza 7: Periodic Reward** (dole desno) — `Meta/PeriodicRewardManager` (time chest na 15 min = passive rate × 300s; ne persistuje se) + `UI/PeriodicRewardButton` (countdown → COLLECT)
 - [x] #017 **Faza 7: Achievements** (dole levo) — `Data/AchievementData`+`AchievementType`, `Meta/AchievementManager` (`ISaveable`: reps/upgrades/maxLocation/claimed; TotalEarned iz `GainsChangedEvent`), 6 asseta, `UI/AchievementsButton` (GOALS badge) + `AchievementsPanel` (CLAIM ALL, 4. modal). *(Solo — agenti na limitu.)*
 
-> **HUD kompletan po [`docs/ui-layout.md`](docs/ui-layout.md):** story(GL) · boosti+achievements(L) · settings+upgrades+reward(D) · gains/energy(gore). Preostali slotovi (shop permanent boosts, timed event, offer) su Faza 5+/post-MVP.
+- [x] #018 **Faza 7: Daily Reward (streak)** — `Meta/DailyRewardManager` (`ISaveable`; UTC dan; escalating = passive rate × 600s × streakDay, cycle 7; reset ako preskočiš dan) + `DailyRewardAvailableEvent` + `UI/DailyRewardPopup` (na startu). *(Solo — agenti na limitu.)*
+
+> **HUD kompletan po [`docs/ui-layout.md`](docs/ui-layout.md):** story(GL) · boosti+achievements(L) · settings+upgrades+reward(D) · gains/energy(gore) · daily popup na startu. Preostali slotovi (shop permanent boosts, timed event, offer) su Faza 5+/post-MVP.
+> **Faza 7 (Meta) — funkcionalno kompletna:** achievements + periodic reward + daily streak.
 
 **MVP status: faze 0–4 funkcionalno kompletne sa placeholderima; monetizacioni TOKOVI mockovani (§10 poštovan — sve opt-in)** — sledeće: pravi art (čeka assete), balans tuning kroz playtest, animacije; realan LevelPlay/IAP na samom kraju.
 - [ ] Faza 3 nastavak: animacije (idle + rep po tieru), wardrobe/kustomizacija UI, pravi pixel art (čeka assete — [`docs/asset-checklist.md`](docs/asset-checklist.md))

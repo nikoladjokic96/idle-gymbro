@@ -73,5 +73,17 @@ namespace IdleGymBro.Data
 
         public float PeriodicRewardIntervalSeconds => _periodicRewardIntervalSeconds;
         public float PeriodicRewardSeconds => _periodicRewardSeconds;
+
+        [Header("Daily Reward")]
+        [SerializeField]
+        [Min(1f)]
+        private float _dailyRewardSeconds = 600f; // per streak day: reward = passive rate x this x streakDay
+
+        [SerializeField]
+        [Min(1)]
+        private int _dailyStreakCycle = 7;
+
+        public float DailyRewardSeconds => _dailyRewardSeconds;
+        public int DailyStreakCycle => _dailyStreakCycle;
     }
 }
