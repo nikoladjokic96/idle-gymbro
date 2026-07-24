@@ -15,7 +15,12 @@ namespace IdleGymBro.Economy
         // once UpgradeManager publishes its first StatsChangedEvent.
         private double _gainsPerSecond;
 
+        // Multiplicative on top of the additive upgrade stat, cached from BoosterManager.
+        private double _boosterMultiplier = 1d;
+
         public double GainsPerSecond => _gainsPerSecond;
+
+        private double EffectiveRate => _gainsPerSecond * _boosterMultiplier;
 
         private void Awake()
         {
@@ -26,12 +31,14 @@ namespace IdleGymBro.Economy
         {
             EventBus.Subscribe<TickEvent>(HandleTick);
             EventBus.Subscribe<StatsChangedEvent>(HandleStatsChanged);
+            EventBus.Subscribe<BoosterMultipliersChangedEvent>(HandleBoosterMultipliersChanged);
         }
 
         private void OnDisable()
         {
             EventBus.Unsubscribe<TickEvent>(HandleTick);
             EventBus.Unsubscribe<StatsChangedEvent>(HandleStatsChanged);
+            EventBus.Unsubscribe<BoosterMultipliersChangedEvent>(HandleBoosterMultipliersChanged);
         }
 
         private void Start()
@@ -42,25 +49,31 @@ namespace IdleGymBro.Economy
             }
 
             // Published in Start so HUD (subscribed in OnEnable) is ready to receive it.
-            EventBus.Publish(new PassiveIncomeChangedEvent(GainsPerSecond));
+            EventBus.Publish(new PassiveIncomeChangedEvent(EffectiveRate));
         }
 
         private void HandleTick(TickEvent e)
         {
-            double gainsPerSecond = GainsPerSecond;
+            double effectiveRate = EffectiveRate;
 
-            if (gainsPerSecond <= 0d)
+            if (effectiveRate <= 0d)
             {
                 return;
             }
 
-            EventBus.Publish(new GainsEarnedEvent(gainsPerSecond * e.DeltaTime));
+            EventBus.Publish(new GainsEarnedEvent(effectiveRate * e.DeltaTime));
         }
 
         private void HandleStatsChanged(StatsChangedEvent e)
         {
             _gainsPerSecond = e.PassiveGainsPerSecond;
-            EventBus.Publish(new PassiveIncomeChangedEvent(_gainsPerSecond));
+            EventBus.Publish(new PassiveIncomeChangedEvent(EffectiveRate));
+        }
+
+        private void HandleBoosterMultipliersChanged(BoosterMultipliersChangedEvent e)
+        {
+            _boosterMultiplier = e.PassiveMultiplier;
+            EventBus.Publish(new PassiveIncomeChangedEvent(EffectiveRate));
         }
 
         private bool ValidateConfig()

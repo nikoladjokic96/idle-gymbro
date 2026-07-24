@@ -55,12 +55,22 @@ namespace IdleGymBro.EditorTools
                 return;
             }
 
-            // Placeholder upgrades (data-driven; tune values in the .asset inspectors later).
+            // Upgrades = muscle groups trained (§5 gym meme identity); consumables live as
+            // boosters instead (see BoosterData below). Tune values in the .asset inspectors later.
             var upgrades = new UpgradeData[]
             {
-                GetOrCreateUpgrade("stronger_arms", "Stronger Arms", StatType.GainsPerRep, 1d, 10d, 1.10f),
-                GetOrCreateUpgrade("protein_shake", "Protein Shake", StatType.GainsPerRep, 5d, 100d, 1.12f),
+                GetOrCreateUpgrade("chest", "Chest Day", StatType.GainsPerRep, 1d, 10d, 1.10f),
+                GetOrCreateUpgrade("arms", "Arm Blaster", StatType.GainsPerRep, 2d, 60d, 1.11f),
+                GetOrCreateUpgrade("back", "Back Attack", StatType.GainsPerRep, 5d, 350d, 1.12f),
+                GetOrCreateUpgrade("legs", "Never Skip Leg Day", StatType.GainsPerRep, 12d, 2000d, 1.13f),
                 GetOrCreateUpgrade("training_partner", "Training Partner", StatType.PassiveGainsPerSecond, 0.5d, 50d, 1.11f),
+                GetOrCreateUpgrade("gym_membership", "Gym Membership", StatType.PassiveGainsPerSecond, 3d, 500d, 1.12f),
+            };
+
+            // Boosters (opt-in, rewarded-ad-flavored per §10; consumable-style temporary buffs).
+            var boosters = new BoosterData[]
+            {
+                GetOrCreateBooster("preworkout", "Pre-Workout", 0 /* BoosterTarget.TapIncome */, 2f, 60f, 180f),
             };
 
             // Muscle tiers (data-driven; thresholds are lifetime TotalEarned, not balance).
@@ -97,6 +107,7 @@ namespace IdleGymBro.EditorTools
             var passiveIncome = gameSystems.AddComponent<PassiveIncomeSystem>();
             var offlineEarnings = gameSystems.AddComponent<OfflineEarningsSystem>();
             var upgradeManager = gameSystems.AddComponent<UpgradeManager>();
+            var boosterManager = gameSystems.AddComponent<BoosterManager>();
 
             AssignRef(gameManager, "_gameConfig", config);
             AssignRef(tickSystem, "_gameConfig", config);
@@ -108,9 +119,11 @@ namespace IdleGymBro.EditorTools
             AssignRef(offlineEarnings, "_gameConfig", config);
             AssignRef(upgradeManager, "_gameConfig", config);
             AssignArray(upgradeManager, "_upgrades", upgrades);
+            AssignArray(boosterManager, "_boosters", boosters);
 
             // Self-check: verify the asset reference actually serialized (asset refs are
-            // more timing-sensitive in batchmode than scene-object refs).
+            // more timing-sensitive in batchmode than scene-object refs). BoosterManager has
+            // no _gameConfig field, so it's intentionally excluded from this check.
             var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem, passiveIncome, offlineEarnings, upgradeManager };
             int wired = 0;
             foreach (var s in systems)
@@ -191,12 +204,26 @@ namespace IdleGymBro.EditorTools
             AssignRef(hudController, "_passiveRateText", passiveRateText);
 
             // --- Upgrades: "UPGRADES" open button on the HUD + a modal with the upgrade buttons ---
+            // Edges = buttons (docs/ui-layout.md): UPGRADES lives on the right-middle edge.
             var openBtnImage = CreateImage("UpgradesOpenButton", canvasGo.transform, uiSprite, new Color(0.18f, 0.30f, 0.45f));
-            SetRect(openBtnImage.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 110f), new Vector2(460f, 130f));
+            SetRect(openBtnImage.rectTransform, new Vector2(1f, 0.5f), new Vector2(-130f, 0f), new Vector2(220f, 130f));
             var openButton = openBtnImage.gameObject.AddComponent<Button>();
             openButton.targetGraphic = openBtnImage;
-            var openLabel = CreateText("Label", openBtnImage.transform, "UPGRADES", 46f, TextAlignmentOptions.Center);
-            SetRect(openLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(460f, 130f));
+            var openLabel = CreateText("Label", openBtnImage.transform, "UPGRADES", 36f, TextAlignmentOptions.Center);
+            SetRect(openLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(220f, 130f));
+
+            // --- Booster button: left-middle edge (docs/ui-layout.md "Boost: 2x tap") ---
+            var boosterBtnImage = CreateImage("BoosterButton_preworkout", canvasGo.transform, uiSprite, new Color(0.60f, 0.35f, 0.15f));
+            SetRect(boosterBtnImage.rectTransform, new Vector2(0f, 0.5f), new Vector2(130f, 0f), new Vector2(220f, 130f));
+            var boosterButtonComponent = boosterBtnImage.gameObject.AddComponent<Button>();
+            boosterButtonComponent.targetGraphic = boosterBtnImage;
+            var boosterLabel = CreateText("Label", boosterBtnImage.transform, string.Empty, 30f, TextAlignmentOptions.Center);
+            StretchFull(boosterLabel.rectTransform);
+
+            var boosterButton = boosterBtnImage.gameObject.AddComponent<BoosterButton>();
+            AssignRef(boosterButton, "_booster", boosters[0]);
+            AssignRef(boosterButton, "_button", boosterButtonComponent);
+            AssignRef(boosterButton, "_label", boosterLabel);
 
             // Modal root (starts hidden via ModalToggle). Dimmer fills the screen and, being a
             // raycast target, both blocks clicks to the game and makes TapController skip taps.
@@ -224,16 +251,64 @@ namespace IdleGymBro.EditorTools
             var closeLabel = CreateText("Label", closeBtnImage.transform, "X", 52f, TextAlignmentOptions.Center);
             SetRect(closeLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(90f, 90f));
 
+            // Scrollable upgrade list: 6 muscle-group upgrades no longer fit as fixed-position
+            // buttons, so the content grows vertically and the viewport clips/scrolls it.
+            var scrollAreaGo = new GameObject("ScrollArea", typeof(RectTransform), typeof(Image), typeof(RectMask2D), typeof(ScrollRect));
+            scrollAreaGo.transform.SetParent(window.transform, false);
+            var scrollAreaRect = scrollAreaGo.GetComponent<RectTransform>();
+            SetRect(scrollAreaRect, new Vector2(0.5f, 1f), new Vector2(0f, -560f), new Vector2(680f, 760f));
+            var scrollAreaImage = scrollAreaGo.GetComponent<Image>();
+            scrollAreaImage.sprite = uiSprite;
+            scrollAreaImage.color = new Color(0.10f, 0.12f, 0.15f, 1f);
+
+            var contentGo = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+            contentGo.transform.SetParent(scrollAreaGo.transform, false);
+            var contentRect = contentGo.GetComponent<RectTransform>();
+            contentRect.anchorMin = new Vector2(0f, 1f);
+            contentRect.anchorMax = new Vector2(1f, 1f);
+            contentRect.pivot = new Vector2(0.5f, 1f);
+            contentRect.offsetMin = Vector2.zero;
+            contentRect.offsetMax = Vector2.zero;
+
+            var layoutGroup = contentGo.GetComponent<VerticalLayoutGroup>();
+            layoutGroup.padding = new RectOffset(20, 20, 20, 20);
+            layoutGroup.spacing = 20f;
+            layoutGroup.childAlignment = TextAnchor.UpperCenter;
+            layoutGroup.childControlWidth = true;
+            // childControlHeight MUST be true or the per-button LayoutElement.preferredHeight
+            // is never queried (buttons would silently render at the 100px RectTransform default).
+            layoutGroup.childControlHeight = true;
+            layoutGroup.childForceExpandWidth = true;
+            layoutGroup.childForceExpandHeight = false;
+
+            var sizeFitter = contentGo.GetComponent<ContentSizeFitter>();
+            sizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            var scrollRect = scrollAreaGo.GetComponent<ScrollRect>();
+            scrollRect.content = contentRect;
+            scrollRect.viewport = scrollAreaRect;
+            scrollRect.horizontal = false;
+            scrollRect.vertical = true;
+
             for (int i = 0; i < upgrades.Length; i++)
             {
-                var btnImage = CreateImage("UpgradeBtn_" + upgrades[i].Id, window.transform, uiSprite, new Color(0.18f, 0.30f, 0.45f));
-                SetRect(btnImage.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -300f - i * 180f), new Vector2(640f, 150f));
-                var button = btnImage.gameObject.AddComponent<Button>();
-                button.targetGraphic = btnImage;
-                var buttonLabel = CreateText("Label", btnImage.transform, string.Empty, 36f, TextAlignmentOptions.Center);
-                SetRect(buttonLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(640f, 150f));
+                var btnGo = new GameObject("UpgradeBtn_" + upgrades[i].Id, typeof(RectTransform), typeof(Image), typeof(LayoutElement));
+                btnGo.transform.SetParent(contentGo.transform, false);
 
-                var upgradeButton = btnImage.gameObject.AddComponent<UpgradeButton>();
+                var btnImage = btnGo.GetComponent<Image>();
+                btnImage.sprite = uiSprite;
+                btnImage.color = new Color(0.18f, 0.30f, 0.45f);
+
+                var layoutElement = btnGo.GetComponent<LayoutElement>();
+                layoutElement.preferredHeight = 140f;
+
+                var button = btnGo.AddComponent<Button>();
+                button.targetGraphic = btnImage;
+
+                var buttonLabel = CreateText("Label", btnGo.transform, string.Empty, 34f, TextAlignmentOptions.Center);
+                StretchFull(buttonLabel.rectTransform);
+
+                var upgradeButton = btnGo.AddComponent<UpgradeButton>();
                 AssignRef(upgradeButton, "_upgrade", upgrades[i]);
                 AssignRef(upgradeButton, "_button", button);
                 AssignRef(upgradeButton, "_label", buttonLabel);
@@ -328,6 +403,39 @@ namespace IdleGymBro.EditorTools
             // Reload the canonical, imported instance so it serializes as an asset reference.
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
             return AssetDatabase.LoadAssetAtPath<UpgradeData>(path);
+        }
+
+        private const string BoostersFolder = "Assets/_Game/Data/Boosters";
+
+        private static BoosterData GetOrCreateBooster(string id, string displayName, int targetEnumDeclarationIndex, float multiplier, float durationSeconds, float cooldownSeconds)
+        {
+            if (!AssetDatabase.IsValidFolder(BoostersFolder))
+            {
+                AssetDatabase.CreateFolder("Assets/_Game/Data", "Boosters");
+            }
+
+            string path = $"{BoostersFolder}/{id}.asset";
+            var booster = AssetDatabase.LoadAssetAtPath<BoosterData>(path);
+            if (booster == null)
+            {
+                booster = ScriptableObject.CreateInstance<BoosterData>();
+                AssetDatabase.CreateAsset(booster, path);
+            }
+
+            var so = new SerializedObject(booster);
+            so.FindProperty("_id").stringValue = id;
+            so.FindProperty("_displayName").stringValue = displayName;
+            // enumValueIndex is the enum's DECLARATION-ORDER index: BoosterTarget { TapIncome=0, PassiveIncome=1 }.
+            so.FindProperty("_target").enumValueIndex = targetEnumDeclarationIndex;
+            so.FindProperty("_multiplier").floatValue = multiplier;
+            so.FindProperty("_durationSeconds").floatValue = durationSeconds;
+            so.FindProperty("_cooldownSeconds").floatValue = cooldownSeconds;
+            so.ApplyModifiedProperties();
+
+            AssetDatabase.SaveAssets();
+            // Reload the canonical, imported instance so it serializes as an asset reference.
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            return AssetDatabase.LoadAssetAtPath<BoosterData>(path);
         }
 
         private const string MuscleTiersFolder = "Assets/_Game/Data/MuscleTiers";

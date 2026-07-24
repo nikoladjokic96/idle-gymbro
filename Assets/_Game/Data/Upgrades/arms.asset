@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8bcc509025de16d478fe29c566e7ea89, type: 3}
-  m_Name: stronger_arms
+  m_Name: arms
   m_EditorClassIdentifier: 
-  _id: stronger_arms
-  _displayName: Stronger Arms
+  _id: arms
+  _displayName: Arm Blaster
   _statType: 0
-  _effectPerLevel: 1
-  _baseCost: 10
-  _growthRate: 1.1
+  _effectPerLevel: 2
+  _baseCost: 60
+  _growthRate: 1.11
   _maxLevel: 0

@@ -28,6 +28,9 @@ namespace IdleGymBro.Economy
         // once UpgradeManager publishes its first StatsChangedEvent.
         private double _gainsPerRep;
 
+        // Multiplicative on top of the additive upgrade stat, cached from BoosterManager.
+        private double _tapBoosterMultiplier = 1d;
+
         public double TotalGains { get; private set; }
 
         // Lifetime gains ever earned; never decreases on spend. Drives muscle-tier progression
@@ -44,6 +47,7 @@ namespace IdleGymBro.Economy
             EventBus.Subscribe<RepPerformedEvent>(HandleRepPerformed);
             EventBus.Subscribe<GainsEarnedEvent>(HandleGainsEarned);
             EventBus.Subscribe<StatsChangedEvent>(HandleStatsChanged);
+            EventBus.Subscribe<BoosterMultipliersChangedEvent>(HandleBoosterMultipliersChanged);
         }
 
         private void OnDisable()
@@ -51,6 +55,7 @@ namespace IdleGymBro.Economy
             EventBus.Unsubscribe<RepPerformedEvent>(HandleRepPerformed);
             EventBus.Unsubscribe<GainsEarnedEvent>(HandleGainsEarned);
             EventBus.Unsubscribe<StatsChangedEvent>(HandleStatsChanged);
+            EventBus.Unsubscribe<BoosterMultipliersChangedEvent>(HandleBoosterMultipliersChanged);
         }
 
         private void Start()
@@ -65,8 +70,9 @@ namespace IdleGymBro.Economy
                 return;
             }
 
-            TotalGains += _gainsPerRep;
-            TotalEarned += _gainsPerRep;
+            double amount = _gainsPerRep * _tapBoosterMultiplier;
+            TotalGains += amount;
+            TotalEarned += amount;
             EventBus.Publish(new GainsChangedEvent(TotalGains, TotalEarned));
         }
 
@@ -80,6 +86,11 @@ namespace IdleGymBro.Economy
         private void HandleStatsChanged(StatsChangedEvent e)
         {
             _gainsPerRep = e.GainsPerRep;
+        }
+
+        private void HandleBoosterMultipliersChanged(BoosterMultipliersChangedEvent e)
+        {
+            _tapBoosterMultiplier = e.TapMultiplier;
         }
 
         public bool TrySpend(double amount)

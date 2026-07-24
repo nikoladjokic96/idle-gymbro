@@ -128,3 +128,25 @@ sisteme, HUD, placeholder; sve reference kroz `SerializedObject`; idempotentan (
 **UI layout blueprint** — [`ui-layout.md`](ui-layout.md): korisnikov ciljni HUD raspored
 (po uzoru na Medieval Idle Prayer): levo story-progress/boosti/offer, desno settings/buffovi/
 upgrades/shop/periodic-claim, dole quests+event; svaki element mapiran na fazu.
+
+## Faza 4 — MVP polish (početak)
+
+**NALOG #009** (Workflow: 2 Sonnet implement + 2 Sonnet review lens-a + Sonnet verify; Fable arhitekta/fix) —
+upgrade rework + booster sistem + HUD ivice.
+- **Dizajn odluka (korisnik):** upgrades = mišićne grupe; konzumabilne stvari (protein, pre-workout)
+  su BOOSTERI (privremeni buffovi), ne upgrades.
+- Upgrades sada: chest „Chest Day", arms „Arm Blaster", back „Back Attack", legs „Never Skip Leg Day"
+  (GainsPerRep) + training_partner, gym_membership (pasivno). `stronger_arms`/`protein_shake` obrisani
+  (leveli iz starih save-ova se bezbedno ignorišu — recompute ide samo preko `_upgrades` niza).
+- `Data/BoosterData` (id, target Tap/Passive, multiplier, duration, cooldown) + `Economy/BoosterManager`
+  (TryActivate → active → cooldown; multiplikatori = proizvod aktivnih; publikuje
+  `BoosterMultipliersChangedEvent` + `BoosterStateChangedEvent`). Stanje se NE persistuje (MVP).
+- `CurrencyManager`/`PassiveIncomeSystem` množe efektivni prihod boosterom (§5: `base × boosterMultiplier`).
+- `UI/BoosterButton` (ready „2x" / active countdown / cooldown). Prvi booster: **pre-workout** (2x tap, 60s, CD 180s).
+- Upgrade modal: **ScrollRect lista** (6 dugmadi, VerticalLayoutGroup + ContentSizeFitter).
+- HUD po blueprint-u: UPGRADES desna ivica sredina, boost dugme leva ivica.
+- **Review nalazi (3, primenjeni):** BoosterButton.Start gazio inicijalni „2x" label (→ Awake);
+  state eventi 10×/s bez potrebe (→ publikuj samo kad se prikazana sekunda promeni);
+  `childControlHeight=false` čini `LayoutElement.preferredHeight` no-op (→ true; dugmad bi bila 100px).
+- Verifikacija (agent): batchmode bez `error CS`, `wired 9/9`, preworkout asset tačan, tačno 6 upgrade
+  asseta, scena: BoosterManager/_boosters + BoosterButton + ScrollRect/Content + 6 UpgradeButton-a — sve PASS.

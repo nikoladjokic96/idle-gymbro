@@ -303,7 +303,7 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 
 > Detaljna istorija svakog naloga (šta, kako verifikovano, gotchas): [`docs/dev-log.md`](docs/dev-log.md).
 
-**Faza 0 (Setup) — GOTOVA · Faza 1 (Core loop) — GOTOVA · Faza 2 (Ekonomija) — funkcionalna · Faza 3 (Karakter) — u toku**
+**Faza 0 (Setup) — GOTOVA · Faza 1 (Core loop) — GOTOVA · Faza 2 (Ekonomija) — funkcionalna · Faza 3 (Karakter) — u toku · Faza 4 (Polish) — započeta**
 
 - [x] #001 Projekat + paketi + git + core backbone (`EventBus`, `TickSystem`, `GameConfig`, `GameManager`); Android SDK/NDK kroz `scripts/setup-dev-env.ps1`
 - [x] #002 Core loop: hold → `TapEvent` → energija → `RepPerformedEvent` → Gains (event-driven)
@@ -314,6 +314,7 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 - [x] #007 Upgrade sistem (`UpgradeData` SO, `StatsChangedEvent` agregacija, `TrySpend`) + 3 placeholder upgrade-a
 - [x] Fix: `EventSystem` (klikabilna dugmad) + upgrade **modal** (`ModalToggle`) + tap-over-UI guard + `CanvasScaler.Expand`
 - [x] #008 Karakter sistem (Faza 3): `CharacterBuilder` (layered SpriteRenderer stack, world-space), muscle tiers po **`TotalEarned`** (lifetime — kupovina ne smanjuje mišiće), `MuscleTierData`/`CosmeticData` SO, `PlaceholderArtGenerator` (10 PNG placeholder-a po art-brief specifikaciji)
+- [x] #009 Upgrade rework (mišićne grupe: Chest/Arms/Back/Legs + Training Partner/Gym Membership) + **booster sistem** (`BoosterData`/`BoosterManager`, pre-workout 2x tap 60s/CD 180s, multiplikativno preko §5 formule) + scroll upgrade lista + HUD ivice po [`docs/ui-layout.md`](docs/ui-layout.md) (UPGRADES desno-sredina, boost levo)
 - [ ] Faza 3 nastavak: animacije (idle + rep po tieru), wardrobe/kustomizacija UI, pravi pixel art (čeka assete — [`docs/asset-checklist.md`](docs/asset-checklist.md))
 - [ ] Balans tuning (krive cena/prihoda kroz playtest — §6/§10)
 - [ ] Više stat tipova (maxEnergy/regen), još upgrade-ova; prestige je post-MVP
