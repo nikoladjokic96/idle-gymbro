@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0ca0bb3122272445a128f9a5cf9b7df, type: 3}
+  m_Name: AudioLibrary
+  m_EditorClassIdentifier: 
+  _tapClip: {fileID: 8300000, guid: 97d63b18701dc3b49be5309de4edae0a, type: 3}
+  _buyClip: {fileID: 8300000, guid: efc6319f39b9b1e45a049d1b4f0497cb, type: 3}
+  _tierUpClip: {fileID: 8300000, guid: 4f354422cb541c849a995be046be9c49, type: 3}
+  _boosterClip: {fileID: 8300000, guid: 6cdf2f3e1a5c4aa4d9fe1fc3b4723658, type: 3}
+  _masterVolume: 0.8

@@ -35,6 +35,7 @@ namespace IdleGymBro.EditorTools
             // Must run before any MuscleTierData/CosmeticData assets are created below, since
             // those assets reference sprites this generates.
             PlaceholderArtGenerator.Generate();
+            PlaceholderSfxGenerator.Generate();
 
             var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
 
@@ -92,6 +93,10 @@ namespace IdleGymBro.EditorTools
                 GetOrCreateCosmetic("beard_01", "Beard", CharacterLayer.Beard, $"{CharacterArtFolder}/beard_01.png", 0d),
             };
 
+            // Audio library referencing the placeholder clips generated above (data-driven per §16:
+            // no clip paths live in AudioManager itself).
+            AudioLibrary audioLibrary = GetOrCreateAudioLibrary();
+
             var root = new GameObject(RootName);
 
             // --- Systems ---
@@ -108,6 +113,9 @@ namespace IdleGymBro.EditorTools
             var offlineEarnings = gameSystems.AddComponent<OfflineEarningsSystem>();
             var upgradeManager = gameSystems.AddComponent<UpgradeManager>();
             var boosterManager = gameSystems.AddComponent<BoosterManager>();
+            var audioSource = gameSystems.AddComponent<AudioSource>();
+            audioSource.playOnAwake = false;
+            var audioManager = gameSystems.AddComponent<AudioManager>();
 
             AssignRef(gameManager, "_gameConfig", config);
             AssignRef(tickSystem, "_gameConfig", config);
@@ -120,10 +128,13 @@ namespace IdleGymBro.EditorTools
             AssignRef(upgradeManager, "_gameConfig", config);
             AssignArray(upgradeManager, "_upgrades", upgrades);
             AssignArray(boosterManager, "_boosters", boosters);
+            AssignRef(audioManager, "_library", audioLibrary);
+            AssignRef(audioManager, "_source", audioSource);
 
             // Self-check: verify the asset reference actually serialized (asset refs are
-            // more timing-sensitive in batchmode than scene-object refs). BoosterManager has
-            // no _gameConfig field, so it's intentionally excluded from this check.
+            // more timing-sensitive in batchmode than scene-object refs). BoosterManager and
+            // AudioManager have no _gameConfig field, so they're intentionally excluded from
+            // this check.
             var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem, passiveIncome, offlineEarnings, upgradeManager };
             int wired = 0;
             foreach (var s in systems)
@@ -342,6 +353,58 @@ namespace IdleGymBro.EditorTools
             AssignRef(modalToggle, "_closeButton", closeButton);
             AssignRef(modalToggle, "_backdropButton", backdropButton);
 
+            // --- Settings: "SETTINGS" open button (top-right per docs/ui-layout.md) + a modal
+            // with the sound mute toggle ---
+            var settingsOpenImage = CreateImage("SettingsOpenButton", canvasGo.transform, uiSprite, new Color(0.30f, 0.30f, 0.35f));
+            SetRect(settingsOpenImage.rectTransform, new Vector2(1f, 1f), new Vector2(-130f, -100f), new Vector2(220f, 130f));
+            var settingsOpenButton = settingsOpenImage.gameObject.AddComponent<Button>();
+            settingsOpenButton.targetGraphic = settingsOpenImage;
+            var settingsOpenLabel = CreateText("Label", settingsOpenImage.transform, "SETTINGS", 34f, TextAlignmentOptions.Center);
+            StretchFull(settingsOpenLabel.rectTransform);
+
+            var settingsModal = new GameObject("SettingsModal", typeof(RectTransform));
+            settingsModal.transform.SetParent(canvasGo.transform, false);
+            StretchFull(settingsModal.GetComponent<RectTransform>());
+
+            var settingsDimmer = CreateImage("Dimmer", settingsModal.transform, uiSprite, new Color(0f, 0f, 0f, 0.75f));
+            StretchFull(settingsDimmer.rectTransform);
+
+            var settingsBackdropButton = settingsDimmer.gameObject.AddComponent<Button>();
+            settingsBackdropButton.transition = Selectable.Transition.None; // no hover tint on a fullscreen dimmer
+            settingsBackdropButton.targetGraphic = settingsDimmer;
+
+            var settingsWindow = CreateImage("Window", settingsModal.transform, uiSprite, new Color(0.12f, 0.14f, 0.18f, 1f));
+            SetRect(settingsWindow.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(600f, 420f));
+
+            var settingsTitle = CreateText("Title", settingsWindow.transform, "SETTINGS", 48f, TextAlignmentOptions.Center);
+            SetRect(settingsTitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(400f, 80f));
+
+            var settingsCloseImage = CreateImage("CloseButton", settingsWindow.transform, uiSprite, new Color(0.55f, 0.20f, 0.20f));
+            SetRect(settingsCloseImage.rectTransform, new Vector2(1f, 1f), new Vector2(-60f, -60f), new Vector2(80f, 80f));
+            var settingsCloseButton = settingsCloseImage.gameObject.AddComponent<Button>();
+            settingsCloseButton.targetGraphic = settingsCloseImage;
+            var settingsCloseLabel = CreateText("Label", settingsCloseImage.transform, "X", 52f, TextAlignmentOptions.Center);
+            StretchFull(settingsCloseLabel.rectTransform);
+
+            var soundToggleImage = CreateImage("SoundToggle", settingsWindow.transform, uiSprite, new Color(0.18f, 0.30f, 0.45f));
+            SetRect(soundToggleImage.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -20f), new Vector2(420f, 110f));
+            var soundToggleButton = soundToggleImage.gameObject.AddComponent<Button>();
+            soundToggleButton.targetGraphic = soundToggleImage;
+            var soundToggleLabel = CreateText("Label", soundToggleImage.transform, string.Empty, 36f, TextAlignmentOptions.Center);
+            StretchFull(soundToggleLabel.rectTransform);
+
+            var settingsPanel = settingsWindow.gameObject.AddComponent<SettingsPanel>();
+            AssignRef(settingsPanel, "_soundToggleButton", soundToggleButton);
+            AssignRef(settingsPanel, "_soundToggleLabel", soundToggleLabel);
+
+            var settingsModalControllerGo = new GameObject("SettingsModalController");
+            settingsModalControllerGo.transform.SetParent(root.transform, false);
+            var settingsModalToggle = settingsModalControllerGo.AddComponent<ModalToggle>();
+            AssignRef(settingsModalToggle, "_panel", settingsModal);
+            AssignRef(settingsModalToggle, "_openButton", settingsOpenButton);
+            AssignRef(settingsModalToggle, "_closeButton", settingsCloseButton);
+            AssignRef(settingsModalToggle, "_backdropButton", settingsBackdropButton);
+
             // --- Offline claim popup ---
             // Component lives on an always-active object; the panel it toggles is a child,
             // so hiding the panel never disables the component (which would kill OnEnable).
@@ -391,6 +454,32 @@ namespace IdleGymBro.EditorTools
             // (an in-memory CreateInstance object would serialize as {fileID: 0}).
             AssetDatabase.ImportAsset(ConfigPath, ImportAssetOptions.ForceSynchronousImport);
             return AssetDatabase.LoadAssetAtPath<GameConfig>(ConfigPath);
+        }
+
+        private const string AudioLibraryPath = "Assets/_Game/Data/AudioLibrary.asset";
+        private const string SfxFolder = "Assets/_Game/Audio/Placeholders";
+
+        private static AudioLibrary GetOrCreateAudioLibrary()
+        {
+            var library = AssetDatabase.LoadAssetAtPath<AudioLibrary>(AudioLibraryPath);
+            if (library == null)
+            {
+                library = ScriptableObject.CreateInstance<AudioLibrary>();
+                AssetDatabase.CreateAsset(library, AudioLibraryPath);
+            }
+
+            var so = new SerializedObject(library);
+            so.FindProperty("_tapClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>($"{SfxFolder}/tap.wav");
+            so.FindProperty("_buyClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>($"{SfxFolder}/buy.wav");
+            so.FindProperty("_tierUpClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>($"{SfxFolder}/tier_up.wav");
+            so.FindProperty("_boosterClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>($"{SfxFolder}/booster.wav");
+            // _masterVolume intentionally left as-is (default from the SO / prior inspector tuning).
+            so.ApplyModifiedProperties();
+
+            AssetDatabase.SaveAssets();
+            // Reload the canonical, imported instance so it serializes as an asset reference.
+            AssetDatabase.ImportAsset(AudioLibraryPath, ImportAssetOptions.ForceSynchronousImport);
+            return AssetDatabase.LoadAssetAtPath<AudioLibrary>(AudioLibraryPath);
         }
 
         private const string UpgradesFolder = "Assets/_Game/Data/Upgrades";

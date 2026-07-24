@@ -164,3 +164,19 @@ upgrade rework + booster sistem + HUD ivice.
   event se guta (`_initialTierSeen`).
 - Verifikacija (agent): batchmode bez grešaka, sva 4 juice komponente ožičene u sceni, `_energyFill:{fileID:0}`
   potvrđeno namerno, `TapGainsEvent` definisan + publikovan tačno jednom — sve PASS.
+
+**NALOG #011** (Sonnet implement + Sonnet verify; Fable review/fix) — zvuk + settings.
+- `Editor/PlaceholderSfxGenerator` — 4 deterministička WAV placeholder-a (PCM16 mono 44.1kHz,
+  ručni RIFF header): tap (50ms 880Hz), buy (2 tona), tier_up (arpeggio), booster (noise whoosh,
+  fiksni seed 42 → commit bajtovi stabilni). Menu + headless.
+- `Data/AudioLibrary` SO (4 clip slota + master volume) — pravi SFX menja .wav fajlove 1:1.
+- `Core/AudioManager` — event→SFX: `TapGainsEvent`, `UpgradePurchasedEvent`,
+  `MuscleTierChangedEvent` (guta inicijalni), `BoosterStateChangedEvent` (samo inactive→active
+  tranzicija preko HashSet-a). Mute u PlayerPrefs (audio pref nije game progress).
+- `UI/SettingsPanel` + SETTINGS dugme gore desno (po ui-layout.md) + settings modal (drugi
+  `ModalToggle` — open/X/backdrop).
+- **Verify uhvatio compile bug:** `Random` dvosmislen (`UnityEngine` vs `System`) u generatoru →
+  `System.Random`. Gotcha: fajl sa `using UnityEngine;` + `using System;` mora da kvalifikuje Random.
+- Verifikacija posle fix-a: batchmode PASS (0 error CS, 10 sprites + 4 clips generated, wired 9/9),
+  WAV veličine tačne u bajt, AudioLibrary guid-ovi = .wav.meta guid-ovi, scena: AudioManager/_library/_source,
+  SettingsPanel, oba ModalToggle-a kompletno ožičena — FULL PASS.
