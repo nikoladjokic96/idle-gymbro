@@ -16,3 +16,4 @@ MonoBehaviour:
   _displayName: Hardcore Gym
   _totalLevelsToComplete: 300
   _globalMultiplier: 12
+  _backgroundSprite: {fileID: -2859250282351861984, guid: e8dd918c2ecca104692798fef40d7e1a, type: 3}

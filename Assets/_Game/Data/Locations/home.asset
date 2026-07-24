@@ -16,3 +16,4 @@ MonoBehaviour:
   _displayName: Home Workout
   _totalLevelsToComplete: 25
   _globalMultiplier: 1
+  _backgroundSprite: {fileID: -5213855848252734670, guid: 3c3b6e0031c04204f9c2011150deedbc, type: 3}

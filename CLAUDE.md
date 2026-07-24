@@ -324,6 +324,7 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 
 - [x] #013 Engleski za sav in-game tekst (pravilo u §11) + **abs** upgrade („Core Crusher") — moduli: chest/arms/back/abs/legs + Training Partner + Gym Membership
 - [x] #014 **Faza 6: Lokacije/story progres** — `LocationData` SO (6 lokacija: Home Workout → Mr. Olympia; kumulativni prag = ukupni upgrade nivoi; `GlobalMultiplier` 1x→75x), `Progression/LocationManager` (`ISaveable`, MOVE UP na 100%), multiplikator event-driven kroz `UpgradeManager.RecomputeAndPublish`; story dugme GORE LEVO + Locations modal (3. `ModalToggle`)
+- [x] #015 Placeholder katalog: `Editor/PixelFont` (5×7 baked labele) → svi character sprite-ovi + **6 pozadina po lokaciji** (`PlaceholderBackgroundGenerator`) self-dokumentovani; `LocationData.BackgroundSprite` + `Character/LocationBackground` (swap pozadine po `LocationChangedEvent`, sortingOrder −100); **[`docs/asset-catalog.md`](docs/asset-catalog.md)** = mapa svakog asseta (šta/gde/uloga). *(Implementirano direktno — pod-agenti pali na account spend-limit.)*
 
 **MVP status: faze 0–4 funkcionalno kompletne sa placeholderima; monetizacioni TOKOVI mockovani (§10 poštovan — sve opt-in)** — sledeće: pravi art (čeka assete), balans tuning kroz playtest, animacije; realan LevelPlay/IAP na samom kraju.
 - [ ] Faza 3 nastavak: animacije (idle + rep po tieru), wardrobe/kustomizacija UI, pravi pixel art (čeka assete — [`docs/asset-checklist.md`](docs/asset-checklist.md))

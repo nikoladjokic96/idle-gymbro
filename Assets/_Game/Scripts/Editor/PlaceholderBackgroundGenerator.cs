@@ -1,0 +1,157 @@
+using UnityEditor;
+using UnityEngine;
+using System.IO;
+
+namespace IdleGymBro.EditorTools
+{
+    // Generates one full-screen placeholder background per location, each filled with a distinct
+    // flat color, a darker ground band, and a big baked label — so the real background art can
+    // replace each file 1:1 and it is obvious which location it belongs to.
+    public static class PlaceholderBackgroundGenerator
+    {
+        private const string OutputFolder = "Assets/_Game/Art/Backgrounds/Placeholders";
+        private const int Width = 1080;
+        private const int Height = 1920;
+
+        private static readonly Color LabelColor = new Color(1f, 0f, 1f, 1f);
+
+        private struct Bg
+        {
+            public string FileName;
+            public string Label;
+            public Color Base;
+
+            public Bg(string fileName, string label, Color baseColor)
+            {
+                FileName = fileName;
+                Label = label;
+                Base = baseColor;
+            }
+        }
+
+        [MenuItem("IdleGymBro/Generate Placeholder Backgrounds")]
+        public static void Generate()
+        {
+            EnsureFolder(OutputFolder);
+
+            var backgrounds = new[]
+            {
+                new Bg("bg_home", "HOME", new Color(0.35f, 0.30f, 0.28f)),
+                new Bg("bg_street", "STREET", new Color(0.30f, 0.32f, 0.38f)),
+                new Bg("bg_basic_gym", "GYM", new Color(0.22f, 0.28f, 0.34f)),
+                new Bg("bg_hardcore_gym", "HARDCORE", new Color(0.20f, 0.20f, 0.24f)),
+                new Bg("bg_beach", "BEACH", new Color(0.20f, 0.45f, 0.62f)),
+                new Bg("bg_olympia", "OLYMPIA", new Color(0.42f, 0.34f, 0.14f)),
+            };
+
+            foreach (Bg bg in backgrounds)
+            {
+                Write(bg);
+            }
+
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[PlaceholderBackgroundGenerator] {backgrounds.Length} backgrounds generated.");
+        }
+
+        private static void Write(Bg bg)
+        {
+            var pixels = new Color[Width * Height];
+
+            // Flat base color everywhere.
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                pixels[i] = bg.Base;
+            }
+
+            // Darker ground band across the bottom third (a rough floor reference for the character).
+            Color ground = bg.Base * 0.6f;
+            ground.a = 1f;
+            FillRect(pixels, 0, Width - 1, 0, Height / 3, ground);
+
+            // Big centered name + a smaller "BACKGROUND" caption above it.
+            int nameWidth = PixelFont.MeasureWidth(bg.Label, 10);
+            PixelFont.DrawLabel(pixels, Width, Height, bg.Label, (Width - nameWidth) / 2, 1500, LabelColor, 10);
+
+            int captionWidth = PixelFont.MeasureWidth("BACKGROUND", 5);
+            PixelFont.DrawLabel(pixels, Width, Height, "BACKGROUND", (Width - captionWidth) / 2, 1650, LabelColor, 5);
+
+            WriteSprite(bg.FileName, pixels);
+        }
+
+        private static void FillRect(Color[] pixels, int xMin, int xMax, int yMin, int yMax, Color color)
+        {
+            xMin = Mathf.Clamp(xMin, 0, Width - 1);
+            xMax = Mathf.Clamp(xMax, 0, Width - 1);
+            yMin = Mathf.Clamp(yMin, 0, Height - 1);
+            yMax = Mathf.Clamp(yMax, 0, Height - 1);
+
+            for (int y = yMin; y <= yMax; y++)
+            {
+                int rowOffset = y * Width;
+                for (int x = xMin; x <= xMax; x++)
+                {
+                    pixels[rowOffset + x] = color;
+                }
+            }
+        }
+
+        private static void WriteSprite(string fileName, Color[] pixels)
+        {
+            var tex = new Texture2D(Width, Height, TextureFormat.RGBA32, false);
+            tex.SetPixels(pixels);
+            tex.Apply();
+
+            byte[] png = tex.EncodeToPNG();
+            Object.DestroyImmediate(tex);
+
+            string path = $"{OutputFolder}/{fileName}.png";
+            string absolutePath = Path.Combine(Application.dataPath, path.Substring("Assets/".Length));
+            File.WriteAllBytes(absolutePath, png);
+
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            ConfigureImporter(path);
+        }
+
+        private static void ConfigureImporter(string path)
+        {
+            var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null)
+            {
+                Debug.LogError($"[PlaceholderBackgroundGenerator] Could not get TextureImporter for {path}.");
+                return;
+            }
+
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spritePixelsPerUnit = 128;
+            importer.filterMode = FilterMode.Point;
+            importer.mipmapEnabled = false;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+
+            var settings = new TextureImporterSettings();
+            importer.ReadTextureSettings(settings);
+            settings.spriteAlignment = (int)SpriteAlignment.Center;
+            importer.SetTextureSettings(settings);
+
+            importer.SaveAndReimport();
+        }
+
+        private static void EnsureFolder(string path)
+        {
+            if (AssetDatabase.IsValidFolder(path))
+            {
+                return;
+            }
+
+            string parent = Path.GetDirectoryName(path)?.Replace('\\', '/');
+            string folderName = Path.GetFileName(path);
+
+            if (string.IsNullOrEmpty(parent))
+            {
+                return;
+            }
+
+            EnsureFolder(parent);
+            AssetDatabase.CreateFolder(parent, folderName);
+        }
+    }
+}

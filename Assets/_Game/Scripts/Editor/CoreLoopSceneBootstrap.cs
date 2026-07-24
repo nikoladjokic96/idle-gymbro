@@ -26,6 +26,7 @@ namespace IdleGymBro.EditorTools
         private const string ConfigPath = "Assets/_Game/Data/GameConfig.asset";
         private const string RootName = "CoreLoop";
         private const string CharacterArtFolder = "Assets/_Game/Art/Character/Placeholders";
+        private const string BackgroundArtFolder = "Assets/_Game/Art/Backgrounds/Placeholders";
 
         [MenuItem("IdleGymBro/Build Core Loop Scene")]
         public static void BuildCoreLoopScene()
@@ -37,6 +38,7 @@ namespace IdleGymBro.EditorTools
             // Must run before any MuscleTierData/CosmeticData assets are created below, since
             // those assets reference sprites this generates.
             PlaceholderArtGenerator.Generate();
+            PlaceholderBackgroundGenerator.Generate();
             PlaceholderSfxGenerator.Generate();
 
             var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
@@ -83,12 +85,12 @@ namespace IdleGymBro.EditorTools
             // same pattern as muscle-tier thresholds. Ordered by TotalLevelsToComplete ascending.
             var locations = new LocationData[]
             {
-                GetOrCreateLocation("home", "Home Workout", 25, 1f),
-                GetOrCreateLocation("street", "Street Workout", 75, 2f),
-                GetOrCreateLocation("basic_gym", "Basic Gym", 160, 5f),
-                GetOrCreateLocation("hardcore_gym", "Hardcore Gym", 300, 12f),
-                GetOrCreateLocation("beach", "Venice Beach", 500, 30f),
-                GetOrCreateLocation("olympia", "Mr. Olympia", 800, 75f),
+                GetOrCreateLocation("home", "Home Workout", 25, 1f, $"{BackgroundArtFolder}/bg_home.png"),
+                GetOrCreateLocation("street", "Street Workout", 75, 2f, $"{BackgroundArtFolder}/bg_street.png"),
+                GetOrCreateLocation("basic_gym", "Basic Gym", 160, 5f, $"{BackgroundArtFolder}/bg_basic_gym.png"),
+                GetOrCreateLocation("hardcore_gym", "Hardcore Gym", 300, 12f, $"{BackgroundArtFolder}/bg_hardcore_gym.png"),
+                GetOrCreateLocation("beach", "Venice Beach", 500, 30f, $"{BackgroundArtFolder}/bg_beach.png"),
+                GetOrCreateLocation("olympia", "Mr. Olympia", 800, 75f, $"{BackgroundArtFolder}/bg_olympia.png"),
             };
 
             // Muscle tiers (data-driven; thresholds are lifetime TotalEarned, not balance).
@@ -193,6 +195,18 @@ namespace IdleGymBro.EditorTools
             uiInputModule.AssignDefaultActions();
 
             Sprite uiSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+
+            // --- Location background (world-space, behind the character) ---
+            // sortingOrder -100 draws beneath the character stack (whose lowest layer is -10);
+            // LocationBackground swaps the sprite per LocationChangedEvent.
+            var backgroundGo = new GameObject("LocationBackground");
+            backgroundGo.transform.SetParent(root.transform, false);
+            backgroundGo.transform.position = Vector3.zero;
+            var bgRenderer = backgroundGo.AddComponent<SpriteRenderer>();
+            bgRenderer.sortingOrder = -100;
+            var locationBackground = backgroundGo.AddComponent<LocationBackground>();
+            AssignRef(locationBackground, "_renderer", bgRenderer);
+            AssignArray(locationBackground, "_locations", locations);
 
             // --- World-space character ---
             // Not UI: a SpriteRenderer layer stack positioned in front of the Main Camera, drawn
@@ -671,7 +685,7 @@ namespace IdleGymBro.EditorTools
 
         private const string LocationsFolder = "Assets/_Game/Data/Locations";
 
-        private static LocationData GetOrCreateLocation(string id, string displayName, int totalLevels, float multiplier)
+        private static LocationData GetOrCreateLocation(string id, string displayName, int totalLevels, float multiplier, string backgroundSpritePath)
         {
             if (!AssetDatabase.IsValidFolder(LocationsFolder))
             {
@@ -691,6 +705,7 @@ namespace IdleGymBro.EditorTools
             so.FindProperty("_displayName").stringValue = displayName;
             so.FindProperty("_totalLevelsToComplete").intValue = totalLevels;
             so.FindProperty("_globalMultiplier").floatValue = multiplier;
+            so.FindProperty("_backgroundSprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(backgroundSpritePath);
             so.ApplyModifiedProperties();
 
             AssetDatabase.SaveAssets();

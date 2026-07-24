@@ -25,24 +25,32 @@ namespace IdleGymBro.EditorTools
 
             for (int tierIndex = 0; tierIndex < 6; tierIndex++)
             {
-                WriteSprite($"body_tier{tierIndex + 1}", BuildBodyPixels(tierIndex));
+                LabelAndWrite($"body_tier{tierIndex + 1}", BuildBodyPixels(tierIndex), "BODY" + (tierIndex + 1));
                 count++;
             }
 
-            WriteSprite("head_01", BuildRectPixels(64, 12, 150, 184, SkinTone));
+            LabelAndWrite("head_01", BuildRectPixels(64, 12, 150, 184, SkinTone), "HEAD");
             count++;
 
-            WriteSprite("hair_01", BuildRectPixels(64, 13, 170, 190, DarkBrown));
+            LabelAndWrite("hair_01", BuildRectPixels(64, 13, 170, 190, DarkBrown), "HAIR");
             count++;
 
-            WriteSprite("beard_01", BuildRectPixels(64, 11, 148, 162, DarkBrown));
+            LabelAndWrite("beard_01", BuildRectPixels(64, 11, 148, 162, DarkBrown), "BEARD");
             count++;
 
-            WriteSprite("shorts_01", BuildRectPixels(64, 24, 64, 90, DarkGray));
+            LabelAndWrite("shorts_01", BuildRectPixels(64, 24, 64, 90, DarkGray), "SHORTS");
             count++;
 
             AssetDatabase.SaveAssets();
             Debug.Log($"[PlaceholderArtGenerator] {count} sprites generated.");
+        }
+
+        // Bakes a magenta identifier into the bottom-left corner (an empty area on every
+        // silhouette) so the placeholder self-identifies in the Project window / when opened.
+        private static void LabelAndWrite(string fileName, Color[] pixels, string label)
+        {
+            PixelFont.DrawLabel(pixels, Width, Height, label, 2, 2, new Color(1f, 0f, 1f, 1f), 1);
+            WriteSprite(fileName, pixels);
         }
 
         private static Color[] BuildBodyPixels(int tierIndex)

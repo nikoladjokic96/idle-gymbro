@@ -18,9 +18,13 @@ namespace IdleGymBro.Data
         [Min(1f)]
         private float _globalMultiplier = 1f;
 
+        [SerializeField]
+        private Sprite _backgroundSprite;
+
         public string Id => _id;
         public string DisplayName => _displayName;
         public int TotalLevelsToComplete => _totalLevelsToComplete;
         public float GlobalMultiplier => _globalMultiplier;
+        public Sprite BackgroundSprite => _backgroundSprite;
     }
 }

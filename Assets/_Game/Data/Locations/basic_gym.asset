@@ -16,3 +16,4 @@ MonoBehaviour:
   _displayName: Basic Gym
   _totalLevelsToComplete: 160
   _globalMultiplier: 5
+  _backgroundSprite: {fileID: 7858977044127563348, guid: 6eeefae8e1f3a614785db5d205947b04, type: 3}
