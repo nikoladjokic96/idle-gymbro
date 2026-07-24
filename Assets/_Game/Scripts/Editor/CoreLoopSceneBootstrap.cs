@@ -12,6 +12,7 @@ using IdleGymBro.Economy;
 using IdleGymBro.Character;
 using IdleGymBro.UI;
 using IdleGymBro.Monetization;
+using IdleGymBro.Progression;
 using Object = UnityEngine.Object;
 
 namespace IdleGymBro.EditorTools
@@ -77,6 +78,19 @@ namespace IdleGymBro.EditorTools
                 GetOrCreateBooster("protein_shake", "Protein Shake", 1 /* BoosterTarget.PassiveIncome */, 2f, 60f, 180f, true),
             };
 
+            // Locations (§9 story progression). Progress = total upgrade levels owned (summed
+            // across ALL upgrades, order-independent) vs each location's cumulative target —
+            // same pattern as muscle-tier thresholds. Ordered by TotalLevelsToComplete ascending.
+            var locations = new LocationData[]
+            {
+                GetOrCreateLocation("home", "Home Workout", 25, 1f),
+                GetOrCreateLocation("street", "Street Workout", 75, 2f),
+                GetOrCreateLocation("basic_gym", "Basic Gym", 160, 5f),
+                GetOrCreateLocation("hardcore_gym", "Hardcore Gym", 300, 12f),
+                GetOrCreateLocation("beach", "Venice Beach", 500, 30f),
+                GetOrCreateLocation("olympia", "Mr. Olympia", 800, 75f),
+            };
+
             // Muscle tiers (data-driven; thresholds are lifetime TotalEarned, not balance).
             var tiers = new MuscleTierData[]
             {
@@ -116,6 +130,9 @@ namespace IdleGymBro.EditorTools
             var offlineEarnings = gameSystems.AddComponent<OfflineEarningsSystem>();
             var upgradeManager = gameSystems.AddComponent<UpgradeManager>();
             var boosterManager = gameSystems.AddComponent<BoosterManager>();
+            // Story progression (§9): no _gameConfig field (drives purely off UpgradeManager.TotalLevels
+            // via events), so — like BoosterManager/AudioManager/AdManager — excluded from the self-check below.
+            var locationManager = gameSystems.AddComponent<LocationManager>();
             var audioSource = gameSystems.AddComponent<AudioSource>();
             audioSource.playOnAwake = false;
             var audioManager = gameSystems.AddComponent<AudioManager>();
@@ -134,13 +151,14 @@ namespace IdleGymBro.EditorTools
             AssignRef(upgradeManager, "_gameConfig", config);
             AssignArray(upgradeManager, "_upgrades", upgrades);
             AssignArray(boosterManager, "_boosters", boosters);
+            AssignArray(locationManager, "_locations", locations);
             AssignRef(audioManager, "_library", audioLibrary);
             AssignRef(audioManager, "_source", audioSource);
 
             // Self-check: verify the asset reference actually serialized (asset refs are
             // more timing-sensitive in batchmode than scene-object refs). BoosterManager,
-            // AudioManager, and AdManager have no _gameConfig field, so they're intentionally
-            // excluded from this check.
+            // AudioManager, AdManager, and LocationManager have no _gameConfig field, so
+            // they're intentionally excluded from this check.
             var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem, passiveIncome, offlineEarnings, upgradeManager };
             int wired = 0;
             foreach (var s in systems)
@@ -423,6 +441,67 @@ namespace IdleGymBro.EditorTools
             AssignRef(settingsModalToggle, "_closeButton", settingsCloseButton);
             AssignRef(settingsModalToggle, "_backdropButton", settingsBackdropButton);
 
+            // --- Locations / story progress: "Story" open button (top-left per docs/ui-layout.md)
+            // + a modal listing every location with a MOVE UP action once the current one is 100%. ---
+            var storyOpenImage = CreateImage("StoryProgressButton", canvasGo.transform, uiSprite, new Color(0.45f, 0.30f, 0.15f));
+            SetRect(storyOpenImage.rectTransform, new Vector2(0f, 1f), new Vector2(130f, -100f), new Vector2(220f, 130f));
+            var storyOpenButton = storyOpenImage.gameObject.AddComponent<Button>();
+            storyOpenButton.targetGraphic = storyOpenImage;
+            var storyOpenLabel = CreateText("Label", storyOpenImage.transform, string.Empty, 30f, TextAlignmentOptions.Center);
+            StretchFull(storyOpenLabel.rectTransform);
+
+            var storyProgressButton = storyOpenImage.gameObject.AddComponent<StoryProgressButton>();
+            AssignRef(storyProgressButton, "_label", storyOpenLabel);
+
+            var locationsModal = new GameObject("LocationsModal", typeof(RectTransform));
+            locationsModal.transform.SetParent(canvasGo.transform, false);
+            StretchFull(locationsModal.GetComponent<RectTransform>());
+
+            var locationsDimmer = CreateImage("Dimmer", locationsModal.transform, uiSprite, new Color(0f, 0f, 0f, 0.75f));
+            StretchFull(locationsDimmer.rectTransform);
+
+            var locationsBackdropButton = locationsDimmer.gameObject.AddComponent<Button>();
+            locationsBackdropButton.transition = Selectable.Transition.None; // no hover tint on a fullscreen dimmer
+            locationsBackdropButton.targetGraphic = locationsDimmer;
+
+            var locationsWindow = CreateImage("Window", locationsModal.transform, uiSprite, new Color(0.12f, 0.14f, 0.18f, 1f));
+            SetRect(locationsWindow.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(700f, 900f));
+
+            var locationsTitle = CreateText("Title", locationsWindow.transform, "LOCATIONS", 48f, TextAlignmentOptions.Center);
+            SetRect(locationsTitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(500f, 80f));
+
+            var locationsCloseImage = CreateImage("CloseButton", locationsWindow.transform, uiSprite, new Color(0.55f, 0.20f, 0.20f));
+            SetRect(locationsCloseImage.rectTransform, new Vector2(1f, 1f), new Vector2(-60f, -60f), new Vector2(80f, 80f));
+            var locationsCloseButton = locationsCloseImage.gameObject.AddComponent<Button>();
+            locationsCloseButton.targetGraphic = locationsCloseImage;
+            var locationsCloseLabel = CreateText("Label", locationsCloseImage.transform, "X", 52f, TextAlignmentOptions.Center);
+            StretchFull(locationsCloseLabel.rectTransform);
+
+            var locationsRowsGo = new GameObject("Rows", typeof(RectTransform));
+            locationsRowsGo.transform.SetParent(locationsWindow.transform, false);
+            var locationsRowsRect = locationsRowsGo.GetComponent<RectTransform>();
+            SetRect(locationsRowsRect, new Vector2(0.5f, 1f), new Vector2(0f, -140f), new Vector2(620f, 560f));
+
+            var moveUpImage = CreateImage("MoveUpButton", locationsWindow.transform, uiSprite, new Color(0.20f, 0.70f, 0.30f));
+            SetRect(moveUpImage.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 110f), new Vector2(420f, 110f));
+            var moveUpButton = moveUpImage.gameObject.AddComponent<Button>();
+            moveUpButton.targetGraphic = moveUpImage;
+            var moveUpLabel = CreateText("Label", moveUpImage.transform, "MOVE UP ▲", 40f, TextAlignmentOptions.Center);
+            StretchFull(moveUpLabel.rectTransform);
+
+            var locationsPanel = locationsWindow.gameObject.AddComponent<LocationsPanel>();
+            AssignRef(locationsPanel, "_rowsContainer", locationsRowsRect);
+            AssignRef(locationsPanel, "_moveUpButton", moveUpButton);
+            AssignRef(locationsPanel, "_moveUpLabel", moveUpLabel);
+
+            var locationsModalControllerGo = new GameObject("LocationsModalController");
+            locationsModalControllerGo.transform.SetParent(root.transform, false);
+            var locationsModalToggle = locationsModalControllerGo.AddComponent<ModalToggle>();
+            AssignRef(locationsModalToggle, "_panel", locationsModal);
+            AssignRef(locationsModalToggle, "_openButton", storyOpenButton);
+            AssignRef(locationsModalToggle, "_closeButton", locationsCloseButton);
+            AssignRef(locationsModalToggle, "_backdropButton", locationsBackdropButton);
+
             // --- Offline claim popup ---
             // Component lives on an always-active object; the panel it toggles is a child,
             // so hiding the panel never disables the component (which would kill OnEnable).
@@ -588,6 +667,36 @@ namespace IdleGymBro.EditorTools
             // Reload the canonical, imported instance so it serializes as an asset reference.
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
             return AssetDatabase.LoadAssetAtPath<BoosterData>(path);
+        }
+
+        private const string LocationsFolder = "Assets/_Game/Data/Locations";
+
+        private static LocationData GetOrCreateLocation(string id, string displayName, int totalLevels, float multiplier)
+        {
+            if (!AssetDatabase.IsValidFolder(LocationsFolder))
+            {
+                AssetDatabase.CreateFolder("Assets/_Game/Data", "Locations");
+            }
+
+            string path = $"{LocationsFolder}/{id}.asset";
+            var location = AssetDatabase.LoadAssetAtPath<LocationData>(path);
+            if (location == null)
+            {
+                location = ScriptableObject.CreateInstance<LocationData>();
+                AssetDatabase.CreateAsset(location, path);
+            }
+
+            var so = new SerializedObject(location);
+            so.FindProperty("_id").stringValue = id;
+            so.FindProperty("_displayName").stringValue = displayName;
+            so.FindProperty("_totalLevelsToComplete").intValue = totalLevels;
+            so.FindProperty("_globalMultiplier").floatValue = multiplier;
+            so.ApplyModifiedProperties();
+
+            AssetDatabase.SaveAssets();
+            // Reload the canonical, imported instance so it serializes as an asset reference.
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            return AssetDatabase.LoadAssetAtPath<LocationData>(path);
         }
 
         private const string MuscleTiersFolder = "Assets/_Game/Data/MuscleTiers";

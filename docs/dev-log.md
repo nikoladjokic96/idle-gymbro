@@ -202,3 +202,21 @@ upgrade rework + booster sistem + HUD ivice.
 - U §17 dodate **„Smernice za nastavak"** — prioriteti, ustaljeni putevi dodavanja, tačne
   verifikacione komande — pisano za buduće sesije (Opus/Sonnet) iz hladnog starta.
 - Verifikacija: batchmode svi markeri, abs.asset tačan, 7 UpgradeButton-a, 0 srpskih stringova u sceni.
+
+## Faza 6 — Progresija
+
+**NALOG #014** (Sonnet implement + Sonnet verify; Fable review) — lokacije/story progres.
+- `Data/LocationData` (id, displayName, `TotalLevelsToComplete` — KUMULATIVNI prag ukupnih upgrade
+  nivoa, isti obrazac kao muscle tiers; `GlobalMultiplier` [Min 1]). 6 asseta: Home Workout 25/1x,
+  Street Workout 75/2x, Basic Gym 160/5x, Hardcore Gym 300/12x, Venice Beach 500/30x, Mr. Olympia 800/75x.
+- `Progression/LocationManager` (`ISaveable` — `CurrentLocationIndex`): progres =
+  `(TotalLevels − prevPrag) / (prag − prevPrag)`; `TryAdvance()` na 100% (ručni „MOVE UP ▲" — svesna
+  proslava, ne auto); publikuje `LocationProgressChanged/LocationChanged/LocationMultiplierChangedEvent`.
+- `UpgradeManager`: `TotalLevels` property + kešira `_locationMultiplier` iz eventa i množi gpr/pps u
+  `RecomputeAndPublish` — bez direktnih manager referenci; restore ordering konvergira (oba redosleda
+  završe istim StatsChangedEvent lancem).
+- UI: `StoryProgressButton` gore levo („{Location}\n{XX}%" + „▲" kad može dalje) otvara Locations modal
+  (3. `ModalToggle`): runtime-built redovi `[DONE]/>/[LOCKED]` + MOVE UP dugme. AdOverlay ostao poslednji
+  (topmost) canvas child.
+- Verifikacija (agent): batchmode PASS prvi run; 6 location asseta tačnih vrednosti; scena — LocationManager
+  `_locations` 6/6 u redosledu, 3× ModalToggle svi ref-ovi, AdOverlay poslednje dete — sve PASS.

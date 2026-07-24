@@ -323,6 +323,7 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 - [x] #012 **Mock monetizacija** (odluka: pravi LevelPlay/IAP idu NA KRAJU projekta, iza istog API-ja): `Monetization/AdManager` (mock `ShowRewarded(placement, onReward)` + fullscreen „▶ REKLAMA..." overlay), boosteri ad-gated (`BoosterData.RequiresAd`; preworkout 2x tap + NOVI protein_shake 2x passive), offline popup „UDVOSTRUČI ▶" (mock reklama → dupli grant, zaštićeno od double-claim-a)
 
 - [x] #013 Engleski za sav in-game tekst (pravilo u §11) + **abs** upgrade („Core Crusher") — moduli: chest/arms/back/abs/legs + Training Partner + Gym Membership
+- [x] #014 **Faza 6: Lokacije/story progres** — `LocationData` SO (6 lokacija: Home Workout → Mr. Olympia; kumulativni prag = ukupni upgrade nivoi; `GlobalMultiplier` 1x→75x), `Progression/LocationManager` (`ISaveable`, MOVE UP na 100%), multiplikator event-driven kroz `UpgradeManager.RecomputeAndPublish`; story dugme GORE LEVO + Locations modal (3. `ModalToggle`)
 
 **MVP status: faze 0–4 funkcionalno kompletne sa placeholderima; monetizacioni TOKOVI mockovani (§10 poštovan — sve opt-in)** — sledeće: pravi art (čeka assete), balans tuning kroz playtest, animacije; realan LevelPlay/IAP na samom kraju.
 - [ ] Faza 3 nastavak: animacije (idle + rep po tieru), wardrobe/kustomizacija UI, pravi pixel art (čeka assete — [`docs/asset-checklist.md`](docs/asset-checklist.md))

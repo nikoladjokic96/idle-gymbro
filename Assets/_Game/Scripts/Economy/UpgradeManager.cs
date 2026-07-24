@@ -3,6 +3,7 @@ using System.Linq;
 using UnityEngine;
 using IdleGymBro.Core;
 using IdleGymBro.Data;
+using IdleGymBro.Progression;
 
 namespace IdleGymBro.Economy
 {
@@ -17,6 +18,41 @@ namespace IdleGymBro.Economy
         private readonly Dictionary<string, int> _levels = new Dictionary<string, int>();
 
         private CurrencyManager _currency;
+
+        // Applied on top of upgrade aggregation in RecomputeAndPublish; driven purely by
+        // LocationMultiplierChangedEvent so this class never references LocationManager directly.
+        private double _locationMultiplier = 1d;
+
+        public int TotalLevels
+        {
+            get
+            {
+                int sum = 0;
+
+                foreach (var kv in _levels)
+                {
+                    sum += kv.Value;
+                }
+
+                return sum;
+            }
+        }
+
+        private void OnEnable()
+        {
+            EventBus.Subscribe<LocationMultiplierChangedEvent>(HandleLocationMultiplierChanged);
+        }
+
+        private void OnDisable()
+        {
+            EventBus.Unsubscribe<LocationMultiplierChangedEvent>(HandleLocationMultiplierChanged);
+        }
+
+        private void HandleLocationMultiplierChanged(LocationMultiplierChangedEvent e)
+        {
+            _locationMultiplier = e.Multiplier;
+            RecomputeAndPublish();
+        }
 
         private void Start()
         {
@@ -119,6 +155,9 @@ namespace IdleGymBro.Economy
                     }
                 }
             }
+
+            gpr *= _locationMultiplier;
+            pps *= _locationMultiplier;
 
             EventBus.Publish(new StatsChangedEvent(gpr, pps));
         }
