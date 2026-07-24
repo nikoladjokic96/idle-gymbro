@@ -2,6 +2,7 @@ using UnityEngine;
 using IdleGymBro.Core;
 using IdleGymBro.Data;
 using IdleGymBro.Gameplay;
+using IdleGymBro.Progression;
 
 namespace IdleGymBro.Economy
 {
@@ -48,6 +49,7 @@ namespace IdleGymBro.Economy
             EventBus.Subscribe<GainsEarnedEvent>(HandleGainsEarned);
             EventBus.Subscribe<StatsChangedEvent>(HandleStatsChanged);
             EventBus.Subscribe<BoosterMultipliersChangedEvent>(HandleBoosterMultipliersChanged);
+            EventBus.Subscribe<PrestigeEvent>(HandlePrestige);
         }
 
         private void OnDisable()
@@ -56,6 +58,14 @@ namespace IdleGymBro.Economy
             EventBus.Unsubscribe<GainsEarnedEvent>(HandleGainsEarned);
             EventBus.Unsubscribe<StatsChangedEvent>(HandleStatsChanged);
             EventBus.Unsubscribe<BoosterMultipliersChangedEvent>(HandleBoosterMultipliersChanged);
+            EventBus.Unsubscribe<PrestigeEvent>(HandlePrestige);
+        }
+
+        private void HandlePrestige(PrestigeEvent e)
+        {
+            TotalGains = 0d;
+            TotalEarned = 0d;
+            EventBus.Publish(new GainsChangedEvent(TotalGains, TotalEarned));
         }
 
         private void Start()

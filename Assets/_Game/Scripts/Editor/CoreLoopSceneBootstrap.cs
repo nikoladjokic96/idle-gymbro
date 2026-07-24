@@ -158,6 +158,7 @@ namespace IdleGymBro.EditorTools
             // Meta/retention: no _gameConfig field (drives off gameplay events) — excluded from self-check.
             var achievementManager = gameSystems.AddComponent<AchievementManager>();
             var dailyRewardManager = gameSystems.AddComponent<DailyRewardManager>();
+            var prestigeManager = gameSystems.AddComponent<PrestigeManager>();
 
             AssignRef(gameManager, "_gameConfig", config);
             AssignRef(tickSystem, "_gameConfig", config);
@@ -175,13 +176,14 @@ namespace IdleGymBro.EditorTools
             AssignRef(audioManager, "_source", audioSource);
             AssignRef(periodicRewardManager, "_gameConfig", config);
             AssignRef(dailyRewardManager, "_gameConfig", config);
+            AssignRef(prestigeManager, "_gameConfig", config);
             AssignArray(achievementManager, "_achievements", achievements);
 
             // Self-check: verify the asset reference actually serialized (asset refs are
             // more timing-sensitive in batchmode than scene-object refs). BoosterManager,
             // AudioManager, AdManager, and LocationManager have no _gameConfig field, so
             // they're intentionally excluded from this check.
-            var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem, passiveIncome, offlineEarnings, upgradeManager, periodicRewardManager, dailyRewardManager };
+            var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem, passiveIncome, offlineEarnings, upgradeManager, periodicRewardManager, dailyRewardManager, prestigeManager };
             int wired = 0;
             foreach (var s in systems)
             {
@@ -605,6 +607,60 @@ namespace IdleGymBro.EditorTools
             AssignRef(goalsModalToggle, "_openButton", goalsOpenButton);
             AssignRef(goalsModalToggle, "_closeButton", goalsCloseButton);
             AssignRef(goalsModalToggle, "_backdropButton", goalsBackdropButton);
+
+            // --- Prestige: "NEW BULK" open button (top-left, under Story) + a confirm modal (§6). ---
+            var prestigeOpenImage = CreateImage("PrestigeButton", canvasGo.transform, uiSprite, new Color(0.50f, 0.20f, 0.20f));
+            SetRect(prestigeOpenImage.rectTransform, new Vector2(0f, 1f), new Vector2(130f, -240f), new Vector2(220f, 110f));
+            var prestigeOpenButton = prestigeOpenImage.gameObject.AddComponent<Button>();
+            prestigeOpenButton.targetGraphic = prestigeOpenImage;
+            var prestigeOpenLabel = CreateText("Label", prestigeOpenImage.transform, "NEW BULK", 30f, TextAlignmentOptions.Center);
+            StretchFull(prestigeOpenLabel.rectTransform);
+
+            var prestigeModal = new GameObject("PrestigeModal", typeof(RectTransform));
+            prestigeModal.transform.SetParent(canvasGo.transform, false);
+            StretchFull(prestigeModal.GetComponent<RectTransform>());
+
+            var prestigeDimmer = CreateImage("Dimmer", prestigeModal.transform, uiSprite, new Color(0f, 0f, 0f, 0.75f));
+            StretchFull(prestigeDimmer.rectTransform);
+            var prestigeBackdropButton = prestigeDimmer.gameObject.AddComponent<Button>();
+            prestigeBackdropButton.transition = Selectable.Transition.None;
+            prestigeBackdropButton.targetGraphic = prestigeDimmer;
+
+            var prestigeWindow = CreateImage("Window", prestigeModal.transform, uiSprite, new Color(0.12f, 0.14f, 0.18f, 1f));
+            SetRect(prestigeWindow.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(720f, 720f));
+
+            var prestigeTitle = CreateText("Title", prestigeWindow.transform, "NEW BULK", 48f, TextAlignmentOptions.Center);
+            SetRect(prestigeTitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(500f, 80f));
+
+            var prestigeCloseImage = CreateImage("CloseButton", prestigeWindow.transform, uiSprite, new Color(0.55f, 0.20f, 0.20f));
+            SetRect(prestigeCloseImage.rectTransform, new Vector2(1f, 1f), new Vector2(-60f, -60f), new Vector2(80f, 80f));
+            var prestigeCloseButton = prestigeCloseImage.gameObject.AddComponent<Button>();
+            prestigeCloseButton.targetGraphic = prestigeCloseImage;
+            var prestigeCloseLabel = CreateText("Label", prestigeCloseImage.transform, "X", 52f, TextAlignmentOptions.Center);
+            StretchFull(prestigeCloseLabel.rectTransform);
+
+            var prestigeInfo = CreateText("Info", prestigeWindow.transform, string.Empty, 34f, TextAlignmentOptions.Center);
+            SetRect(prestigeInfo.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 40f), new Vector2(620f, 360f));
+
+            var newBulkImage = CreateImage("NewBulkButton", prestigeWindow.transform, uiSprite, new Color(0.70f, 0.25f, 0.25f));
+            SetRect(newBulkImage.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 110f), new Vector2(420f, 110f));
+            var newBulkButton = newBulkImage.gameObject.AddComponent<Button>();
+            newBulkButton.targetGraphic = newBulkImage;
+            var newBulkLabel = CreateText("Label", newBulkImage.transform, "NEW BULK", 40f, TextAlignmentOptions.Center);
+            StretchFull(newBulkLabel.rectTransform);
+
+            var prestigePanel = prestigeWindow.gameObject.AddComponent<PrestigePanel>();
+            AssignRef(prestigePanel, "_infoText", prestigeInfo);
+            AssignRef(prestigePanel, "_prestigeButton", newBulkButton);
+            AssignRef(prestigePanel, "_prestigeLabel", newBulkLabel);
+
+            var prestigeModalControllerGo = new GameObject("PrestigeModalController");
+            prestigeModalControllerGo.transform.SetParent(root.transform, false);
+            var prestigeModalToggle = prestigeModalControllerGo.AddComponent<ModalToggle>();
+            AssignRef(prestigeModalToggle, "_panel", prestigeModal);
+            AssignRef(prestigeModalToggle, "_openButton", prestigeOpenButton);
+            AssignRef(prestigeModalToggle, "_closeButton", prestigeCloseButton);
+            AssignRef(prestigeModalToggle, "_backdropButton", prestigeBackdropButton);
 
             // --- Offline claim popup ---
             // Component lives on an always-active object; the panel it toggles is a child,

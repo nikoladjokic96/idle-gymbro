@@ -34,16 +34,25 @@ namespace IdleGymBro.Progression
         private void OnEnable()
         {
             EventBus.Subscribe<UpgradePurchasedEvent>(RecomputeProgress);
+            EventBus.Subscribe<PrestigeEvent>(HandlePrestige);
         }
 
         private void OnDisable()
         {
             EventBus.Unsubscribe<UpgradePurchasedEvent>(RecomputeProgress);
+            EventBus.Unsubscribe<PrestigeEvent>(HandlePrestige);
         }
 
         private void RecomputeProgress(UpgradePurchasedEvent e)
         {
             PublishProgress();
+        }
+
+        // Prestige resets the run back to the first location (and its 1x multiplier).
+        private void HandlePrestige(PrestigeEvent e)
+        {
+            _currentIndex = 0;
+            PublishAll();
         }
 
         private int TotalUpgradeLevels => _upgrades != null ? _upgrades.TotalLevels : 0;

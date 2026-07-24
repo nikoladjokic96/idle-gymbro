@@ -1,6 +1,7 @@
 using UnityEngine;
 using IdleGymBro.Core;
 using IdleGymBro.Data;
+using IdleGymBro.Progression;
 
 namespace IdleGymBro.Gameplay
 {
@@ -43,12 +44,20 @@ namespace IdleGymBro.Gameplay
         {
             EventBus.Subscribe<TapEvent>(HandleTap);
             EventBus.Subscribe<TickEvent>(HandleTick);
+            EventBus.Subscribe<PrestigeEvent>(HandlePrestige);
         }
 
         private void OnDisable()
         {
             EventBus.Unsubscribe<TapEvent>(HandleTap);
             EventBus.Unsubscribe<TickEvent>(HandleTick);
+            EventBus.Unsubscribe<PrestigeEvent>(HandlePrestige);
+        }
+
+        private void HandlePrestige(PrestigeEvent e)
+        {
+            _currentEnergy = MaxEnergy;
+            EventBus.Publish(new EnergyChangedEvent(_currentEnergy, MaxEnergy));
         }
 
         private void Start()

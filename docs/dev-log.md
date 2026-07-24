@@ -237,3 +237,28 @@ throttle na celu sekundu; NE persistuje se — offline zarada pokriva odsustvo) 
 counteri reps/upgrades/maxLocation + claimed set persistovani, TotalEarned iz `GainsChangedEvent`),
 6 asseta, `UI/AchievementsButton` (GOALS + „(N)" badge) + `AchievementsPanel` (runtime redovi + CLAIM ALL),
 **4. ModalToggle**. `SaveData` +4 polja. HUD sada kompletan po `ui-layout.md`.
+
+**NALOG #018** — Daily Reward (streak): `Meta/DailyRewardManager` (`ISaveable`; UTC dan =
+`Ticks/TicksPerDay`; nagrada = passive rate × `DailyRewardSeconds` × streakDay clamp na cycle;
+preskočen dan → reset na 1; evaluira na `GameLoadedEvent` posle restore-a) + `DailyRewardAvailableEvent`
++ `UI/DailyRewardPopup` (na startu). `SaveData`: LastDailyClaimDay, DailyStreak.
+
+**NALOG #019** — Prestige („New Bulk", §6) — NAJINVAZIVNIJI (dira 4 sistema); ⚠️ **compile-only
+verifikacija, TREBA PLAYTEST.**
+- `Progression/PrestigeManager` (`ISaveable`: `_totalRespect`): respect = floor(factor×√TotalEarned),
+  multiplier = 1 + respect×perRespect; `CanPrestige` = pending ≥ `PrestigeMinRespect`.
+  `DoPrestige`: += respect → publish `PrestigeEvent` + `PrestigeMultiplierChangedEvent`.
+- Reset handleri na `PrestigeEvent`: CurrencyManager (Gains/Earned=0 → `GainsChangedEvent(0,0)`),
+  UpgradeManager (`_levels.Clear` + recompute), EnergySystem (energy=max), LocationManager (index=0 → `PublishAll`).
+- `UpgradeManager` kešira `_prestigeMultiplier` i množi `gpr/pps *= _locationMultiplier * _prestigeMultiplier`.
+  **Ordering bezbedan:** idempotentni `RecomputeAndPublish` + finalni eksplicitni `PrestigeMultiplierChangedEvent`
+  (posle svih PrestigeEvent handlera) → poslednji recompute uvek tačan bez obzira na redosled handlera.
+- `UI/PrestigePanel` (multiplier/respect/pending + NEW BULK dugme, interactable=CanPrestige) + NEW BULK
+  open dugme (top-left ispod Story) + **5. ModalToggle**. `SaveData.TotalRespect`.
+- **Poznata mrlja:** „TotalGainsEarned" achievementi se resetuju uz TotalEarned na prestige
+  (reps/upgrades ne, jer AchievementManager ne sluša PrestigeEvent) — nedosledno; balansirati kasnije.
+- Verifikacija: batchmode wired 12/12, 0 error CS; scena — PrestigeManager+panel+5×ModalToggle ožičeni,
+  4 reset handlera prisutna. **Runtime NEtestiran** (spend-limit).
+
+> **Svi roadmap sistemi (Faze 0–7) implementirani.** Ostaje: realan LevelPlay/IAP (na kraju),
+> pravi art/animacije (čeka assete), i **playtest + balans tuning** (prioritet — brojke su u `.asset`/GameConfig).

@@ -331,7 +331,10 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 - [x] #018 **Faza 7: Daily Reward (streak)** — `Meta/DailyRewardManager` (`ISaveable`; UTC dan; escalating = passive rate × 600s × streakDay, cycle 7; reset ako preskočiš dan) + `DailyRewardAvailableEvent` + `UI/DailyRewardPopup` (na startu). *(Solo — agenti na limitu.)*
 
 > **HUD kompletan po [`docs/ui-layout.md`](docs/ui-layout.md):** story(GL) · boosti+achievements(L) · settings+upgrades+reward(D) · gains/energy(gore) · daily popup na startu. Preostali slotovi (shop permanent boosts, timed event, offer) su Faza 5+/post-MVP.
-> **Faza 7 (Meta) — funkcionalno kompletna:** achievements + periodic reward + daily streak.
+- [x] #019 **Prestige („New Bulk", §6)** — `Progression/PrestigeManager` (`ISaveable`: respect = factor×√TotalEarned, globalMultiplier = 1+respect×factor); `PrestigeEvent` resetuje run (Currency/Upgrade/Energy/Location handleri), multiplikator kroz `UpgradeManager.RecomputeAndPublish` (× location × prestige); `UI/PrestigePanel` + NEW BULK dugme (top-left) + 5. modal. ⚠️ *Compile-only verifikacija (agenti na limitu) — TREBA PLAYTEST.* Poznata mrlja: „TotalGainsEarned" achievement se resetuje uz TotalEarned na prestige (reps/upgrades ne) — balansirati kasnije.
+
+> **Faza 7 (Meta) — funkcionalno kompletna:** achievements + periodic reward + daily streak. Prestige (Faza 6) dodat.
+> **Svi roadmap sistemi (Faze 0–7) implementirani sa placeholderima; realan LevelPlay/IAP je jedino što ostaje (na kraju).** Sledeće: **playtest + balans** (prioritet), pravi art, animacije.
 
 **MVP status: faze 0–4 funkcionalno kompletne sa placeholderima; monetizacioni TOKOVI mockovani (§10 poštovan — sve opt-in)** — sledeće: pravi art (čeka assete), balans tuning kroz playtest, animacije; realan LevelPlay/IAP na samom kraju.
 - [ ] Faza 3 nastavak: animacije (idle + rep po tieru), wardrobe/kustomizacija UI, pravi pixel art (čeka assete — [`docs/asset-checklist.md`](docs/asset-checklist.md))

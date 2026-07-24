@@ -14,6 +14,7 @@ namespace IdleGymBro.Data
         public System.Collections.Generic.List<string> ClaimedAchievements = new System.Collections.Generic.List<string>();
         public long LastDailyClaimDay;
         public int DailyStreak;
+        public double TotalRespect;
         public System.Collections.Generic.Dictionary<string, int> UpgradeLevels = new System.Collections.Generic.Dictionary<string, int>();
     }
 }

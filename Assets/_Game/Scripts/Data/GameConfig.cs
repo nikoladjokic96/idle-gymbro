@@ -85,5 +85,22 @@ namespace IdleGymBro.Data
 
         public float DailyRewardSeconds => _dailyRewardSeconds;
         public int DailyStreakCycle => _dailyStreakCycle;
+
+        [Header("Prestige")]
+        [SerializeField]
+        [Min(0f)]
+        private float _prestigeRespectFactor = 1f; // respect = factor x sqrt(TotalEarned)
+
+        [SerializeField]
+        [Min(0f)]
+        private float _prestigeMultiplierPerRespect = 0.02f; // multiplier = 1 + respect x this
+
+        [SerializeField]
+        [Min(1f)]
+        private float _prestigeMinRespect = 10f; // can't prestige until pending respect >= this
+
+        public float PrestigeRespectFactor => _prestigeRespectFactor;
+        public float PrestigeMultiplierPerRespect => _prestigeMultiplierPerRespect;
+        public float PrestigeMinRespect => _prestigeMinRespect;
     }
 }

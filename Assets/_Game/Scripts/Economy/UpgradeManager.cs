@@ -23,6 +23,9 @@ namespace IdleGymBro.Economy
         // LocationMultiplierChangedEvent so this class never references LocationManager directly.
         private double _locationMultiplier = 1d;
 
+        // Permanent prestige multiplier, driven by PrestigeMultiplierChangedEvent.
+        private double _prestigeMultiplier = 1d;
+
         public int TotalLevels
         {
             get
@@ -41,16 +44,33 @@ namespace IdleGymBro.Economy
         private void OnEnable()
         {
             EventBus.Subscribe<LocationMultiplierChangedEvent>(HandleLocationMultiplierChanged);
+            EventBus.Subscribe<PrestigeMultiplierChangedEvent>(HandlePrestigeMultiplierChanged);
+            EventBus.Subscribe<PrestigeEvent>(HandlePrestige);
         }
 
         private void OnDisable()
         {
             EventBus.Unsubscribe<LocationMultiplierChangedEvent>(HandleLocationMultiplierChanged);
+            EventBus.Unsubscribe<PrestigeMultiplierChangedEvent>(HandlePrestigeMultiplierChanged);
+            EventBus.Unsubscribe<PrestigeEvent>(HandlePrestige);
         }
 
         private void HandleLocationMultiplierChanged(LocationMultiplierChangedEvent e)
         {
             _locationMultiplier = e.Multiplier;
+            RecomputeAndPublish();
+        }
+
+        private void HandlePrestigeMultiplierChanged(PrestigeMultiplierChangedEvent e)
+        {
+            _prestigeMultiplier = e.Multiplier;
+            RecomputeAndPublish();
+        }
+
+        // Prestige wipes all purchased upgrade levels (the run resets); stats recompute to base.
+        private void HandlePrestige(PrestigeEvent e)
+        {
+            _levels.Clear();
             RecomputeAndPublish();
         }
 
@@ -156,8 +176,8 @@ namespace IdleGymBro.Economy
                 }
             }
 
-            gpr *= _locationMultiplier;
-            pps *= _locationMultiplier;
+            gpr *= _locationMultiplier * _prestigeMultiplier;
+            pps *= _locationMultiplier * _prestigeMultiplier;
 
             EventBus.Publish(new StatsChangedEvent(gpr, pps));
         }
