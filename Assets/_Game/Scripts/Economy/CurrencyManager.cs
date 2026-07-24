@@ -8,10 +8,12 @@ namespace IdleGymBro.Economy
     public readonly struct GainsChangedEvent : IGameEvent
     {
         public double Total { get; }
+        public double TotalEarned { get; }
 
-        public GainsChangedEvent(double total)
+        public GainsChangedEvent(double total, double totalEarned)
         {
             Total = total;
+            TotalEarned = totalEarned;
         }
     }
 
@@ -27,6 +29,10 @@ namespace IdleGymBro.Economy
         private double _gainsPerRep;
 
         public double TotalGains { get; private set; }
+
+        // Lifetime gains ever earned; never decreases on spend. Drives muscle-tier progression
+        // so buying upgrades can never shrink the character.
+        public double TotalEarned { get; private set; }
 
         private void Awake()
         {
@@ -49,7 +55,7 @@ namespace IdleGymBro.Economy
 
         private void Start()
         {
-            EventBus.Publish(new GainsChangedEvent(TotalGains));
+            EventBus.Publish(new GainsChangedEvent(TotalGains, TotalEarned));
         }
 
         private void HandleRepPerformed(RepPerformedEvent e)
@@ -60,13 +66,15 @@ namespace IdleGymBro.Economy
             }
 
             TotalGains += _gainsPerRep;
-            EventBus.Publish(new GainsChangedEvent(TotalGains));
+            TotalEarned += _gainsPerRep;
+            EventBus.Publish(new GainsChangedEvent(TotalGains, TotalEarned));
         }
 
         private void HandleGainsEarned(GainsEarnedEvent e)
         {
             TotalGains += e.Amount;
-            EventBus.Publish(new GainsChangedEvent(TotalGains));
+            TotalEarned += e.Amount;
+            EventBus.Publish(new GainsChangedEvent(TotalGains, TotalEarned));
         }
 
         private void HandleStatsChanged(StatsChangedEvent e)
@@ -79,7 +87,7 @@ namespace IdleGymBro.Economy
             if (amount <= TotalGains)
             {
                 TotalGains -= amount;
-                EventBus.Publish(new GainsChangedEvent(TotalGains));
+                EventBus.Publish(new GainsChangedEvent(TotalGains, TotalEarned));
                 return true;
             }
 
@@ -105,12 +113,16 @@ namespace IdleGymBro.Economy
         public void CaptureState(SaveData data)
         {
             data.TotalGains = TotalGains;
+            data.TotalEarned = TotalEarned;
         }
 
         public void RestoreState(SaveData data)
         {
             TotalGains = data.TotalGains;
-            EventBus.Publish(new GainsChangedEvent(TotalGains));
+            // Migration guard: saves written before TotalEarned existed have it at 0, so floor
+            // it at TotalGains to avoid an impossible earned-less-than-balance state.
+            TotalEarned = System.Math.Max(data.TotalEarned, data.TotalGains);
+            EventBus.Publish(new GainsChangedEvent(TotalGains, TotalEarned));
         }
     }
 }

@@ -100,3 +100,31 @@ sisteme, HUD, placeholder; sve reference kroz `SerializedObject`; idempotentan (
 - Rešenje: `screenMatchMode = Expand` (dizajn prostor uvek staje na ekran, bilo koji aspect);
   modal prozor 760×980 sa rasporedom od vrha prozora; klik na dimmer takođe zatvara
   (`ModalToggle._backdropButton`); HUD elementi razmaknuti.
+
+## Faza 3 — Karakter
+
+**NALOG #008** (Workflow: Sonnet implement + 2 Sonnet review lens-a + Sonnet fix/verify agenti; Fable arhitekta) — layered karakter sistem.
+- `Data/CharacterLayer` enum (int vrednost = `sortingOrder`: Background −10 … Accessory 80, §7 depth order).
+- `Data/MuscleTierData` (tier, displayName, **TotalEarnedThreshold**, bodySprite, headSprite) — 6 asseta
+  (pragovi 0 / 1K / 25K / 500K / 10M / 500M, imena Skinny→Enhanced). `Data/CosmeticData`
+  (id, layer, sprite, cost, unlockedByDefault) — 3 asseta (shorts/hair/beard, free).
+- `Character/CharacterBuilder` — world-space (pozicija (0,−2.4), scale 3, ispod overlay HUD-a);
+  child `Layer_*` SpriteRenderer-i se grade u `Awake` (bez scene wiring-a); tier po **`TotalEarned`**
+  iz `GainsChangedEvent`; default kozmetika u `Start`; publikuje `MuscleTierChangedEvent`.
+- **`CurrencyManager.TotalEarned`** (lifetime, `TrySpend` ga ne dira) + u `GainsChangedEvent` (2. polje)
+  + `SaveData.TotalEarned` (restore: `max(TotalEarned, TotalGains)` migration guard).
+- `Editor/PlaceholderArtGenerator` — generiše 10 PNG placeholder-a (6 tela sa rastućom siluetom,
+  head/hair/beard/shorts) na 128×192, import: PPU 128, Point, BottomCenter — pravi art menja fajl 1:1.
+- Bootstrap: poziva generator pre asseta; `GetOrCreateTier`/`GetOrCreateCosmetic` helperi;
+  `enumValueIndex` = DEKLARACIONI indeks enuma, ne numerička vrednost (gotcha!).
+- **Review nalazi (primenjeni):** (1) izbor tier-a bio zavisan od redosleda niza → best-threshold
+  tracking, order-independent; (2) `_currentTierIndex` mutiran pre null guard-a + `CurrentTier` NRE
+  → restrukturirano; (3) `head_01.png` generisan a nigde dodeljen → `_headSprite` ožičen na svih 6 tierova.
+- Verifikacija (agent): batchmode bez `error CS`, `10 sprites generated`, `wired 9/9`,
+  scena: `Character` objekat sa 6 tier + 3 cosmetic ref-a, stari UI placeholder uklonjen.
+- Gotcha (batchmode iz agenta): harness relansira `Unity.exe` kao detached child — poll-uj PID
+  umesto da veruješ povratku komandne linije.
+
+**UI layout blueprint** — [`ui-layout.md`](ui-layout.md): korisnikov ciljni HUD raspored
+(po uzoru na Medieval Idle Prayer): levo story-progress/boosti/offer, desno settings/buffovi/
+upgrades/shop/periodic-claim, dole quests+event; svaki element mapiran na fazu.

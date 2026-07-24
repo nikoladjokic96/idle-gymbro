@@ -23,6 +23,7 @@ namespace IdleGymBro.EditorTools
         private const string ScenePath = "Assets/Scenes/SampleScene.unity";
         private const string ConfigPath = "Assets/_Game/Data/GameConfig.asset";
         private const string RootName = "CoreLoop";
+        private const string CharacterArtFolder = "Assets/_Game/Art/Character/Placeholders";
 
         [MenuItem("IdleGymBro/Build Core Loop Scene")]
         public static void BuildCoreLoopScene()
@@ -30,6 +31,10 @@ namespace IdleGymBro.EditorTools
             // Import any on-disk assets that aren't yet in the AssetDatabase, so an
             // existing GameConfig.asset resolves to a real, referenceable asset.
             AssetDatabase.Refresh();
+
+            // Must run before any MuscleTierData/CosmeticData assets are created below, since
+            // those assets reference sprites this generates.
+            PlaceholderArtGenerator.Generate();
 
             var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
 
@@ -56,6 +61,25 @@ namespace IdleGymBro.EditorTools
                 GetOrCreateUpgrade("stronger_arms", "Stronger Arms", StatType.GainsPerRep, 1d, 10d, 1.10f),
                 GetOrCreateUpgrade("protein_shake", "Protein Shake", StatType.GainsPerRep, 5d, 100d, 1.12f),
                 GetOrCreateUpgrade("training_partner", "Training Partner", StatType.PassiveGainsPerSecond, 0.5d, 50d, 1.11f),
+            };
+
+            // Muscle tiers (data-driven; thresholds are lifetime TotalEarned, not balance).
+            var tiers = new MuscleTierData[]
+            {
+                GetOrCreateTier("tier1_skinny", 1, "Skinny", 0d, $"{CharacterArtFolder}/body_tier1.png", $"{CharacterArtFolder}/head_01.png"),
+                GetOrCreateTier("tier2_slim_fit", 2, "Slim Fit", 1000d, $"{CharacterArtFolder}/body_tier2.png", $"{CharacterArtFolder}/head_01.png"),
+                GetOrCreateTier("tier3_fit", 3, "Fit", 25000d, $"{CharacterArtFolder}/body_tier3.png", $"{CharacterArtFolder}/head_01.png"),
+                GetOrCreateTier("tier4_jacked", 4, "Jacked", 500000d, $"{CharacterArtFolder}/body_tier4.png", $"{CharacterArtFolder}/head_01.png"),
+                GetOrCreateTier("tier5_mass_monster", 5, "Mass Monster", 10000000d, $"{CharacterArtFolder}/body_tier5.png", $"{CharacterArtFolder}/head_01.png"),
+                GetOrCreateTier("tier6_enhanced", 6, "Enhanced", 500000000d, $"{CharacterArtFolder}/body_tier6.png", $"{CharacterArtFolder}/head_01.png"),
+            };
+
+            // Default cosmetics (free, unlocked from the start; wardrobe/shop is post-MVP).
+            var cosmetics = new CosmeticData[]
+            {
+                GetOrCreateCosmetic("shorts_01", "Shorts", CharacterLayer.Shorts, $"{CharacterArtFolder}/shorts_01.png", 0d),
+                GetOrCreateCosmetic("hair_01", "Hair", CharacterLayer.Hair, $"{CharacterArtFolder}/hair_01.png", 0d),
+                GetOrCreateCosmetic("beard_01", "Beard", CharacterLayer.Beard, $"{CharacterArtFolder}/beard_01.png", 0d),
             };
 
             var root = new GameObject(RootName);
@@ -122,10 +146,17 @@ namespace IdleGymBro.EditorTools
 
             Sprite uiSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
 
-            // --- Placeholder character ---
-            var placeholder = CreateImage("Placeholder", canvasGo.transform, uiSprite, new Color(0.90f, 0.49f, 0.13f));
-            SetRect(placeholder.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(400f, 400f));
-            placeholder.gameObject.AddComponent<PlaceholderCharacter>();
+            // --- World-space character ---
+            // Not UI: a SpriteRenderer layer stack positioned in front of the Main Camera, drawn
+            // beneath the ScreenSpaceOverlay HUD canvas.
+            var characterGo = new GameObject("Character");
+            characterGo.transform.SetParent(root.transform, false);
+            characterGo.transform.position = new Vector3(0f, -2.4f, 0f);
+            characterGo.transform.localScale = new Vector3(3f, 3f, 1f);
+            var builder = characterGo.AddComponent<CharacterBuilder>();
+            characterGo.AddComponent<PlaceholderCharacter>();
+            AssignArray(builder, "_tiers", tiers);
+            AssignArray(builder, "_defaultCosmetics", cosmetics);
 
             // --- Gains text ---
             var gainsText = CreateText("GainsText", canvasGo.transform, "0", 80f, TextAlignmentOptions.Center);
@@ -297,6 +328,90 @@ namespace IdleGymBro.EditorTools
             // Reload the canonical, imported instance so it serializes as an asset reference.
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
             return AssetDatabase.LoadAssetAtPath<UpgradeData>(path);
+        }
+
+        private const string MuscleTiersFolder = "Assets/_Game/Data/MuscleTiers";
+
+        private static MuscleTierData GetOrCreateTier(string fileName, int tier, string displayName, double threshold, string bodySpritePath, string headSpritePath)
+        {
+            if (!AssetDatabase.IsValidFolder(MuscleTiersFolder))
+            {
+                AssetDatabase.CreateFolder("Assets/_Game/Data", "MuscleTiers");
+            }
+
+            string path = $"{MuscleTiersFolder}/{fileName}.asset";
+            var tierAsset = AssetDatabase.LoadAssetAtPath<MuscleTierData>(path);
+            if (tierAsset == null)
+            {
+                tierAsset = ScriptableObject.CreateInstance<MuscleTierData>();
+                AssetDatabase.CreateAsset(tierAsset, path);
+            }
+
+            var so = new SerializedObject(tierAsset);
+            so.FindProperty("_tier").intValue = tier;
+            so.FindProperty("_displayName").stringValue = displayName;
+            so.FindProperty("_totalEarnedThreshold").doubleValue = threshold;
+            so.FindProperty("_bodySprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(bodySpritePath);
+            // Head is SHARED across tiers for the MVP: one sprite (head_01.png), all 6 tiers.
+            so.FindProperty("_headSprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(headSpritePath);
+            so.ApplyModifiedProperties();
+
+            AssetDatabase.SaveAssets();
+            // Reload the canonical, imported instance so it serializes as an asset reference.
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            return AssetDatabase.LoadAssetAtPath<MuscleTierData>(path);
+        }
+
+        private const string CosmeticsFolder = "Assets/_Game/Data/Cosmetics";
+
+        private static CosmeticData GetOrCreateCosmetic(string id, string displayName, CharacterLayer layer, string spritePath, double cost)
+        {
+            if (!AssetDatabase.IsValidFolder(CosmeticsFolder))
+            {
+                AssetDatabase.CreateFolder("Assets/_Game/Data", "Cosmetics");
+            }
+
+            string path = $"{CosmeticsFolder}/{id}.asset";
+            var cosmetic = AssetDatabase.LoadAssetAtPath<CosmeticData>(path);
+            if (cosmetic == null)
+            {
+                cosmetic = ScriptableObject.CreateInstance<CosmeticData>();
+                AssetDatabase.CreateAsset(cosmetic, path);
+            }
+
+            var so = new SerializedObject(cosmetic);
+            so.FindProperty("_id").stringValue = id;
+            so.FindProperty("_displayName").stringValue = displayName;
+            // enumValueIndex is the enum's DECLARATION-ORDER index, not its underlying int value.
+            so.FindProperty("_layer").enumValueIndex = GetCharacterLayerDeclarationIndex(layer);
+            so.FindProperty("_sprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
+            so.FindProperty("_cost").doubleValue = cost;
+            so.FindProperty("_unlockedByDefault").boolValue = true;
+            so.ApplyModifiedProperties();
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            return AssetDatabase.LoadAssetAtPath<CosmeticData>(path);
+        }
+
+        // CharacterLayer declaration order: Background, Body, Shorts, Shoes, Shirt, Arms, Head,
+        // Beard, Hair, Accessory — this index must match that order, not the enum's int values.
+        private static int GetCharacterLayerDeclarationIndex(CharacterLayer layer)
+        {
+            switch (layer)
+            {
+                case CharacterLayer.Background: return 0;
+                case CharacterLayer.Body: return 1;
+                case CharacterLayer.Shorts: return 2;
+                case CharacterLayer.Shoes: return 3;
+                case CharacterLayer.Shirt: return 4;
+                case CharacterLayer.Arms: return 5;
+                case CharacterLayer.Head: return 6;
+                case CharacterLayer.Beard: return 7;
+                case CharacterLayer.Hair: return 8;
+                case CharacterLayer.Accessory: return 9;
+                default: return 0;
+            }
         }
 
         private static void AssignArray(Component c, string field, Object[] values)

@@ -4,6 +4,7 @@ namespace IdleGymBro.Data
     {
         public int Version = 1;
         public double TotalGains;
+        public double TotalEarned;
         public float CurrentEnergy;
         public long LastSaveTimeTicks;
         public System.Collections.Generic.Dictionary<string, int> UpgradeLevels = new System.Collections.Generic.Dictionary<string, int>();
