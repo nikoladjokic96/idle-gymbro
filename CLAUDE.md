@@ -234,6 +234,9 @@ Ekskluzivni outfiti/tetovaže — čisto vizuelno, **ne pay-to-win**.
 - Prestige ekran *(post-MVP)*
 - Daily / Quests *(post-MVP)*
 
+### Jezik (zaključano)
+**SAV in-game tekst (UI, poruke, imena upgrade-a/boostera/tierova) je na ENGLESKOM** — igra cilja globalnu publiku (gym meme identitet radi na engleskom). Srpski ostaje za docs/komunikaciju/commit poruke.
+
 ### UI standard (zaključano kroz Fazu 2)
 - **Dizajn prostor: portrait 1080×1920**; `CanvasScaler` = ScaleWithScreenSize + **`ScreenMatchMode.Expand`** (dizajn uvek staje na ekran — i na telefonu i u landscape Game view; modali ne mogu da prelete ekran).
 - **`EventSystem` + `InputSystemUIInputModule` (AssignDefaultActions) je OBAVEZAN** — bez njega nijedno UI dugme ne prima klik. Bootstrap ga pravi.
@@ -319,6 +322,8 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 - [x] #011 Zvuk + settings: `PlaceholderSfxGenerator` (4 deterministička WAV placeholder-a), `AudioLibrary` SO, `Core/AudioManager` (event→SFX; booster samo na aktivaciju; mute u PlayerPrefs), SETTINGS dugme gore desno + modal sa sound toggle-om
 - [x] #012 **Mock monetizacija** (odluka: pravi LevelPlay/IAP idu NA KRAJU projekta, iza istog API-ja): `Monetization/AdManager` (mock `ShowRewarded(placement, onReward)` + fullscreen „▶ REKLAMA..." overlay), boosteri ad-gated (`BoosterData.RequiresAd`; preworkout 2x tap + NOVI protein_shake 2x passive), offline popup „UDVOSTRUČI ▶" (mock reklama → dupli grant, zaštićeno od double-claim-a)
 
+- [x] #013 Engleski za sav in-game tekst (pravilo u §11) + **abs** upgrade („Core Crusher") — moduli: chest/arms/back/abs/legs + Training Partner + Gym Membership
+
 **MVP status: faze 0–4 funkcionalno kompletne sa placeholderima; monetizacioni TOKOVI mockovani (§10 poštovan — sve opt-in)** — sledeće: pravi art (čeka assete), balans tuning kroz playtest, animacije; realan LevelPlay/IAP na samom kraju.
 - [ ] Faza 3 nastavak: animacije (idle + rep po tieru), wardrobe/kustomizacija UI, pravi pixel art (čeka assete — [`docs/asset-checklist.md`](docs/asset-checklist.md))
 - [ ] Balans tuning (krive cena/prihoda kroz playtest — §6/§10)
@@ -327,8 +332,30 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 > **Sledeći korak (za razmatranje):** Faza 3 nastavak (animacioni sistem + wardrobe) · ILI Faza 4 polish (HUD raspored po [`docs/ui-layout.md`](docs/ui-layout.md), DOTween juice, zvuk) · ILI balans tuning.
 > Setup na novom PC-u: `scripts/setup-dev-env.ps1` (vidi `SETUP.md`).
 
+### Smernice za nastavak (čitaj OVO ako nastavljaš projekat u novoj sesiji)
+
+**Redosled prioriteta (dogovoren sa korisnikom):**
+1. **Balans tuning** — kroz playtest sa korisnikom; menjaj SAMO `.asset` vrednosti (GameConfig, Upgrades/, Boosters/, MuscleTiers/), nikad kod.
+2. **Faza 6: Story progress + lokacije** — dugme GORE LEVO po [`docs/ui-layout.md`](docs/ui-layout.md): % progresa lokacije (udeo kupljenih upgrade-ova), klik → modal sa lokacijama (§9); `LocationData` SO. Poslednji veliki HUD slot.
+3. **Animacioni sistem** (Faza 3 ostatak) — frame-by-frame idle + rep po tieru; gradi se sa placeholder sheet-ovima ILI čeka korisnikove (format u [`docs/asset-checklist.md`](docs/asset-checklist.md)).
+4. **Faza 7: Meta** — quests/achievements (dole levo) + periodic claim (dole desno) po layout-u.
+5. **NA SAMOM KRAJU:** realan LevelPlay/Unity IAP — mock `Monetization/AdManager.ShowRewarded(placement, onReward)` je API ugovor; menja se SAMO unutrašnjost te klase.
+
+**Čeka korisnika (ne blokira razvoj):** pixel art asseti po [`docs/asset-checklist.md`](docs/asset-checklist.md) — menjaju placeholder fajlove 1:1, bez koda.
+
+**Kako se dodaje (ustaljeni putevi):**
+- Novi upgrade/booster/tier/kozmetika = novi `.asset` (kroz `GetOrCreate*` u bootstrap-u) — logika je generička, UI se generiše iz nizova.
+- Nova UI/scena komponenta = izmena `Editor/CoreLoopSceneBootstrap` + rebuild (NIKAD ručno u editoru — izgubiće se!). Modali kroz `ModalToggle` (open/X/backdrop šablon postoji ×2).
+- Novi sistem = MonoBehaviour na `GameSystems`, komunikacija SAMO kroz EventBus (§16 obrasci), tunables u SO.
+
+**Verifikacija (tačne komande, pre SVAKOG commit-a):**
+```
+& "$env:USERPROFILE\Unity\Hub\Editor\6000.0.79f1\Editor\Unity.exe" -batchmode -quit -nographics -projectPath "F:\idle-gymbro" -executeMethod IdleGymBro.EditorTools.CoreLoopSceneBootstrap.BuildCoreLoopScene -logFile "$env:TEMP\igb.log"
+```
+Log mora imati: 0× `error CS` · `10 sprites generated` · `4 clips generated` · `_gameConfig wired on 9/9` · `Scene built and saved`. Editor i batchmode ne mogu istovremeno; prvi run posle novih skripti ume samo da kompajlira → ponovi. Smoke test: `-executeMethod IdleGymBro.EditorTools.SaveSystemSmokeTest.RunSaveRoundTrip`.
+
 ### Radni model (arhitekta + pod-agenti)
-Arhitekta (Opus/Fable) piše „Nalog za Pod-Agenta" → jeftiniji model (Sonnet/Haiku) piše kod → arhitekta radi pregled (konvencije §16, leak-ovi, data-driven, event ordering) → **verifikacioni protokol iz §4** → commit + push (samo arhitekta). Pod-agent ne commit-uje.
+Arhitekta (Opus/Fable) piše „Nalog za Pod-Agenta" → jeftiniji model (Sonnet/Haiku) piše kod → arhitekta radi pregled (konvencije §16, leak-ovi, data-driven, event ordering) → **verifikacioni protokol iz §4** → commit + push (samo arhitekta). Pod-agent ne commit-uje. Korisniku se piše na srpskom; sav in-game tekst na engleskom (§11).
 
 > **Pun protokol orkestracije** (role, pravila, sub-agent profili, format naloga): [`docs/agent-workflow.md`](docs/agent-workflow.md).
 

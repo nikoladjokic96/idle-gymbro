@@ -192,3 +192,13 @@ upgrade rework + booster sistem + HUD ivice.
   `_pendingDoubleAmount` se nuluje PRE reklame (nema double-claim-a klikom u nizu).
 - Verifikacija: batchmode PASS prvi run; oba booster asseta `_requiresAd:1`; scena: AdManager→AdOverlay,
   2 BoosterButton-a → 2 RAZLIČITA asset guid-a, popup `_doubleButton` — sve verifikovano guid/fileID-jem.
+
+**NALOG #013** (Fable direktno — mali data/string pass) — engleski + abs modul.
+- **Pravilo (korisnik, kodifikovano u §11):** SAV in-game tekst na ENGLESKOM (globalna publika,
+  gym meme identitet); srpski za docs/komunikaciju. Zamenjeno: offline poruka („Your gymbro kept
+  training while you were away"), „DOUBLE IT ▶", „▶ AD PLAYING...".
+- Upgrade moduli (korisnik): **chest / arms / back / abs / legs** + Training Partner (+ Gym Membership
+  zadržan kao drugi pasivni). Novi: abs „Core Crusher" (8/level, base 900, growth 1.125). 7 dugmadi u scroll listi.
+- U §17 dodate **„Smernice za nastavak"** — prioriteti, ustaljeni putevi dodavanja, tačne
+  verifikacione komande — pisano za buduće sesije (Opus/Sonnet) iz hladnog starta.
+- Verifikacija: batchmode svi markeri, abs.asset tačan, 7 UpgradeButton-a, 0 srpskih stringova u sceni.

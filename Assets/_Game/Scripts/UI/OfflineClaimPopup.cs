@@ -77,7 +77,7 @@ namespace IdleGymBro.UI
             if (_messageText != null)
             {
                 // Gains are already granted by OfflineEarningsSystem; this is informational only.
-                _messageText.text = $"Dok si trenirao van igre:\n+{NumberFormatter.Format(e.GainsEarned)} Gains";
+                _messageText.text = $"Your gymbro kept training while you were away:\n+{NumberFormatter.Format(e.GainsEarned)} Gains";
             }
 
             _pendingDoubleAmount = e.GainsEarned;

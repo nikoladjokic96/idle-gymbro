@@ -64,6 +64,7 @@ namespace IdleGymBro.EditorTools
                 GetOrCreateUpgrade("chest", "Chest Day", StatType.GainsPerRep, 1d, 10d, 1.10f),
                 GetOrCreateUpgrade("arms", "Arm Blaster", StatType.GainsPerRep, 2d, 60d, 1.11f),
                 GetOrCreateUpgrade("back", "Back Attack", StatType.GainsPerRep, 5d, 350d, 1.12f),
+                GetOrCreateUpgrade("abs", "Core Crusher", StatType.GainsPerRep, 8d, 900d, 1.125f),
                 GetOrCreateUpgrade("legs", "Never Skip Leg Day", StatType.GainsPerRep, 12d, 2000d, 1.13f),
                 GetOrCreateUpgrade("training_partner", "Training Partner", StatType.PassiveGainsPerSecond, 0.5d, 50d, 1.11f),
                 GetOrCreateUpgrade("gym_membership", "Gym Membership", StatType.PassiveGainsPerSecond, 3d, 500d, 1.12f),
@@ -447,7 +448,7 @@ namespace IdleGymBro.EditorTools
             SetRect(doubleBtnImage.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -280f), new Vector2(420f, 110f));
             var doubleButton = doubleBtnImage.gameObject.AddComponent<Button>();
             doubleButton.targetGraphic = doubleBtnImage;
-            var doubleLabel = CreateText("Label", doubleBtnImage.transform, "UDVOSTRUČI ▶", 40f, TextAlignmentOptions.Center);
+            var doubleLabel = CreateText("Label", doubleBtnImage.transform, "DOUBLE IT ▶", 40f, TextAlignmentOptions.Center);
             SetRect(doubleLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(420f, 110f));
 
             AssignRef(popup, "_panel", panel.gameObject);
@@ -464,7 +465,7 @@ namespace IdleGymBro.EditorTools
             StretchFull(adOverlay.rectTransform);
             // raycastTarget stays true (Image default) so the overlay blocks input to everything beneath it.
 
-            var adOverlayText = CreateText("Label", adOverlay.transform, "▶ REKLAMA...", 64f, TextAlignmentOptions.Center);
+            var adOverlayText = CreateText("Label", adOverlay.transform, "▶ AD PLAYING...", 64f, TextAlignmentOptions.Center);
             SetRect(adOverlayText.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(800f, 160f));
 
             AssignRef(adManager, "_adOverlay", adOverlay.gameObject);
