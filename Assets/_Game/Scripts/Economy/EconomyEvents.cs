@@ -34,4 +34,17 @@ namespace IdleGymBro.Economy
             SecondsAway = secondsAway;
         }
     }
+
+    // Fired per successful tap rep with the actually-credited amount (after booster
+    // multipliers), for juice systems (floating text, counter punch) that must react only
+    // to active taps, not passive trickle.
+    public readonly struct TapGainsEvent : IGameEvent
+    {
+        public double Amount { get; }
+
+        public TapGainsEvent(double amount)
+        {
+            Amount = amount;
+        }
+    }
 }

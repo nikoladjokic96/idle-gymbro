@@ -150,3 +150,17 @@ upgrade rework + booster sistem + HUD ivice.
   `childControlHeight=false` čini `LayoutElement.preferredHeight` no-op (→ true; dugmad bi bila 100px).
 - Verifikacija (agent): batchmode bez `error CS`, `wired 9/9`, preworkout asset tačan, tačno 6 upgrade
   asseta, scena: BoosterManager/_boosters + BoosterButton + ScrollRect/Content + 6 UpgradeButton-a — sve PASS.
+
+**NALOG #010** (Sonnet implement + Sonnet verify; Fable review) — juice sloj, coroutine-based.
+- **DOTween odložen:** nije dostupan kroz UPM ni OpenUPM (`no such package available`) — Asset Store
+  import je manuelni editor korak. Juice implementiran preko coroutina (obrazac iz
+  `PlaceholderCharacter.Punch`); ako DOTween kasnije uđe, menja se samo unutrašnjost efekata.
+- Novi `TapGainsEvent(double Amount)` — CurrencyManager ga publikuje po uspešnom repu sa stvarno
+  upisanim iznosom (posle booster multiplikatora); juice reaguje SAMO na tap, ne na pasivni trickle.
+- `UI/FloatingTextSpawner` — pooled „+X" tekstovi (12, `raycastTarget=false`, pool ne raste; reclaim na disable).
+- `UI/GainsCounterJuice` — scale-pop countera na tap. `UI/EnergyBarSmoother` — MoveTowards ka target fill-u;
+  **jedini writer** fillAmount-a (HudController `_energyFill` namerno odžičen u bootstrap-u).
+- `UI/TierUpBanner` — „TIER UP! {ime}" pop-in/hold/fade na `MuscleTierChangedEvent`; prvi (inicijalni)
+  event se guta (`_initialTierSeen`).
+- Verifikacija (agent): batchmode bez grešaka, sva 4 juice komponente ožičene u sceni, `_energyFill:{fileID:0}`
+  potvrđeno namerno, `TapGainsEvent` definisan + publikovan tačno jednom — sve PASS.

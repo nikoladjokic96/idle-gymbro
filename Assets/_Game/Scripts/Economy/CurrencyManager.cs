@@ -74,6 +74,7 @@ namespace IdleGymBro.Economy
             TotalGains += amount;
             TotalEarned += amount;
             EventBus.Publish(new GainsChangedEvent(TotalGains, TotalEarned));
+            EventBus.Publish(new TapGainsEvent(amount));
         }
 
         private void HandleGainsEarned(GainsEarnedEvent e)

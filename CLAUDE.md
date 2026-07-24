@@ -315,6 +315,7 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 - [x] Fix: `EventSystem` (klikabilna dugmad) + upgrade **modal** (`ModalToggle`) + tap-over-UI guard + `CanvasScaler.Expand`
 - [x] #008 Karakter sistem (Faza 3): `CharacterBuilder` (layered SpriteRenderer stack, world-space), muscle tiers po **`TotalEarned`** (lifetime — kupovina ne smanjuje mišiće), `MuscleTierData`/`CosmeticData` SO, `PlaceholderArtGenerator` (10 PNG placeholder-a po art-brief specifikaciji)
 - [x] #009 Upgrade rework (mišićne grupe: Chest/Arms/Back/Legs + Training Partner/Gym Membership) + **booster sistem** (`BoosterData`/`BoosterManager`, pre-workout 2x tap 60s/CD 180s, multiplikativno preko §5 formule) + scroll upgrade lista + HUD ivice po [`docs/ui-layout.md`](docs/ui-layout.md) (UPGRADES desno-sredina, boost levo)
+- [x] #010 Juice sloj (coroutine-based; **DOTween odložen** — nije na UPM/OpenUPM, Asset Store import je manuelni korak): floating „+X" (pooled), gains counter pop na tap, smooth energy bar, TIER UP banner. Novi `TapGainsEvent` (iznos po repu posle boostera)
 - [ ] Faza 3 nastavak: animacije (idle + rep po tieru), wardrobe/kustomizacija UI, pravi pixel art (čeka assete — [`docs/asset-checklist.md`](docs/asset-checklist.md))
 - [ ] Balans tuning (krive cena/prihoda kroz playtest — §6/§10)
 - [ ] Više stat tipova (maxEnergy/regen), još upgrade-ova; prestige je post-MVP

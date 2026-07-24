@@ -174,6 +174,8 @@ namespace IdleGymBro.EditorTools
             // --- Gains text ---
             var gainsText = CreateText("GainsText", canvasGo.transform, "0", 80f, TextAlignmentOptions.Center);
             SetRect(gainsText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -140f), new Vector2(700f, 110f));
+            var gainsCounterJuice = gainsText.gameObject.AddComponent<GainsCounterJuice>();
+            AssignRef(gainsCounterJuice, "_target", gainsText.rectTransform);
 
             // --- Passive income rate ---
             var passiveRateText = CreateText("PassiveRateText", canvasGo.transform, "0/s", 40f, TextAlignmentOptions.Center);
@@ -193,15 +195,33 @@ namespace IdleGymBro.EditorTools
             var energyText = CreateText("EnergyText", energyBarBg.transform, "100/100", 34f, TextAlignmentOptions.Center);
             SetRect(energyText.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(700f, 60f));
 
+            // EnergyBarSmoother is the sole writer of the fill's fillAmount (lerps toward the
+            // latest EnergyChangedEvent); HudController no longer holds _energyFill below.
+            var energyBarSmoother = energyBar.gameObject.AddComponent<EnergyBarSmoother>();
+            AssignRef(energyBarSmoother, "_fill", energyBar);
+
+            // --- Floating "+X" tap texts ---
+            var floatingTextsGo = new GameObject("FloatingTexts", typeof(RectTransform));
+            floatingTextsGo.transform.SetParent(canvasGo.transform, false);
+            StretchFull(floatingTextsGo.GetComponent<RectTransform>());
+            var floatingTextSpawner = floatingTextsGo.AddComponent<FloatingTextSpawner>();
+            AssignRef(floatingTextSpawner, "_spawnArea", floatingTextsGo.GetComponent<RectTransform>());
+
             // --- HUD controller ---
             var hudGo = new GameObject("HUD");
             hudGo.transform.SetParent(root.transform, false);
             var hudController = hudGo.AddComponent<HudController>();
 
             AssignRef(hudController, "_gainsText", gainsText);
-            AssignRef(hudController, "_energyFill", energyBar);
             AssignRef(hudController, "_energyText", energyText);
             AssignRef(hudController, "_passiveRateText", passiveRateText);
+
+            // --- Tier-up banner: lives on the always-active HUDCanvas object since it only
+            // deactivates its own text object, never itself. ---
+            var tierUpText = CreateText("TierUpText", canvasGo.transform, string.Empty, 64f, TextAlignmentOptions.Center);
+            SetRect(tierUpText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -460f), new Vector2(800f, 140f));
+            var tierUpBanner = canvasGo.AddComponent<TierUpBanner>();
+            AssignRef(tierUpBanner, "_text", tierUpText);
 
             // --- Upgrades: "UPGRADES" open button on the HUD + a modal with the upgrade buttons ---
             // Edges = buttons (docs/ui-layout.md): UPGRADES lives on the right-middle edge.
@@ -541,7 +561,7 @@ namespace IdleGymBro.EditorTools
             so.ApplyModifiedProperties();
         }
 
-        // The fields this builds wires (_gameConfig, _gainsText, _energyFill, _energyText)
+        // The fields this builds wires (_gameConfig, _gainsText, _energyText, _fill, _target...)
         // are private [SerializeField]s on existing runtime scripts we must not modify, so
         // they are assigned through SerializedObject rather than made public or reflected into.
         private static void AssignRef(Component c, string field, Object value)
