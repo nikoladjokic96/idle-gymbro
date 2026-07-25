@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: beard_01
   m_EditorClassIdentifier: 
   _id: beard_01
-  _displayName: Beard
+  _displayName: Beard 1
   _layer: 60
   _sprite: {fileID: -97669354424153572, guid: b4799aa4a601ac74b9d7649870790a24, type: 3}
   _cost: 0

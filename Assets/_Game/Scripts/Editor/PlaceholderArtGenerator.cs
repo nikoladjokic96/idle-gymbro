@@ -41,6 +41,22 @@ namespace IdleGymBro.EditorTools
             LabelAndWrite("shorts_01", BuildRectPixels(64, 24, 64, 90, DarkGray), "SHORTS");
             count++;
 
+            // Cosmetic variants (for the wardrobe): distinct colors/shapes per slot.
+            LabelAndWrite("hair_02", BuildRectPixels(64, 13, 170, 190, new Color(0.85f, 0.70f, 0.35f)), "HAIR2");
+            count++;
+
+            LabelAndWrite("hair_03", BuildRectPixels(64, 10, 176, 188, new Color(0.55f, 0.55f, 0.58f)), "HAIR3");
+            count++;
+
+            LabelAndWrite("beard_02", BuildRectPixels(64, 8, 150, 160, DarkBrown), "BEARD2");
+            count++;
+
+            LabelAndWrite("shorts_02", BuildRectPixels(64, 24, 64, 90, new Color(0.60f, 0.16f, 0.16f)), "SHORTS2");
+            count++;
+
+            LabelAndWrite("shorts_03", BuildRectPixels(64, 24, 64, 90, new Color(0.16f, 0.22f, 0.50f)), "SHORTS3");
+            count++;
+
             AssetDatabase.SaveAssets();
             Debug.Log($"[PlaceholderArtGenerator] {count} sprites generated.");
         }

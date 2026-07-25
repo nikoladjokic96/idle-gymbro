@@ -15,9 +15,6 @@ namespace IdleGymBro.Character
         [SerializeField]
         private MuscleTierData[] _tiers; // sorted by threshold ascending
 
-        [SerializeField]
-        private CosmeticData[] _defaultCosmetics;
-
         private readonly Dictionary<CharacterLayer, SpriteRenderer> _renderers = new Dictionary<CharacterLayer, SpriteRenderer>();
 
         private int _currentTierIndex = -1;
@@ -40,31 +37,30 @@ namespace IdleGymBro.Character
         private void OnEnable()
         {
             EventBus.Subscribe<GainsChangedEvent>(HandleGainsChanged);
+            EventBus.Subscribe<CosmeticEquippedEvent>(HandleCosmeticEquipped);
         }
 
         private void OnDisable()
         {
             EventBus.Unsubscribe<GainsChangedEvent>(HandleGainsChanged);
+            EventBus.Unsubscribe<CosmeticEquippedEvent>(HandleCosmeticEquipped);
         }
 
         private void Start()
         {
             // Applies the lowest tier available at zero lifetime earned. SaveSystem restore
             // (execution order +1000) republishes GainsChangedEvent after Start, so a loaded
-            // TotalEarned re-applies the correct tier automatically.
+            // TotalEarned re-applies the correct tier automatically. Cosmetics are driven by
+            // WardrobeManager via CosmeticEquippedEvent (published in its Start/restore).
             HandleGainsChanged(new GainsChangedEvent(0d, 0d));
+        }
 
-            if (_defaultCosmetics == null)
+        // Sets the sprite for one layer whenever the wardrobe equips a cosmetic there.
+        private void HandleCosmeticEquipped(CosmeticEquippedEvent e)
+        {
+            if (_renderers.TryGetValue(e.Layer, out SpriteRenderer renderer))
             {
-                return;
-            }
-
-            foreach (CosmeticData cosmetic in _defaultCosmetics)
-            {
-                if (cosmetic != null && cosmetic.UnlockedByDefault && _renderers.TryGetValue(cosmetic.Layer, out SpriteRenderer renderer))
-                {
-                    renderer.sprite = cosmetic.Sprite;
-                }
+                renderer.sprite = e.Sprite;
             }
         }
 

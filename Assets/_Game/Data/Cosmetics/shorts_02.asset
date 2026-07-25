@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 66bca60a5176bc246883e92117d63a5c, type: 3}
-  m_Name: hair_01
+  m_Name: shorts_02
   m_EditorClassIdentifier: 
-  _id: hair_01
-  _displayName: Hair 1
-  _layer: 70
-  _sprite: {fileID: -35201059353145968, guid: acdcea8100f937447a58f9943504b2bb, type: 3}
+  _id: shorts_02
+  _displayName: Shorts 2
+  _layer: 10
+  _sprite: {fileID: 5437545122616795298, guid: 015e8f7c6b1540c40be49caab7c4516c, type: 3}
   _cost: 0
   _unlockedByDefault: 1

@@ -262,3 +262,16 @@ verifikacija, TREBA PLAYTEST.**
 
 > **Svi roadmap sistemi (Faze 0–7) implementirani.** Ostaje: realan LevelPlay/IAP (na kraju),
 > pravi art/animacije (čeka assete), i **playtest + balans tuning** (prioritet — brojke su u `.asset`/GameConfig).
+
+**NALOG #020** — Wardrobe/kustomizacija (§8). ⚠️ compile-only verifikacija (spend-limit).
+- `Character/CosmeticEvents.CosmeticEquippedEvent(CharacterLayer, Sprite)`.
+- `Character/WardrobeManager` (`ISaveable`): `_cosmetics[]`, equipped `Dictionary<CharacterLayer,string>`;
+  `Equip(id)`/`CycleLayer(layer)` publikuju event; `EnsureDefaults` (prvi po sloju); `PublishAll` na Start/restore.
+  `SaveData.EquippedCosmetics` (Dictionary<string,string>, ključ = layer.ToString()).
+- **`CharacterBuilder` refaktorisan:** izbačen `_defaultCosmetics`; sada samo sluša `CosmeticEquippedEvent`
+  i menja `_renderers[layer].sprite`. Tier logika netaknuta. (Bootstrap ne dodeljuje više `_defaultCosmetics`.)
+- 8 `CosmeticData` asseta (hair_01/02/03, beard_01/02, shorts_01/02/03) + 5 novih placeholder-a
+  (`PlaceholderArtGenerator` sada 15 sprites, sa baked labelama HAIR2/HAIR3/BEARD2/SHORTS2/SHORTS3).
+- `UI/WardrobePanel` (3 reda: Hair/Beard/Shorts, „NEXT ▶" cycler) + WARDROBE dugme (dole centar) + **6. ModalToggle**.
+- Verifikacija: batchmode `15 sprites generated`, `wired 12/12`, 8 kozmetika, WardrobeManager `_cosmetics` 8/8,
+  panel refs, 6× ModalToggle, `_defaultCosmetics` potpuno uklonjen. Runtime NEtestiran.

@@ -120,9 +120,14 @@ namespace IdleGymBro.EditorTools
             // Default cosmetics (free, unlocked from the start; wardrobe/shop is post-MVP).
             var cosmetics = new CosmeticData[]
             {
-                GetOrCreateCosmetic("shorts_01", "Shorts", CharacterLayer.Shorts, $"{CharacterArtFolder}/shorts_01.png", 0d),
-                GetOrCreateCosmetic("hair_01", "Hair", CharacterLayer.Hair, $"{CharacterArtFolder}/hair_01.png", 0d),
-                GetOrCreateCosmetic("beard_01", "Beard", CharacterLayer.Beard, $"{CharacterArtFolder}/beard_01.png", 0d),
+                GetOrCreateCosmetic("hair_01", "Hair 1", CharacterLayer.Hair, $"{CharacterArtFolder}/hair_01.png", 0d),
+                GetOrCreateCosmetic("hair_02", "Hair 2", CharacterLayer.Hair, $"{CharacterArtFolder}/hair_02.png", 0d),
+                GetOrCreateCosmetic("hair_03", "Hair 3", CharacterLayer.Hair, $"{CharacterArtFolder}/hair_03.png", 0d),
+                GetOrCreateCosmetic("beard_01", "Beard 1", CharacterLayer.Beard, $"{CharacterArtFolder}/beard_01.png", 0d),
+                GetOrCreateCosmetic("beard_02", "Beard 2", CharacterLayer.Beard, $"{CharacterArtFolder}/beard_02.png", 0d),
+                GetOrCreateCosmetic("shorts_01", "Shorts 1", CharacterLayer.Shorts, $"{CharacterArtFolder}/shorts_01.png", 0d),
+                GetOrCreateCosmetic("shorts_02", "Shorts 2", CharacterLayer.Shorts, $"{CharacterArtFolder}/shorts_02.png", 0d),
+                GetOrCreateCosmetic("shorts_03", "Shorts 3", CharacterLayer.Shorts, $"{CharacterArtFolder}/shorts_03.png", 0d),
             };
 
             // Audio library referencing the placeholder clips generated above (data-driven per §16:
@@ -159,6 +164,8 @@ namespace IdleGymBro.EditorTools
             var achievementManager = gameSystems.AddComponent<AchievementManager>();
             var dailyRewardManager = gameSystems.AddComponent<DailyRewardManager>();
             var prestigeManager = gameSystems.AddComponent<PrestigeManager>();
+            // Wardrobe: no _gameConfig field (drives off CosmeticData assets) — excluded from self-check.
+            var wardrobeManager = gameSystems.AddComponent<WardrobeManager>();
 
             AssignRef(gameManager, "_gameConfig", config);
             AssignRef(tickSystem, "_gameConfig", config);
@@ -177,6 +184,7 @@ namespace IdleGymBro.EditorTools
             AssignRef(periodicRewardManager, "_gameConfig", config);
             AssignRef(dailyRewardManager, "_gameConfig", config);
             AssignRef(prestigeManager, "_gameConfig", config);
+            AssignArray(wardrobeManager, "_cosmetics", cosmetics);
             AssignArray(achievementManager, "_achievements", achievements);
 
             // Self-check: verify the asset reference actually serialized (asset refs are
@@ -240,7 +248,6 @@ namespace IdleGymBro.EditorTools
             var builder = characterGo.AddComponent<CharacterBuilder>();
             characterGo.AddComponent<PlaceholderCharacter>();
             AssignArray(builder, "_tiers", tiers);
-            AssignArray(builder, "_defaultCosmetics", cosmetics);
 
             // --- Gains text ---
             var gainsText = CreateText("GainsText", canvasGo.transform, "0", 80f, TextAlignmentOptions.Center);
@@ -662,6 +669,57 @@ namespace IdleGymBro.EditorTools
             AssignRef(prestigeModalToggle, "_closeButton", prestigeCloseButton);
             AssignRef(prestigeModalToggle, "_backdropButton", prestigeBackdropButton);
 
+            // --- Wardrobe: "WARDROBE" open button (bottom-center) + a modal with per-layer NEXT cyclers. ---
+            var wardrobeOpenImage = CreateImage("WardrobeButton", canvasGo.transform, uiSprite, new Color(0.35f, 0.30f, 0.50f));
+            SetRect(wardrobeOpenImage.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 110f), new Vector2(260f, 110f));
+            var wardrobeOpenButton = wardrobeOpenImage.gameObject.AddComponent<Button>();
+            wardrobeOpenButton.targetGraphic = wardrobeOpenImage;
+            var wardrobeOpenLabel = CreateText("Label", wardrobeOpenImage.transform, "WARDROBE", 34f, TextAlignmentOptions.Center);
+            StretchFull(wardrobeOpenLabel.rectTransform);
+
+            var wardrobeModal = new GameObject("WardrobeModal", typeof(RectTransform));
+            wardrobeModal.transform.SetParent(canvasGo.transform, false);
+            StretchFull(wardrobeModal.GetComponent<RectTransform>());
+
+            var wardrobeDimmer = CreateImage("Dimmer", wardrobeModal.transform, uiSprite, new Color(0f, 0f, 0f, 0.75f));
+            StretchFull(wardrobeDimmer.rectTransform);
+            var wardrobeBackdropButton = wardrobeDimmer.gameObject.AddComponent<Button>();
+            wardrobeBackdropButton.transition = Selectable.Transition.None;
+            wardrobeBackdropButton.targetGraphic = wardrobeDimmer;
+
+            var wardrobeWindow = CreateImage("Window", wardrobeModal.transform, uiSprite, new Color(0.12f, 0.14f, 0.18f, 1f));
+            SetRect(wardrobeWindow.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(720f, 760f));
+
+            var wardrobeTitle = CreateText("Title", wardrobeWindow.transform, "WARDROBE", 48f, TextAlignmentOptions.Center);
+            SetRect(wardrobeTitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(500f, 80f));
+
+            var wardrobeCloseImage = CreateImage("CloseButton", wardrobeWindow.transform, uiSprite, new Color(0.55f, 0.20f, 0.20f));
+            SetRect(wardrobeCloseImage.rectTransform, new Vector2(1f, 1f), new Vector2(-60f, -60f), new Vector2(80f, 80f));
+            var wardrobeCloseButton = wardrobeCloseImage.gameObject.AddComponent<Button>();
+            wardrobeCloseButton.targetGraphic = wardrobeCloseImage;
+            var wardrobeCloseLabel = CreateText("Label", wardrobeCloseImage.transform, "X", 52f, TextAlignmentOptions.Center);
+            StretchFull(wardrobeCloseLabel.rectTransform);
+
+            var hairRow = CreateWardrobeRow(wardrobeWindow.transform, uiSprite, -190f);
+            var beardRow = CreateWardrobeRow(wardrobeWindow.transform, uiSprite, -330f);
+            var shortsRow = CreateWardrobeRow(wardrobeWindow.transform, uiSprite, -470f);
+
+            var wardrobePanel = wardrobeWindow.gameObject.AddComponent<WardrobePanel>();
+            AssignRef(wardrobePanel, "_hairLabel", hairRow.Label);
+            AssignRef(wardrobePanel, "_hairNext", hairRow.NextButton);
+            AssignRef(wardrobePanel, "_beardLabel", beardRow.Label);
+            AssignRef(wardrobePanel, "_beardNext", beardRow.NextButton);
+            AssignRef(wardrobePanel, "_shortsLabel", shortsRow.Label);
+            AssignRef(wardrobePanel, "_shortsNext", shortsRow.NextButton);
+
+            var wardrobeModalControllerGo = new GameObject("WardrobeModalController");
+            wardrobeModalControllerGo.transform.SetParent(root.transform, false);
+            var wardrobeModalToggle = wardrobeModalControllerGo.AddComponent<ModalToggle>();
+            AssignRef(wardrobeModalToggle, "_panel", wardrobeModal);
+            AssignRef(wardrobeModalToggle, "_openButton", wardrobeOpenButton);
+            AssignRef(wardrobeModalToggle, "_closeButton", wardrobeCloseButton);
+            AssignRef(wardrobeModalToggle, "_backdropButton", wardrobeBackdropButton);
+
             // --- Offline claim popup ---
             // Component lives on an always-active object; the panel it toggles is a child,
             // so hiding the panel never disables the component (which would kill OnEnable).
@@ -1077,6 +1135,28 @@ namespace IdleGymBro.EditorTools
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
+        }
+
+        private struct WardrobeRow
+        {
+            public TMP_Text Label;
+            public Button NextButton;
+        }
+
+        // One wardrobe row: a label (left) describing the equipped item + a NEXT button (right).
+        private static WardrobeRow CreateWardrobeRow(Transform window, Sprite uiSprite, float y)
+        {
+            var label = CreateText("RowLabel", window, string.Empty, 34f, TextAlignmentOptions.MidlineLeft);
+            SetRect(label.rectTransform, new Vector2(0.5f, 1f), new Vector2(-110f, y), new Vector2(380f, 100f));
+
+            var nextImage = CreateImage("NextButton", window, uiSprite, new Color(0.20f, 0.45f, 0.55f));
+            SetRect(nextImage.rectTransform, new Vector2(0.5f, 1f), new Vector2(190f, y), new Vector2(200f, 100f));
+            var nextButton = nextImage.gameObject.AddComponent<Button>();
+            nextButton.targetGraphic = nextImage;
+            var nextLabel = CreateText("Label", nextImage.transform, "NEXT ▶", 34f, TextAlignmentOptions.Center);
+            StretchFull(nextLabel.rectTransform);
+
+            return new WardrobeRow { Label = label, NextButton = nextButton };
         }
     }
 }

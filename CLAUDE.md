@@ -331,10 +331,12 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 - [x] #018 **Faza 7: Daily Reward (streak)** — `Meta/DailyRewardManager` (`ISaveable`; UTC dan; escalating = passive rate × 600s × streakDay, cycle 7; reset ako preskočiš dan) + `DailyRewardAvailableEvent` + `UI/DailyRewardPopup` (na startu). *(Solo — agenti na limitu.)*
 
 > **HUD kompletan po [`docs/ui-layout.md`](docs/ui-layout.md):** story(GL) · boosti+achievements(L) · settings+upgrades+reward(D) · gains/energy(gore) · daily popup na startu. Preostali slotovi (shop permanent boosts, timed event, offer) su Faza 5+/post-MVP.
-- [x] #019 **Prestige („New Bulk", §6)** — `Progression/PrestigeManager` (`ISaveable`: respect = factor×√TotalEarned, globalMultiplier = 1+respect×factor); `PrestigeEvent` resetuje run (Currency/Upgrade/Energy/Location handleri), multiplikator kroz `UpgradeManager.RecomputeAndPublish` (× location × prestige); `UI/PrestigePanel` + NEW BULK dugme (top-left) + 5. modal. ⚠️ *Compile-only verifikacija (agenti na limitu) — TREBA PLAYTEST.* Poznata mrlja: „TotalGainsEarned" achievement se resetuje uz TotalEarned na prestige (reps/upgrades ne) — balansirati kasnije.
+- [x] #019 **Prestige („New Bulk", §6)** — `Progression/PrestigeManager` (`ISaveable`: respect = factor×√TotalEarned, globalMultiplier = 1+respect×factor); `PrestigeEvent` resetuje run (Currency/Upgrade/Energy/Location handleri), multiplikator kroz `UpgradeManager.RecomputeAndPublish` (× location × prestige); `UI/PrestigePanel` + NEW BULK dugme (top-left) + 5. modal. ⚠️ *Compile-only verifikacija — TREBA PLAYTEST.* Mrlja: „TotalGainsEarned" achievement se resetuje uz TotalEarned na prestige (reps/upgrades ne).
+- [x] #020 **Wardrobe/kustomizacija** — `Character/WardrobeManager` (`ISaveable`: equipped po sloju; `CosmeticEquippedEvent` → `CharacterBuilder` menja sprite sloja; `CharacterBuilder` refaktorisan — kozmetika više nije u njemu). 8 `CosmeticData` asseta (hair 1–3, beard 1–2, shorts 1–3), 5 novih placeholder-a. `UI/WardrobePanel` (NEXT cycler po sloju) + WARDROBE dugme (dole centar) + 6. modal. ⚠️ *Compile-only — TREBA PLAYTEST.*
 
-> **Faza 7 (Meta) — funkcionalno kompletna:** achievements + periodic reward + daily streak. Prestige (Faza 6) dodat.
-> **Svi roadmap sistemi (Faze 0–7) implementirani sa placeholderima; realan LevelPlay/IAP je jedino što ostaje (na kraju).** Sledeće: **playtest + balans** (prioritet), pravi art, animacije.
+> **STANJE: cela igra izgrađena sa placeholderima (Faze 0–7 + prestige + wardrobe).** 6 modala, 12 sistema na `GameSystems`. Ostaje: realan LevelPlay/IAP (na kraju), pravi art/animacije (čeka assete), **playtest + balans** (prioritet).
+> ⚠️ **#019 (prestige) i #020 (wardrobe) su samo compile-verifikovani** (pod-agenti od #015 na account **spend-limitu** → Fable radi solo bez runtime testa) — playtestovati posebno pažljivo.
+> **Za novi čet:** čitaj ovu sekciju + „Smernice za nastavak" ispod + [`docs/dev-log.md`](docs/dev-log.md). Verifikacija: batchmode komanda ispod, očekuj `15 sprites generated` · `6 backgrounds` · `4 clips` · `_gameConfig wired on 12/12` · `Scene built and saved`.
 
 **MVP status: faze 0–4 funkcionalno kompletne sa placeholderima; monetizacioni TOKOVI mockovani (§10 poštovan — sve opt-in)** — sledeće: pravi art (čeka assete), balans tuning kroz playtest, animacije; realan LevelPlay/IAP na samom kraju.
 - [ ] Faza 3 nastavak: animacije (idle + rep po tieru), wardrobe/kustomizacija UI, pravi pixel art (čeka assete — [`docs/asset-checklist.md`](docs/asset-checklist.md))
@@ -364,7 +366,7 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 ```
 & "$env:USERPROFILE\Unity\Hub\Editor\6000.0.79f1\Editor\Unity.exe" -batchmode -quit -nographics -projectPath "F:\idle-gymbro" -executeMethod IdleGymBro.EditorTools.CoreLoopSceneBootstrap.BuildCoreLoopScene -logFile "$env:TEMP\igb.log"
 ```
-Log mora imati: 0× `error CS` · `10 sprites generated` · `4 clips generated` · `_gameConfig wired on 9/9` · `Scene built and saved`. Editor i batchmode ne mogu istovremeno; prvi run posle novih skripti ume samo da kompajlira → ponovi. Smoke test: `-executeMethod IdleGymBro.EditorTools.SaveSystemSmokeTest.RunSaveRoundTrip`.
+Log mora imati: 0× `error CS` · `15 sprites generated` · `6 backgrounds generated` · `4 clips generated` · `_gameConfig wired on 12/12` · `Scene built and saved`. Editor i batchmode ne mogu istovremeno; prvi run posle novih skripti ume samo da kompajlira → ponovi. Smoke test: `-executeMethod IdleGymBro.EditorTools.SaveSystemSmokeTest.RunSaveRoundTrip`.
 
 ### Radni model (arhitekta + pod-agenti)
 Arhitekta (Opus/Fable) piše „Nalog za Pod-Agenta" → jeftiniji model (Sonnet/Haiku) piše kod → arhitekta radi pregled (konvencije §16, leak-ovi, data-driven, event ordering) → **verifikacioni protokol iz §4** → commit + push (samo arhitekta). Pod-agent ne commit-uje. Korisniku se piše na srpskom; sav in-game tekst na engleskom (§11).
