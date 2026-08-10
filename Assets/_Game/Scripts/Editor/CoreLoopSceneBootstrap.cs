@@ -319,6 +319,7 @@ namespace IdleGymBro.EditorTools
             var openButton = openBtnImage.gameObject.AddComponent<Button>();
             openButton.targetGraphic = openBtnImage;
             var openLabel = CreateText("Label", openBtnImage.transform, "UPGRADES", 36f, TextAlignmentOptions.Center);
+            AddIconToButton(openBtnImage, openLabel, "upgrades");
             SetRect(openLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(220f, 130f));
 
             // --- Booster buttons: left edge, stacked (docs/ui-layout.md "Boost: 2x tap" / "2x passive") ---
@@ -326,25 +327,29 @@ namespace IdleGymBro.EditorTools
             SetRect(boosterBtnImage.rectTransform, new Vector2(0f, 0.5f), new Vector2(130f, 80f), new Vector2(220f, 130f));
             var boosterButtonComponent = boosterBtnImage.gameObject.AddComponent<Button>();
             boosterButtonComponent.targetGraphic = boosterBtnImage;
-            var boosterLabel = CreateText("Label", boosterBtnImage.transform, string.Empty, 30f, TextAlignmentOptions.Center);
-            StretchFull(boosterLabel.rectTransform);
+            var boosterIcon = CreateBoosterIcon(boosterBtnImage.transform);
+            var boosterLabel = CreateText("Label", boosterBtnImage.transform, string.Empty, 28f, TextAlignmentOptions.Center);
+            SetRect(boosterLabel.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(210f, 56f));
 
             var boosterButton = boosterBtnImage.gameObject.AddComponent<BoosterButton>();
             AssignRef(boosterButton, "_booster", boosters[0]);
             AssignRef(boosterButton, "_button", boosterButtonComponent);
             AssignRef(boosterButton, "_label", boosterLabel);
+            AssignRef(boosterButton, "_icon", boosterIcon);
 
             var proteinBtnImage = CreateImage("BoosterButton_protein_shake", canvasGo.transform, uiSprite, new Color(0.35f, 0.50f, 0.20f));
             SetRect(proteinBtnImage.rectTransform, new Vector2(0f, 0.5f), new Vector2(130f, -80f), new Vector2(220f, 130f));
             var proteinButtonComponent = proteinBtnImage.gameObject.AddComponent<Button>();
             proteinButtonComponent.targetGraphic = proteinBtnImage;
-            var proteinLabel = CreateText("Label", proteinBtnImage.transform, string.Empty, 30f, TextAlignmentOptions.Center);
-            StretchFull(proteinLabel.rectTransform);
+            var proteinIcon = CreateBoosterIcon(proteinBtnImage.transform);
+            var proteinLabel = CreateText("Label", proteinBtnImage.transform, string.Empty, 28f, TextAlignmentOptions.Center);
+            SetRect(proteinLabel.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(210f, 56f));
 
             var proteinButton = proteinBtnImage.gameObject.AddComponent<BoosterButton>();
             AssignRef(proteinButton, "_booster", boosters[1]);
             AssignRef(proteinButton, "_button", proteinButtonComponent);
             AssignRef(proteinButton, "_label", proteinLabel);
+            AssignRef(proteinButton, "_icon", proteinIcon);
 
             // Modal root (starts hidden via ModalToggle). Dimmer fills the screen and, being a
             // raycast target, both blocks clicks to the game and makes TapController skip taps.
@@ -426,13 +431,20 @@ namespace IdleGymBro.EditorTools
                 var button = btnGo.AddComponent<Button>();
                 button.targetGraphic = btnImage;
 
-                var buttonLabel = CreateText("Label", btnGo.transform, string.Empty, 34f, TextAlignmentOptions.Center);
-                StretchFull(buttonLabel.rectTransform);
+                // Icon on the left, text in the remaining space — the row reads at a glance
+                // instead of being one more block of prose.
+                var rowIcon = CreateImage("Icon", btnGo.transform, null, new Color(1f, 1f, 1f, 0.92f));
+                SetRect(rowIcon.rectTransform, new Vector2(0f, 0.5f), new Vector2(80f, 0f), new Vector2(96f, 96f));
+                rowIcon.preserveAspect = true;
+
+                var buttonLabel = CreateText("Label", btnGo.transform, string.Empty, 34f, TextAlignmentOptions.Left);
+                SetRect(buttonLabel.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(50f, 0f), new Vector2(500f, 120f));
 
                 var upgradeButton = btnGo.AddComponent<UpgradeButton>();
                 AssignRef(upgradeButton, "_upgrade", upgrades[i]);
                 AssignRef(upgradeButton, "_button", button);
                 AssignRef(upgradeButton, "_label", buttonLabel);
+                AssignRef(upgradeButton, "_icon", rowIcon);
             }
 
             var modalControllerGo = new GameObject("UpgradesModalController");
@@ -450,6 +462,7 @@ namespace IdleGymBro.EditorTools
             var settingsOpenButton = settingsOpenImage.gameObject.AddComponent<Button>();
             settingsOpenButton.targetGraphic = settingsOpenImage;
             var settingsOpenLabel = CreateText("Label", settingsOpenImage.transform, "SETTINGS", 34f, TextAlignmentOptions.Center);
+            AddIconToButton(settingsOpenImage, settingsOpenLabel, "settings");
             StretchFull(settingsOpenLabel.rectTransform);
 
             // --- Periodic reward button (bottom-right per docs/ui-layout.md) ---
@@ -574,6 +587,7 @@ namespace IdleGymBro.EditorTools
             var goalsOpenButton = goalsOpenImage.gameObject.AddComponent<Button>();
             goalsOpenButton.targetGraphic = goalsOpenImage;
             var goalsOpenLabel = CreateText("Label", goalsOpenImage.transform, "GOALS", 30f, TextAlignmentOptions.Center);
+            AddIconToButton(goalsOpenImage, goalsOpenLabel, "achievements", 44f);
             StretchFull(goalsOpenLabel.rectTransform);
             var achievementsButton = goalsOpenImage.gameObject.AddComponent<AchievementsButton>();
             AssignRef(achievementsButton, "_label", goalsOpenLabel);
@@ -632,6 +646,7 @@ namespace IdleGymBro.EditorTools
             var prestigeOpenButton = prestigeOpenImage.gameObject.AddComponent<Button>();
             prestigeOpenButton.targetGraphic = prestigeOpenImage;
             var prestigeOpenLabel = CreateText("Label", prestigeOpenImage.transform, "NEW BULK", 30f, TextAlignmentOptions.Center);
+            AddIconToButton(prestigeOpenImage, prestigeOpenLabel, "prestige", 44f);
             StretchFull(prestigeOpenLabel.rectTransform);
 
             var prestigeModal = new GameObject("PrestigeModal", typeof(RectTransform));
@@ -686,6 +701,7 @@ namespace IdleGymBro.EditorTools
             var wardrobeOpenButton = wardrobeOpenImage.gameObject.AddComponent<Button>();
             wardrobeOpenButton.targetGraphic = wardrobeOpenImage;
             var wardrobeOpenLabel = CreateText("Label", wardrobeOpenImage.transform, "WARDROBE", 34f, TextAlignmentOptions.Center);
+            AddIconToButton(wardrobeOpenImage, wardrobeOpenLabel, "wardrobe");
             StretchFull(wardrobeOpenLabel.rectTransform);
 
             var wardrobeModal = new GameObject("WardrobeModal", typeof(RectTransform));
@@ -893,12 +909,58 @@ namespace IdleGymBro.EditorTools
             so.FindProperty("_effectPerLevel").doubleValue = effectPerLevel;
             so.FindProperty("_baseCost").doubleValue = baseCost;
             so.FindProperty("_growthRate").floatValue = growthRate;
+            so.FindProperty("_icon").objectReferenceValue = LoadIcon(id);
             so.ApplyModifiedProperties();
 
             AssetDatabase.SaveAssets();
             // Reload the canonical, imported instance so it serializes as an asset reference.
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
             return AssetDatabase.LoadAssetAtPath<UpgradeData>(path);
+        }
+
+        // Booster face: icon on top, countdown/label underneath.
+        private static Image CreateBoosterIcon(Transform parent)
+        {
+            var icon = CreateImage("Icon", parent, null, new Color(1f, 1f, 1f, 0.92f));
+            SetRect(icon.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -42f), new Vector2(62f, 62f));
+            icon.preserveAspect = true;
+            return icon;
+        }
+
+        // Puts an icon above a HUD button's label and pushes the label into the lower half, so the
+        // button reads as a glyph with a caption rather than a block of text.
+        private static void AddIconToButton(Image buttonImage, TMP_Text label, string iconId, float iconSize = 52f)
+        {
+            Sprite sprite = LoadIcon(iconId);
+
+            if (sprite == null)
+            {
+                Debug.LogWarning($"[CoreLoopSceneBootstrap] Missing icon 'icon_{iconId}.png' — button keeps its text-only look.");
+                return;
+            }
+
+            var icon = CreateImage("Icon", buttonImage.transform, sprite, new Color(1f, 1f, 1f, 0.92f));
+            SetRect(icon.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -(iconSize * 0.5f + 12f)), new Vector2(iconSize, iconSize));
+            icon.preserveAspect = true;
+            icon.raycastTarget = false; // the button underneath must still receive the click
+
+            if (label != null)
+            {
+                float height = buttonImage.rectTransform.sizeDelta.y;
+                float width = buttonImage.rectTransform.sizeDelta.x;
+                SetRect(label.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, (height - iconSize - 24f) * 0.5f),
+                    new Vector2(width - 12f, height - iconSize - 24f));
+            }
+        }
+
+        private const string IconFolder = "Assets/_Game/Art/UI/Icons";
+
+        // Icons are matched to data by id (upgrade "chest" -> icon_chest.png), so adding an
+        // upgrade or booster only means dropping in a matching png — no wiring, no code.
+        // Missing icons are fine: the UI just hides the image.
+        private static Sprite LoadIcon(string id)
+        {
+            return AssetDatabase.LoadAssetAtPath<Sprite>($"{IconFolder}/icon_{id}.png");
         }
 
         private const string BoostersFolder = "Assets/_Game/Data/Boosters";
@@ -927,6 +989,7 @@ namespace IdleGymBro.EditorTools
             so.FindProperty("_durationSeconds").floatValue = durationSeconds;
             so.FindProperty("_cooldownSeconds").floatValue = cooldownSeconds;
             so.FindProperty("_requiresAd").boolValue = requiresAd;
+            so.FindProperty("_icon").objectReferenceValue = LoadIcon(id);
             so.ApplyModifiedProperties();
 
             AssetDatabase.SaveAssets();

@@ -20,11 +20,21 @@ namespace IdleGymBro.UI
         [SerializeField]
         private TMP_Text _label;
 
+        [SerializeField]
+        private Image _icon;
+
         private BoosterManager _manager;
         private AdManager _adManager;
 
         private void Awake()
         {
+            // The icon comes from the data asset, so a new booster needs no UI work.
+            if (_icon != null && _booster != null)
+            {
+                _icon.sprite = _booster.Icon;
+                _icon.enabled = _booster.Icon != null;
+            }
+
             // Fallback label set in Awake, NOT Start: BoosterManager.Start() publishes the
             // initial ready-state event (with the "Nx" suffix) before this object's Start
             // would run, and that richer label must not be stomped afterwards.

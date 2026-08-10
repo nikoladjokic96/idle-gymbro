@@ -35,8 +35,13 @@ namespace IdleGymBro.Data
         [SerializeField]
         private bool _requiresAd = false;
 
+        // White silhouette icon; the UI tints it, so one sprite covers every colour variant.
+        [SerializeField]
+        private Sprite _icon;
+
         public string Id => _id;
         public string DisplayName => _displayName;
+        public Sprite Icon => _icon;
         public BoosterTarget Target => _target;
         public float Multiplier => _multiplier;
         public float DurationSeconds => _durationSeconds;

@@ -19,12 +19,23 @@ namespace IdleGymBro.UI
         [SerializeField]
         private TMP_Text _label;
 
+        [SerializeField]
+        private Image _icon;
+
         private UpgradeManager _manager;
         private double _currentGains;
 
         private void Start()
         {
             _manager = FindAnyObjectByType<UpgradeManager>();
+
+            // The icon comes from the data asset, so adding an upgrade never means touching the UI.
+            if (_icon != null && _upgrade != null)
+            {
+                _icon.sprite = _upgrade.Icon;
+                _icon.enabled = _upgrade.Icon != null;
+            }
+
             Refresh();
         }
 

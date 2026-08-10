@@ -26,7 +26,12 @@ namespace IdleGymBro.Data
         [SerializeField]
         private int _maxLevel = 0; // 0 = unlimited
 
+        // White silhouette icon; the UI tints it, so one sprite covers every colour variant.
+        [SerializeField]
+        private Sprite _icon;
+
         public string Id => _id;
+        public Sprite Icon => _icon;
         public string DisplayName => _displayName;
         public StatType StatType => _statType;
         public double EffectPerLevel => _effectPerLevel;

@@ -19,3 +19,4 @@ MonoBehaviour:
   _baseCost: 900
   _growthRate: 1.125
   _maxLevel: 0
+  _icon: {fileID: 1564729023501462144, guid: d1326cb2769d8684d821e3ae0b00a45a, type: 3}
