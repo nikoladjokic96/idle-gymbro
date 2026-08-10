@@ -94,24 +94,20 @@ namespace IdleGymBro.Data
         private float _idleBreathCyclesPerSecond = 0.28f;
 
         [SerializeField]
-        [Min(0f)]
-        private float _idleTrainingRateMultiplier = 2.6f; // breathing speeds up while repping
-
-        [SerializeField]
         [Min(0.05f)]
-        private float _idleTrainingWindowSeconds = 1.2f; // "still training" grace after a rep
+        private float _idleTrainingWindowSeconds = 1.2f; // "still training" grace after releasing
 
         [SerializeField]
         [Min(0f)]
         private float _idleTiredRateMultiplier = 0.55f; // out of energy -> slower breathing
 
+        // Curls per second while the player holds the screen. Deliberately decoupled from
+        // RepIntervalSeconds (4 reps/s) — one curl per rep would be an unreadable twitch.
         [SerializeField]
-        [Min(1f)]
-        private float _repPunchScale = 1.05f; // hit-feedback on the player's OWN reps only
+        [Min(0.05f)]
+        private float _workoutCyclesPerSecond = 1.1f;
 
-        [SerializeField]
-        [Min(0.01f)]
-        private float _repPunchDuration = 0.12f;
+        public float WorkoutCyclesPerSecond => _workoutCyclesPerSecond;
 
         [SerializeField]
         [Min(0.02f)]
@@ -130,11 +126,8 @@ namespace IdleGymBro.Data
         public float BlinkIntervalMaxSeconds => _blinkIntervalMaxSeconds;
 
         public float IdleBreathCyclesPerSecond => _idleBreathCyclesPerSecond;
-        public float IdleTrainingRateMultiplier => _idleTrainingRateMultiplier;
         public float IdleTrainingWindowSeconds => _idleTrainingWindowSeconds;
         public float IdleTiredRateMultiplier => _idleTiredRateMultiplier;
-        public float RepPunchScale => _repPunchScale;
-        public float RepPunchDuration => _repPunchDuration;
 
         [Header("Prestige")]
         [SerializeField]

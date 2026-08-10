@@ -997,11 +997,11 @@ namespace IdleGymBro.EditorTools
             return AssetDatabase.LoadAssetAtPath<AchievementData>(path);
         }
 
-        // Discovers "<body>_idle1.png", "_idle2.png", … next to the tier's static body sprite and
-        // fills MuscleTierData._idleFrames with them, stopping at the first gap.
-        private static void AssignIdleFrames(SerializedObject tierSo, string bodySpritePath)
+        // Discovers "<body>_<suffix>1.png", "_<suffix>2.png", … next to the tier's static body
+        // sprite and fills the given frame array with them, stopping at the first gap.
+        private static void AssignFrames(SerializedObject tierSo, string propertyName, string bodySpritePath, string suffix)
         {
-            SerializedProperty frames = tierSo.FindProperty("_idleFrames");
+            SerializedProperty frames = tierSo.FindProperty(propertyName);
 
             if (frames == null || string.IsNullOrEmpty(bodySpritePath))
             {
@@ -1013,7 +1013,7 @@ namespace IdleGymBro.EditorTools
 
             for (int i = 1; ; i++)
             {
-                var sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{withoutExtension}_idle{i}.png");
+                var sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{withoutExtension}_{suffix}{i}.png");
 
                 if (sprite == null)
                 {
@@ -1058,9 +1058,10 @@ namespace IdleGymBro.EditorTools
                 ? null
                 : AssetDatabase.LoadAssetAtPath<Sprite>(headSpritePath);
 
-            // Idle breathing clip: body_tierN_idle1..N alongside the static pose. Missing files are
-            // simply skipped, so a tier with no clip authored holds its static sprite.
-            AssignIdleFrames(so, bodySpritePath);
+            // Clips: body_tierN_idle1..N (breathing) and _work1..N (curls), alongside the static
+            // pose. Missing files are simply skipped, so a tier with no clip holds its static sprite.
+            AssignFrames(so, "_idleFrames", bodySpritePath, "idle");
+            AssignFrames(so, "_workoutFrames", bodySpritePath, "work");
             so.ApplyModifiedProperties();
 
             AssetDatabase.SaveAssets();

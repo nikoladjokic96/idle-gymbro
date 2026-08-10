@@ -27,11 +27,18 @@ namespace IdleGymBro.Data
         [SerializeField]
         private Sprite[] _idleFrames;
 
+        // Workout clip, played while the player holds the screen. A bicep curl: ONLY the arms move,
+        // so — exactly like the breathing clip — the head, hips and legs stay pixel-identical and
+        // the static hair/beard/shorts layers keep lining up on every frame.
+        [SerializeField]
+        private Sprite[] _workoutFrames;
+
         public int Tier => _tier;
         public string DisplayName => _displayName;
         public double TotalEarnedThreshold => _totalEarnedThreshold;
         public Sprite BodySprite => _bodySprite;
         public Sprite HeadSprite => _headSprite;
         public Sprite[] IdleFrames => _idleFrames;
+        public Sprite[] WorkoutFrames => _workoutFrames;
     }
 }

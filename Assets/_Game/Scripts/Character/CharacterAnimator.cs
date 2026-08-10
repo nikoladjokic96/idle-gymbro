@@ -5,17 +5,20 @@ using IdleGymBro.Gameplay;
 
 namespace IdleGymBro.Character
 {
-    // Plays the character's idle clip as real sprite frames.
+    // Plays the character's clips as real sprite frames:
+    //   * idle    — breathing, when the player is not holding the screen
+    //   * workout — bicep curls, while the player holds it
     //
     // An earlier version faked breathing by scaling the root transform; it read as the character
-    // inflating and deflating, not breathing, because a uniform scale moves the head and legs too.
-    // Real frames only redraw the torso, so the motion is anatomically correct.
+    // inflating and deflating, because a uniform scale moves the head and legs too. It also punched
+    // the scale on every rep, which at 4 reps/second just twitched. Both are gone: what the player
+    // sees now is drawn art, not a transform trick.
     //
-    // Playback is PING-PONG (0,1,2,1,…): the authored frames cover the inhale, and replaying them
-    // backwards gives the exhale for free — half the art for a full breath cycle.
+    // Playback is PING-PONG (0,1,2,1,…): the authored frames cover half the motion (the inhale, the
+    // way up), and replaying them backwards gives the other half free — half the art per cycle.
     //
-    // The clip lives on MuscleTierData, so each muscle tier breathes with its own silhouette, and
-    // CharacterBuilder swaps the clip when the tier changes.
+    // Clips live on MuscleTierData, so every muscle tier breathes and curls with its own silhouette,
+    // and CharacterBuilder swaps both clips when the tier changes.
     [DefaultExecutionOrder(50)]
     public class CharacterAnimator : MonoBehaviour
     {
@@ -25,19 +28,13 @@ namespace IdleGymBro.Character
         [SerializeField]
         private CharacterBuilder _characterBuilder;
 
-        private Vector3 _baseScale;
         private float _phase;
-        private float _punch;              // 1 -> 0 after each player rep
         private float _timeSinceRep = 999f;
         private float _blinkTimer;
         private float _nextBlinkAt = 3f;
+        private bool _wasWorking;
         private bool _tired;
         private bool _missingConfigLogged;
-
-        private void Awake()
-        {
-            _baseScale = transform.localScale;
-        }
 
         private void OnEnable()
         {
@@ -49,9 +46,6 @@ namespace IdleGymBro.Character
         {
             EventBus.Unsubscribe<RepPerformedEvent>(HandleRepPerformed);
             EventBus.Unsubscribe<EnergyChangedEvent>(HandleEnergyChanged);
-
-            // Never leave a punch baked into the transform.
-            transform.localScale = _baseScale;
         }
 
         private void Start()
@@ -64,9 +58,10 @@ namespace IdleGymBro.Character
             ScheduleNextBlink();
         }
 
+        // Each rep only refreshes the "is training" window; the reps themselves are far too fast
+        // (RepIntervalSeconds) to drive one curl each, so the workout clip runs at its own tempo.
         private void HandleRepPerformed(RepPerformedEvent e)
         {
-            _punch = 1f;
             _timeSinceRep = 0f;
         }
 
@@ -94,27 +89,42 @@ namespace IdleGymBro.Character
 
             AdvanceIdleClip(dt);
             UpdateBlink(dt);
-            ApplyRepPunch(dt);
         }
 
         private void AdvanceIdleClip(float dt)
         {
-            Sprite[] frames = _characterBuilder != null ? _characterBuilder.CurrentIdleFrames : null;
             SpriteRenderer renderer = _characterBuilder != null ? _characterBuilder.BodyRenderer : null;
             SpriteRenderer blend = _characterBuilder != null ? _characterBuilder.BodyBlendRenderer : null;
+
+            // Holding the screen puts him through curls; letting go drops back to breathing.
+            bool training = _timeSinceRep < _gameConfig.IdleTrainingWindowSeconds;
+
+            Sprite[] workout = _characterBuilder != null ? _characterBuilder.CurrentWorkoutFrames : null;
+            Sprite[] idle = _characterBuilder != null ? _characterBuilder.CurrentIdleFrames : null;
+
+            bool working = training && workout != null && workout.Length >= 2;
+            Sprite[] frames = working ? workout : idle;
 
             if (frames == null || frames.Length < 2 || renderer == null)
             {
                 return; // tier without an authored clip simply holds its static pose
             }
 
-            bool training = _timeSinceRep < _gameConfig.IdleTrainingWindowSeconds;
+            // Restart the cycle when switching clips so a curl always begins from arms-down
+            // instead of snapping in halfway through the motion.
+            if (working != _wasWorking)
+            {
+                _wasWorking = working;
+                _phase = 0f;
+            }
 
-            float rate = _tired
-                ? _gameConfig.IdleTiredRateMultiplier
-                : training ? _gameConfig.IdleTrainingRateMultiplier : 1f;
+            float rate = working
+                ? _gameConfig.WorkoutCyclesPerSecond
+                : _tired
+                    ? _gameConfig.IdleBreathCyclesPerSecond * _gameConfig.IdleTiredRateMultiplier
+                    : _gameConfig.IdleBreathCyclesPerSecond;
 
-            _phase += dt * _gameConfig.IdleBreathCyclesPerSecond * rate;
+            _phase += dt * rate;
             _phase -= Mathf.Floor(_phase); // keep in 0..1 without losing precision over a session
 
             // Ping-pong: N frames produce 2N-2 steps (3 frames -> 0,1,2,1).
@@ -185,28 +195,6 @@ namespace IdleGymBro.Character
             _nextBlinkAt = _gameConfig != null
                 ? Random.Range(_gameConfig.BlinkIntervalMinSeconds, _gameConfig.BlinkIntervalMaxSeconds)
                 : 4f;
-        }
-
-        // Kept as a deliberate hit-feedback on the player's own reps — not idle motion.
-        private void ApplyRepPunch(float dt)
-        {
-            if (_punch <= 0f)
-            {
-                if (transform.localScale != _baseScale)
-                {
-                    transform.localScale = _baseScale;
-                }
-
-                return;
-            }
-
-            _punch = Mathf.Max(0f, _punch - dt / Mathf.Max(0.0001f, _gameConfig.RepPunchDuration));
-
-            float curve = _punch * _punch; // ease-out, snappier than linear
-            float stretch = 1f + (_gameConfig.RepPunchScale - 1f) * curve;
-            float squash = 1f - (stretch - 1f) * 0.5f;
-
-            transform.localScale = new Vector3(_baseScale.x * squash, _baseScale.y * stretch, _baseScale.z);
         }
 
         private bool ValidateConfig()

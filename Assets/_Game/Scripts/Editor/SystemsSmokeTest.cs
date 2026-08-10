@@ -443,13 +443,15 @@ namespace IdleGymBro.EditorTools
                 Check(tier.IdleFrames != null && tier.IdleFrames.Length >= 1,
                     $"T12 {tier.name}: has idle frames",
                     $"got {(tier.IdleFrames == null ? 0 : tier.IdleFrames.Length)}");
+                Check(tier.WorkoutFrames != null && tier.WorkoutFrames.Length >= 1,
+                    $"T12 {tier.name}: has workout frames",
+                    $"got {(tier.WorkoutFrames == null ? 0 : tier.WorkoutFrames.Length)}");
 
-                if (tier.IdleFrames == null)
-                {
-                    continue;
-                }
+                var allFrames = new List<Sprite>();
+                if (tier.IdleFrames != null) { allFrames.AddRange(tier.IdleFrames); }
+                if (tier.WorkoutFrames != null) { allFrames.AddRange(tier.WorkoutFrames); }
 
-                foreach (Sprite frame in tier.IdleFrames)
+                foreach (Sprite frame in allFrames)
                 {
                     Check(frame != null, $"T12 {tier.name}: no null frame in the clip");
 

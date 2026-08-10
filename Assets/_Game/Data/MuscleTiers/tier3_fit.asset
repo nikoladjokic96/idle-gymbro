@@ -20,3 +20,6 @@ MonoBehaviour:
   _idleFrames:
   - {fileID: 21300000, guid: fd5bcd21eabd0fa4fbd075a3bf470c86, type: 3}
   - {fileID: 21300000, guid: a960bf12c29879a44909009408d721ef, type: 3}
+  _workoutFrames:
+  - {fileID: 21300000, guid: dbdf46dc7babea147b71626177cb792c, type: 3}
+  - {fileID: 21300000, guid: 6daaf2c6186e03a4aaacd785f3db8897, type: 3}

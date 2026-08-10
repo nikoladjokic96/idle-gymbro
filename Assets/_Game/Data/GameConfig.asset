@@ -27,11 +27,9 @@ MonoBehaviour:
   _dailyRewardSeconds: 600
   _dailyStreakCycle: 7
   _idleBreathCyclesPerSecond: 0.28
-  _idleTrainingRateMultiplier: 2.6
   _idleTrainingWindowSeconds: 1.2
   _idleTiredRateMultiplier: 0.55
-  _repPunchScale: 1.05
-  _repPunchDuration: 0.12
+  _workoutCyclesPerSecond: 1.1
   _blinkDurationSeconds: 0.11
   _blinkIntervalMinSeconds: 2.5
   _blinkIntervalMaxSeconds: 6.5

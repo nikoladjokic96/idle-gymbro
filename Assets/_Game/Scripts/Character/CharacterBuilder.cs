@@ -43,6 +43,8 @@ namespace IdleGymBro.Character
 
         public Sprite[] CurrentIdleFrames { get; private set; }
 
+        public Sprite[] CurrentWorkoutFrames { get; private set; }
+
         private void Awake()
         {
             foreach (CharacterLayer layer in Enum.GetValues(typeof(CharacterLayer)))
@@ -130,7 +132,8 @@ namespace IdleGymBro.Character
 
             // Frame 0 is the static pose; any authored frames follow it, so the clip always starts
             // from exactly what a non-animating tier would show.
-            CurrentIdleFrames = BuildIdleClip(tier);
+            CurrentIdleFrames = BuildClip(tier, tier.IdleFrames);
+            CurrentWorkoutFrames = BuildClip(tier, tier.WorkoutFrames);
 
             if (_renderers.TryGetValue(CharacterLayer.Body, out SpriteRenderer bodyRenderer))
             {
@@ -147,7 +150,10 @@ namespace IdleGymBro.Character
 
         public int CurrentTier => _currentTierIndex >= 0 && _tiers != null && _currentTierIndex < _tiers.Length && _tiers[_currentTierIndex] != null ? _tiers[_currentTierIndex].Tier : 0;
 
-        private static Sprite[] BuildIdleClip(MuscleTierData tier)
+        // Frame 0 is always the tier's static pose, so every clip starts from exactly what a
+        // non-animating tier shows — and both clips share that frame, which makes the transition
+        // between breathing and working out land on a common pose.
+        private static Sprite[] BuildClip(MuscleTierData tier, Sprite[] extraFrames)
         {
             if (tier == null || tier.BodySprite == null)
             {
@@ -156,9 +162,9 @@ namespace IdleGymBro.Character
 
             var clip = new List<Sprite> { tier.BodySprite };
 
-            if (tier.IdleFrames != null)
+            if (extraFrames != null)
             {
-                foreach (Sprite frame in tier.IdleFrames)
+                foreach (Sprite frame in extraFrames)
                 {
                     if (frame != null)
                     {
