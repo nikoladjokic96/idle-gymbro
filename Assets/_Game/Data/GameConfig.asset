@@ -26,6 +26,24 @@ MonoBehaviour:
   _periodicRewardSeconds: 300
   _dailyRewardSeconds: 600
   _dailyStreakCycle: 7
+  _idleBreathAmplitude: 0.022
+  _idleBreathCyclesPerSecond: 0.28
+  _idleBobAmplitude: 0.012
+  _idleTrainingRateMultiplier: 2.6
+  _idleTrainingWindowSeconds: 1.2
+  _idleTiredRateMultiplier: 0.55
+  _idleTiredAmplitudeMultiplier: 1.8
+  _repPunchScale: 1.05
+  _repPunchDuration: 0.12
+  _glanceLeanAngle: 3.5
+  _glanceLeanOffset: 0.06
+  _glanceHoldSeconds: 1.1
+  _glanceIntervalMinSeconds: 3
+  _glanceIntervalMaxSeconds: 7
+  _workoutRepIntervalSeconds: 4
+  _workoutRepDurationSeconds: 1.1
+  _workoutSquatDepth: 0.34
+  _workoutSquatSquash: 0.1
   _prestigeRespectFactor: 1
   _prestigeMultiplierPerRespect: 0.02
   _prestigeMinRespect: 10

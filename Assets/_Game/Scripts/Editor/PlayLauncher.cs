@@ -5,8 +5,10 @@ using UnityEngine;
 namespace IdleGymBro.EditorTools
 {
     // Convenience entry point for "just run the game": opens the built scene and enters Play mode.
-    // Meant to be passed to a GUI (non-batchmode) editor launch via -executeMethod, so the game is
-    // already playing by the time the editor window appears.
+    //
+    // Use it from the menu (IdleGymBro -> Play Game). Do NOT pass it to a GUI editor launch via
+    // -executeMethod: observed twice on Unity 6000.0.79f1 that such a launch shuts the editor down
+    // right after the method runs, while the same launch without -executeMethod stays open.
     public static class PlayLauncher
     {
         private const string ScenePath = "Assets/Scenes/SampleScene.unity";

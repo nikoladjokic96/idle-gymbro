@@ -190,22 +190,6 @@ namespace IdleGymBro.EditorTools
             AssignArray(wardrobeManager, "_cosmetics", cosmetics);
             AssignArray(achievementManager, "_achievements", achievements);
 
-            // Self-check: verify the asset reference actually serialized (asset refs are
-            // more timing-sensitive in batchmode than scene-object refs). BoosterManager,
-            // AudioManager, AdManager, and LocationManager have no _gameConfig field, so
-            // they're intentionally excluded from this check.
-            var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem, passiveIncome, offlineEarnings, upgradeManager, periodicRewardManager, dailyRewardManager, prestigeManager };
-            int wired = 0;
-            foreach (var s in systems)
-            {
-                var check = new SerializedObject(s).FindProperty("_gameConfig");
-                if (check != null && check.objectReferenceValue != null)
-                {
-                    wired++;
-                }
-            }
-            Debug.Log($"[CoreLoopSceneBootstrap] _gameConfig wired on {wired}/{systems.Length} systems.");
-
             // --- Canvas ---
             var canvasGo = new GameObject("HUDCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             canvasGo.transform.SetParent(root.transform, false);
@@ -249,8 +233,30 @@ namespace IdleGymBro.EditorTools
             characterGo.transform.position = new Vector3(0f, -2.4f, 0f);
             characterGo.transform.localScale = new Vector3(3f, 3f, 1f);
             var builder = characterGo.AddComponent<CharacterBuilder>();
-            characterGo.AddComponent<PlaceholderCharacter>();
+
+            // Replaces PlaceholderCharacter: idle breathing + the rep punch now live in one
+            // component, because both drive the root transform and two writers fight each other.
+            var characterAnimator = characterGo.AddComponent<CharacterAnimator>();
+            AssignRef(characterAnimator, "_gameConfig", config);
             AssignArray(builder, "_tiers", tiers);
+
+            // Self-check: verify the asset reference actually serialized (asset refs are
+            // more timing-sensitive in batchmode than scene-object refs). BoosterManager,
+            // AudioManager, AdManager, LocationManager, AchievementManager and WardrobeManager
+            // have no _gameConfig field, so they're intentionally excluded from this check.
+            // Runs here rather than beside the system wiring because CharacterAnimator, which also
+            // takes the config, only exists once the character has been built.
+            var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem, passiveIncome, offlineEarnings, upgradeManager, periodicRewardManager, dailyRewardManager, prestigeManager, characterAnimator };
+            int wired = 0;
+            foreach (var s in systems)
+            {
+                var check = new SerializedObject(s).FindProperty("_gameConfig");
+                if (check != null && check.objectReferenceValue != null)
+                {
+                    wired++;
+                }
+            }
+            Debug.Log($"[CoreLoopSceneBootstrap] _gameConfig wired on {wired}/{systems.Length} systems.");
 
             // --- Gains text ---
             var gainsText = CreateText("GainsText", canvasGo.transform, "0", 80f, TextAlignmentOptions.Center);

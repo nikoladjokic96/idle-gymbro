@@ -86,6 +86,101 @@ namespace IdleGymBro.Data
         public float DailyRewardSeconds => _dailyRewardSeconds;
         public int DailyStreakCycle => _dailyStreakCycle;
 
+        [Header("Character Animation")]
+        [SerializeField]
+        [Min(0f)]
+        private float _idleBreathAmplitude = 0.022f; // vertical scale swing, fraction of height
+
+        [SerializeField]
+        [Min(0f)]
+        private float _idleBreathCyclesPerSecond = 0.28f; // ~17 breaths/min at rest
+
+        [SerializeField]
+        [Min(0f)]
+        private float _idleBobAmplitude = 0.012f; // world units
+
+        [SerializeField]
+        [Min(0f)]
+        private float _idleTrainingRateMultiplier = 2.6f; // breathing speeds up while repping
+
+        [SerializeField]
+        [Min(0.05f)]
+        private float _idleTrainingWindowSeconds = 1.2f; // "still training" grace after a rep
+
+        [SerializeField]
+        [Min(0f)]
+        private float _idleTiredRateMultiplier = 0.55f; // out of energy: slower...
+
+        [SerializeField]
+        [Min(0f)]
+        private float _idleTiredAmplitudeMultiplier = 1.8f; // ...but deeper
+
+        [SerializeField]
+        [Min(1f)]
+        private float _repPunchScale = 1.05f;
+
+        [SerializeField]
+        [Min(0.01f)]
+        private float _repPunchDuration = 0.12f;
+
+        [Header("Character Animation — idle glance (looks around)")]
+        [SerializeField]
+        [Min(0f)]
+        private float _glanceLeanAngle = 3.5f; // degrees of Z tilt at full glance
+
+        [SerializeField]
+        [Min(0f)]
+        private float _glanceLeanOffset = 0.06f; // world units of sideways shift
+
+        [SerializeField]
+        [Min(0.1f)]
+        private float _glanceHoldSeconds = 1.1f;
+
+        [SerializeField]
+        [Min(0.1f)]
+        private float _glanceIntervalMinSeconds = 3f;
+
+        [SerializeField]
+        [Min(0.1f)]
+        private float _glanceIntervalMaxSeconds = 7f;
+
+        [Header("Character Animation — autonomous workout (squat)")]
+        [SerializeField]
+        [Min(0.1f)]
+        private float _workoutRepIntervalSeconds = 4f; // gap between self-driven reps when idle
+
+        [SerializeField]
+        [Min(0.1f)]
+        private float _workoutRepDurationSeconds = 1.1f;
+
+        [SerializeField]
+        [Min(0f)]
+        private float _workoutSquatDepth = 0.34f; // world units the body drops
+
+        [SerializeField]
+        [Min(0f)]
+        private float _workoutSquatSquash = 0.10f; // vertical squash at the bottom of the rep
+
+        public float GlanceLeanAngle => _glanceLeanAngle;
+        public float GlanceLeanOffset => _glanceLeanOffset;
+        public float GlanceHoldSeconds => _glanceHoldSeconds;
+        public float GlanceIntervalMinSeconds => _glanceIntervalMinSeconds;
+        public float GlanceIntervalMaxSeconds => _glanceIntervalMaxSeconds;
+        public float WorkoutRepIntervalSeconds => _workoutRepIntervalSeconds;
+        public float WorkoutRepDurationSeconds => _workoutRepDurationSeconds;
+        public float WorkoutSquatDepth => _workoutSquatDepth;
+        public float WorkoutSquatSquash => _workoutSquatSquash;
+
+        public float IdleBreathAmplitude => _idleBreathAmplitude;
+        public float IdleBreathCyclesPerSecond => _idleBreathCyclesPerSecond;
+        public float IdleBobAmplitude => _idleBobAmplitude;
+        public float IdleTrainingRateMultiplier => _idleTrainingRateMultiplier;
+        public float IdleTrainingWindowSeconds => _idleTrainingWindowSeconds;
+        public float IdleTiredRateMultiplier => _idleTiredRateMultiplier;
+        public float IdleTiredAmplitudeMultiplier => _idleTiredAmplitudeMultiplier;
+        public float RepPunchScale => _repPunchScale;
+        public float RepPunchDuration => _repPunchDuration;
+
         [Header("Prestige")]
         [SerializeField]
         [Min(0f)]
