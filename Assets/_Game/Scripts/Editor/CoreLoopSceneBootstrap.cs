@@ -211,7 +211,16 @@ namespace IdleGymBro.EditorTools
             var uiInputModule = eventSystemGo.AddComponent<InputSystemUIInputModule>();
             uiInputModule.AssignDefaultActions();
 
-            Sprite uiSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+            ConfigureUiKit();
+
+            // Every surface in the HUD comes from the Kenney kit (CC0): rounded, 9-sliced, with a
+            // border. Unity's built-in UISprite is a flat rounded box with no edge, which is why
+            // the old HUD read as coloured cardboard. Fills and dimmers keep the plain sprite —
+            // a bordered panel stretched as a progress fill would draw its border mid-bar.
+            Sprite panelSprite = UiKit("panel") ?? AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+            Sprite buttonSprite = UiKit("button") ?? panelSprite;
+            Sprite plainSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+            Sprite uiSprite = panelSprite;
 
             // --- Location background (world-space, behind the character) ---
             // sortingOrder -100 draws beneath the character stack (whose lowest layer is -10);
@@ -287,7 +296,7 @@ namespace IdleGymBro.EditorTools
             var energyBarBg = CreateImage("EnergyBarBG", canvasGo.transform, uiSprite, new Color(0.06f, 0.07f, 0.10f, 0.95f));
             SetRect(energyBarBg.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -330f), new Vector2(700f, 60f));
 
-            var energyBar = CreateImage("EnergyBar", energyBarBg.transform, uiSprite, PositiveColor);
+            var energyBar = CreateImage("EnergyBar", energyBarBg.transform, plainSprite, PositiveColor);
             energyBar.type = Image.Type.Filled;
             energyBar.fillMethod = Image.FillMethod.Horizontal;
             energyBar.fillAmount = 1f;
@@ -372,7 +381,7 @@ namespace IdleGymBro.EditorTools
             modal.transform.SetParent(canvasGo.transform, false);
             StretchFull(modal.GetComponent<RectTransform>());
 
-            var dimmer = CreateImage("Dimmer", modal.transform, uiSprite, new Color(0f, 0f, 0f, 0.75f));
+            var dimmer = CreateImage("Dimmer", modal.transform, plainSprite, new Color(0f, 0f, 0f, 0.75f));
             StretchFull(dimmer.rectTransform);
 
             var backdropButton = dimmer.gameObject.AddComponent<Button>();
@@ -390,6 +399,7 @@ namespace IdleGymBro.EditorTools
             var closeButton = closeBtnImage.gameObject.AddComponent<Button>();
             closeButton.targetGraphic = closeBtnImage;
             var closeLabel = CreateText("Label", closeBtnImage.transform, "X", 52f, TextAlignmentOptions.Center);
+            StyleModal(window, modalTitle, closeBtnImage, closeLabel);
             SetRect(closeLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(90f, 90f));
 
             // Scrollable upgrade list: 6 muscle-group upgrades no longer fit as fixed-position
@@ -497,7 +507,7 @@ namespace IdleGymBro.EditorTools
             settingsModal.transform.SetParent(canvasGo.transform, false);
             StretchFull(settingsModal.GetComponent<RectTransform>());
 
-            var settingsDimmer = CreateImage("Dimmer", settingsModal.transform, uiSprite, new Color(0f, 0f, 0f, 0.75f));
+            var settingsDimmer = CreateImage("Dimmer", settingsModal.transform, plainSprite, new Color(0f, 0f, 0f, 0.75f));
             StretchFull(settingsDimmer.rectTransform);
 
             var settingsBackdropButton = settingsDimmer.gameObject.AddComponent<Button>();
@@ -515,6 +525,7 @@ namespace IdleGymBro.EditorTools
             var settingsCloseButton = settingsCloseImage.gameObject.AddComponent<Button>();
             settingsCloseButton.targetGraphic = settingsCloseImage;
             var settingsCloseLabel = CreateText("Label", settingsCloseImage.transform, "X", 52f, TextAlignmentOptions.Center);
+            StyleModal(settingsWindow, settingsTitle, settingsCloseImage, settingsCloseLabel);
             StretchFull(settingsCloseLabel.rectTransform);
 
             var soundToggleImage = CreateImage("SoundToggle", settingsWindow.transform, uiSprite, new Color(0.18f, 0.30f, 0.45f));
@@ -554,7 +565,7 @@ namespace IdleGymBro.EditorTools
             locationsModal.transform.SetParent(canvasGo.transform, false);
             StretchFull(locationsModal.GetComponent<RectTransform>());
 
-            var locationsDimmer = CreateImage("Dimmer", locationsModal.transform, uiSprite, new Color(0f, 0f, 0f, 0.75f));
+            var locationsDimmer = CreateImage("Dimmer", locationsModal.transform, plainSprite, new Color(0f, 0f, 0f, 0.75f));
             StretchFull(locationsDimmer.rectTransform);
 
             var locationsBackdropButton = locationsDimmer.gameObject.AddComponent<Button>();
@@ -572,6 +583,7 @@ namespace IdleGymBro.EditorTools
             var locationsCloseButton = locationsCloseImage.gameObject.AddComponent<Button>();
             locationsCloseButton.targetGraphic = locationsCloseImage;
             var locationsCloseLabel = CreateText("Label", locationsCloseImage.transform, "X", 52f, TextAlignmentOptions.Center);
+            StyleModal(locationsWindow, locationsTitle, locationsCloseImage, locationsCloseLabel);
             StretchFull(locationsCloseLabel.rectTransform);
 
             var locationsRowsGo = new GameObject("Rows", typeof(RectTransform));
@@ -615,7 +627,7 @@ namespace IdleGymBro.EditorTools
             goalsModal.transform.SetParent(canvasGo.transform, false);
             StretchFull(goalsModal.GetComponent<RectTransform>());
 
-            var goalsDimmer = CreateImage("Dimmer", goalsModal.transform, uiSprite, new Color(0f, 0f, 0f, 0.75f));
+            var goalsDimmer = CreateImage("Dimmer", goalsModal.transform, plainSprite, new Color(0f, 0f, 0f, 0.75f));
             StretchFull(goalsDimmer.rectTransform);
             var goalsBackdropButton = goalsDimmer.gameObject.AddComponent<Button>();
             goalsBackdropButton.transition = Selectable.Transition.None;
@@ -632,6 +644,7 @@ namespace IdleGymBro.EditorTools
             var goalsCloseButton = goalsCloseImage.gameObject.AddComponent<Button>();
             goalsCloseButton.targetGraphic = goalsCloseImage;
             var goalsCloseLabel = CreateText("Label", goalsCloseImage.transform, "X", 52f, TextAlignmentOptions.Center);
+            StyleModal(goalsWindow, goalsTitle, goalsCloseImage, goalsCloseLabel);
             StretchFull(goalsCloseLabel.rectTransform);
 
             var goalsRowsGo = new GameObject("Rows", typeof(RectTransform));
@@ -672,7 +685,7 @@ namespace IdleGymBro.EditorTools
             prestigeModal.transform.SetParent(canvasGo.transform, false);
             StretchFull(prestigeModal.GetComponent<RectTransform>());
 
-            var prestigeDimmer = CreateImage("Dimmer", prestigeModal.transform, uiSprite, new Color(0f, 0f, 0f, 0.75f));
+            var prestigeDimmer = CreateImage("Dimmer", prestigeModal.transform, plainSprite, new Color(0f, 0f, 0f, 0.75f));
             StretchFull(prestigeDimmer.rectTransform);
             var prestigeBackdropButton = prestigeDimmer.gameObject.AddComponent<Button>();
             prestigeBackdropButton.transition = Selectable.Transition.None;
@@ -689,6 +702,7 @@ namespace IdleGymBro.EditorTools
             var prestigeCloseButton = prestigeCloseImage.gameObject.AddComponent<Button>();
             prestigeCloseButton.targetGraphic = prestigeCloseImage;
             var prestigeCloseLabel = CreateText("Label", prestigeCloseImage.transform, "X", 52f, TextAlignmentOptions.Center);
+            StyleModal(prestigeWindow, prestigeTitle, prestigeCloseImage, prestigeCloseLabel);
             StretchFull(prestigeCloseLabel.rectTransform);
 
             var prestigeInfo = CreateText("Info", prestigeWindow.transform, string.Empty, 34f, TextAlignmentOptions.Center);
@@ -733,7 +747,7 @@ namespace IdleGymBro.EditorTools
             // roughly -460..+403 at camera ortho size 5), and the dimmer is kept light so head,
             // hair and beard read clearly while cycling. Still a full-screen raycast target, so
             // backdrop-close and the TapController over-UI guard keep working.
-            var wardrobeDimmer = CreateImage("Dimmer", wardrobeModal.transform, uiSprite, new Color(0f, 0f, 0f, 0.35f));
+            var wardrobeDimmer = CreateImage("Dimmer", wardrobeModal.transform, plainSprite, new Color(0f, 0f, 0f, 0.35f));
             StretchFull(wardrobeDimmer.rectTransform);
             var wardrobeBackdropButton = wardrobeDimmer.gameObject.AddComponent<Button>();
             wardrobeBackdropButton.transition = Selectable.Transition.None;
@@ -750,6 +764,7 @@ namespace IdleGymBro.EditorTools
             var wardrobeCloseButton = wardrobeCloseImage.gameObject.AddComponent<Button>();
             wardrobeCloseButton.targetGraphic = wardrobeCloseImage;
             var wardrobeCloseLabel = CreateText("Label", wardrobeCloseImage.transform, "X", 52f, TextAlignmentOptions.Center);
+            StyleModal(wardrobeWindow, wardrobeTitle, wardrobeCloseImage, wardrobeCloseLabel);
             StretchFull(wardrobeCloseLabel.rectTransform);
 
             var hairRow = CreateWardrobeRow(wardrobeWindow.transform, uiSprite, -190f);
@@ -957,7 +972,7 @@ namespace IdleGymBro.EditorTools
         private static readonly Color DangerColor = new Color(0.80f, 0.33f, 0.29f, 0.96f);
         private static readonly Color IconTint = new Color(0.95f, 0.97f, 1f, 0.95f);
 
-        private static Sprite CircleSprite => AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+        private static Sprite CircleSprite => UiKit("button_round") ?? AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
 
         // Turns a HUD button into a round button whose ICON IS THE BUTTON: circular surface, big
         // centred glyph, no text. Text-in-a-rectangle is what made the old HUD look like a debug
@@ -1017,6 +1032,102 @@ namespace IdleGymBro.EditorTools
 
             label.fontSize = diameter * 0.16f;
             SetRect(label.rectTransform, new Vector2(0.5f, 0.24f), Vector2.zero, new Vector2(diameter * 0.92f, diameter * 0.34f));
+        }
+
+        // Gives a modal the same chrome everywhere: panelled window, a header strip behind the
+        // title so it reads as a title bar rather than floating text, and a round close button
+        // carrying the kit's cross glyph instead of a red box with the letter "X" in it.
+        private static void StyleModal(Image window, TMP_Text title, Image closeButton, TMP_Text closeLabel)
+        {
+            window.sprite = UiKit("panel") ?? window.sprite;
+            window.type = Image.Type.Sliced;
+            window.color = PanelColor;
+
+            float width = window.rectTransform.sizeDelta.x;
+
+            var header = CreateImage("Header", window.transform, UiKit("panel_flat"), new Color(0.16f, 0.19f, 0.26f, 0.98f));
+            header.type = Image.Type.Sliced;
+            SetRect(header.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -56f), new Vector2(width - 24f, 96f));
+            header.raycastTarget = false;
+            header.transform.SetAsFirstSibling(); // behind the title, which already exists
+
+            if (title != null)
+            {
+                title.transform.SetAsLastSibling();
+            }
+
+            if (closeButton == null)
+            {
+                return;
+            }
+
+            closeButton.sprite = CircleSprite;
+            closeButton.type = Image.Type.Simple;
+            closeButton.color = new Color(0.78f, 0.31f, 0.28f, 0.96f);
+            closeButton.rectTransform.sizeDelta = new Vector2(76f, 76f);
+
+            if (closeLabel != null)
+            {
+                closeLabel.gameObject.SetActive(false);
+            }
+
+            Sprite cross = UiKit("icon_cross");
+
+            if (cross != null)
+            {
+                var glyph = CreateImage("Glyph", closeButton.transform, cross, IconTint);
+                SetRect(glyph.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(34f, 34f));
+                glyph.preserveAspect = true;
+                glyph.raycastTarget = false;
+            }
+        }
+
+        // Primary action inside a modal (BUY / CLAIM / MOVE UP / NEXT): the kit's raised button.
+        private static void StyleActionButton(Image buttonImage, Color tint)
+        {
+            buttonImage.sprite = UiKit("button") ?? buttonImage.sprite;
+            buttonImage.type = Image.Type.Sliced;
+            buttonImage.color = tint;
+        }
+
+        private const string UiKitFolder = "Assets/_Game/Art/UI/Kit";
+
+        // 9-slice borders for the UI kit. Without them a 192x64 sprite stretched across a 720px
+        // modal smears its rounded corners and border into mush — the corners must stay fixed and
+        // only the middle may stretch. The depth-gradient button gets a taller BOTTOM border so
+        // its raised edge survives; that edge is what makes it read as a button and not a label.
+        private static void ConfigureUiKit()
+        {
+            SetSpriteBorder($"{UiKitFolder}/panel.png", new Vector4(16f, 16f, 16f, 16f));
+            SetSpriteBorder($"{UiKitFolder}/panel_flat.png", new Vector4(16f, 16f, 16f, 16f));
+            SetSpriteBorder($"{UiKitFolder}/button.png", new Vector4(16f, 20f, 16f, 12f));
+            SetSpriteBorder($"{UiKitFolder}/button_round.png", Vector4.zero);
+            SetSpriteBorder($"{UiKitFolder}/icon_cross.png", Vector4.zero);
+        }
+
+        private static void SetSpriteBorder(string path, Vector4 border)
+        {
+            var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+
+            if (importer == null)
+            {
+                Debug.LogWarning($"[CoreLoopSceneBootstrap] UI kit sprite missing: {path}");
+                return;
+            }
+
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.spriteBorder = border;
+            importer.filterMode = FilterMode.Bilinear;
+            importer.mipmapEnabled = false;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.alphaIsTransparency = true;
+            importer.SaveAndReimport();
+        }
+
+        private static Sprite UiKit(string name)
+        {
+            return AssetDatabase.LoadAssetAtPath<Sprite>($"{UiKitFolder}/{name}.png");
         }
 
         private const string IconFolder = "Assets/_Game/Art/UI/Icons";
