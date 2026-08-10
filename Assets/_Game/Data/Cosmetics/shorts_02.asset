@@ -15,6 +15,6 @@ MonoBehaviour:
   _id: shorts_02
   _displayName: Shorts 2
   _layer: 10
-  _sprite: {fileID: 5437545122616795298, guid: 015e8f7c6b1540c40be49caab7c4516c, type: 3}
+  _sprite: {fileID: 21300000, guid: 015e8f7c6b1540c40be49caab7c4516c, type: 3}
   _cost: 0
   _unlockedByDefault: 1

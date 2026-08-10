@@ -161,10 +161,16 @@ namespace IdleGymBro.EditorTools
             }
 
             importer.textureType = TextureImporterType.Sprite;
+
+            // Single, for the same reason as the character art: Multiple mode remembers sliced
+            // sub-sprite rects, so replacing this PNG with painted art of another size would crop
+            // a stale rectangle instead of showing the new image.
+            importer.spriteImportMode = SpriteImportMode.Single;
             importer.spritePixelsPerUnit = 128;
             importer.filterMode = FilterMode.Point;
             importer.mipmapEnabled = false;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.alphaIsTransparency = true;
 
             var settings = new TextureImporterSettings();
             importer.ReadTextureSettings(settings);

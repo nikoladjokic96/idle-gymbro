@@ -15,6 +15,6 @@ MonoBehaviour:
   _id: hair_02
   _displayName: Hair 2
   _layer: 70
-  _sprite: {fileID: 28175903555929491, guid: d954ed2165276ee43ae37c4c97693a25, type: 3}
+  _sprite: {fileID: 21300000, guid: d954ed2165276ee43ae37c4c97693a25, type: 3}
   _cost: 0
   _unlockedByDefault: 1

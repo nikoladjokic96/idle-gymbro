@@ -191,6 +191,12 @@ namespace IdleGymBro.EditorTools
 
             importer.textureType = TextureImporterType.Sprite;
 
+            // MUST be Single. In Multiple mode Unity keeps the previously sliced sub-sprite rects
+            // in the .meta, so swapping the PNG for art of a different size leaves the sprite
+            // cropping a stale rectangle of the new image — which for the painted art was an empty
+            // corner, i.e. an invisible character with everything else wired correctly.
+            importer.spriteImportMode = SpriteImportMode.Single;
+
             // PPU is DERIVED from the texture height so every character layer occupies the same
             // world height (CharacterWorldHeightUnits) no matter what resolution the art is drawn
             // at. The 128x192 placeholders and 848x1264 painted art therefore render identically —

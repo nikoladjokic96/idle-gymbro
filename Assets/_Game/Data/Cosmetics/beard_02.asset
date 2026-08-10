@@ -15,6 +15,6 @@ MonoBehaviour:
   _id: beard_02
   _displayName: Beard 2
   _layer: 60
-  _sprite: {fileID: 4229317295635820071, guid: 289ce490aabc0dc44a15e29e8cc364cf, type: 3}
+  _sprite: {fileID: 21300000, guid: 289ce490aabc0dc44a15e29e8cc364cf, type: 3}
   _cost: 0
   _unlockedByDefault: 1

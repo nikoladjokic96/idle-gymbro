@@ -16,4 +16,4 @@ MonoBehaviour:
   _displayName: Mr. Olympia
   _totalLevelsToComplete: 800
   _globalMultiplier: 75
-  _backgroundSprite: {fileID: 5389240616545761238, guid: e5c760d3adfc2ab43b88468a2f389371, type: 3}
+  _backgroundSprite: {fileID: 21300000, guid: e5c760d3adfc2ab43b88468a2f389371, type: 3}

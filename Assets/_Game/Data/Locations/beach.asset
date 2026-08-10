@@ -16,4 +16,4 @@ MonoBehaviour:
   _displayName: Venice Beach
   _totalLevelsToComplete: 500
   _globalMultiplier: 30
-  _backgroundSprite: {fileID: 8578558829373345863, guid: 634aecf05036f924d845cc3ec77d8325, type: 3}
+  _backgroundSprite: {fileID: 21300000, guid: 634aecf05036f924d845cc3ec77d8325, type: 3}

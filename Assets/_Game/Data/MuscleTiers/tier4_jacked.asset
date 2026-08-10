@@ -15,5 +15,5 @@ MonoBehaviour:
   _tier: 4
   _displayName: Jacked
   _totalEarnedThreshold: 500000
-  _bodySprite: {fileID: 3321139127371331072, guid: 5519f677329fe014b972920c52ee2198, type: 3}
+  _bodySprite: {fileID: 21300000, guid: 5519f677329fe014b972920c52ee2198, type: 3}
   _headSprite: {fileID: 0}
