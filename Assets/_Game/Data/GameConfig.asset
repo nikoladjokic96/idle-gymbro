@@ -32,6 +32,9 @@ MonoBehaviour:
   _idleTiredRateMultiplier: 0.55
   _repPunchScale: 1.05
   _repPunchDuration: 0.12
+  _blinkDurationSeconds: 0.11
+  _blinkIntervalMinSeconds: 2.5
+  _blinkIntervalMaxSeconds: 6.5
   _prestigeRespectFactor: 1
   _prestigeMultiplierPerRespect: 0.02
   _prestigeMinRespect: 10

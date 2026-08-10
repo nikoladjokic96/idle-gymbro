@@ -240,6 +240,7 @@ namespace IdleGymBro.EditorTools
             AssignRef(characterAnimator, "_gameConfig", config);
             AssignRef(characterAnimator, "_characterBuilder", builder);
             AssignArray(builder, "_tiers", tiers);
+            AssignRef(builder, "_blinkSprite", AssetDatabase.LoadAssetAtPath<Sprite>($"{CharacterArtFolder}/blink_01.png"));
 
             // Self-check: verify the asset reference actually serialized (asset refs are
             // more timing-sensitive in batchmode than scene-object refs). BoosterManager,

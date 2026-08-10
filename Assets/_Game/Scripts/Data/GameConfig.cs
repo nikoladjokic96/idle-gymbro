@@ -113,6 +113,22 @@ namespace IdleGymBro.Data
         [Min(0.01f)]
         private float _repPunchDuration = 0.12f;
 
+        [SerializeField]
+        [Min(0.02f)]
+        private float _blinkDurationSeconds = 0.11f; // how long the eyes stay shut
+
+        [SerializeField]
+        [Min(0.1f)]
+        private float _blinkIntervalMinSeconds = 2.5f;
+
+        [SerializeField]
+        [Min(0.1f)]
+        private float _blinkIntervalMaxSeconds = 6.5f;
+
+        public float BlinkDurationSeconds => _blinkDurationSeconds;
+        public float BlinkIntervalMinSeconds => _blinkIntervalMinSeconds;
+        public float BlinkIntervalMaxSeconds => _blinkIntervalMaxSeconds;
+
         public float IdleBreathCyclesPerSecond => _idleBreathCyclesPerSecond;
         public float IdleTrainingRateMultiplier => _idleTrainingRateMultiplier;
         public float IdleTrainingWindowSeconds => _idleTrainingWindowSeconds;

@@ -15,6 +15,11 @@ namespace IdleGymBro.Character
         [SerializeField]
         private MuscleTierData[] _tiers; // sorted by threshold ascending
 
+        // Closed-eyelids patch drawn over the face during a blink. One sprite serves every tier:
+        // the tier art keeps the head pixel-identical, so the eyes are always in the same place.
+        [SerializeField]
+        private Sprite _blinkSprite;
+
         private readonly Dictionary<CharacterLayer, SpriteRenderer> _renderers = new Dictionary<CharacterLayer, SpriteRenderer>();
 
         private int _currentTierIndex = -1;
@@ -24,6 +29,17 @@ namespace IdleGymBro.Character
         // can play frames without reaching into the layer stack itself. Frame 0 is always the
         // tier's static BodySprite, so a tier with no clip authored simply never animates.
         public SpriteRenderer BodyRenderer => _renderers.TryGetValue(CharacterLayer.Body, out SpriteRenderer r) ? r : null;
+
+        // Second body renderer sitting one sorting step above the first (still under Shorts at 10).
+        // The animator fades the NEXT frame in over the current one, so a 3-frame clip reads as
+        // continuous motion instead of three discrete pops.
+        public SpriteRenderer BodyBlendRenderer { get; private set; }
+
+        // The Head layer carries the blink patch: above the body, below beard and hair, and
+        // otherwise unused now that the tier art includes the head.
+        public SpriteRenderer BlinkRenderer => _renderers.TryGetValue(CharacterLayer.Head, out SpriteRenderer r) ? r : null;
+
+        public Sprite BlinkSprite => _blinkSprite;
 
         public Sprite[] CurrentIdleFrames { get; private set; }
 
@@ -39,6 +55,19 @@ namespace IdleGymBro.Character
 
                 _renderers[layer] = renderer;
             }
+
+            var blendGo = new GameObject("Layer_BodyBlend");
+            blendGo.transform.SetParent(transform, false);
+            BodyBlendRenderer = blendGo.AddComponent<SpriteRenderer>();
+            BodyBlendRenderer.sortingOrder = (int)CharacterLayer.Body + 1;
+            SetAlpha(BodyBlendRenderer, 0f);
+        }
+
+        private static void SetAlpha(SpriteRenderer renderer, float alpha)
+        {
+            Color c = renderer.color;
+            c.a = alpha;
+            renderer.color = c;
         }
 
         private void OnEnable()

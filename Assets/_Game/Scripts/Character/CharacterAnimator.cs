@@ -29,6 +29,8 @@ namespace IdleGymBro.Character
         private float _phase;
         private float _punch;              // 1 -> 0 after each player rep
         private float _timeSinceRep = 999f;
+        private float _blinkTimer;
+        private float _nextBlinkAt = 3f;
         private bool _tired;
         private bool _missingConfigLogged;
 
@@ -58,6 +60,8 @@ namespace IdleGymBro.Character
             {
                 _characterBuilder = GetComponent<CharacterBuilder>();
             }
+
+            ScheduleNextBlink();
         }
 
         private void HandleRepPerformed(RepPerformedEvent e)
@@ -89,6 +93,7 @@ namespace IdleGymBro.Character
             _timeSinceRep += dt;
 
             AdvanceIdleClip(dt);
+            UpdateBlink(dt);
             ApplyRepPunch(dt);
         }
 
@@ -96,6 +101,7 @@ namespace IdleGymBro.Character
         {
             Sprite[] frames = _characterBuilder != null ? _characterBuilder.CurrentIdleFrames : null;
             SpriteRenderer renderer = _characterBuilder != null ? _characterBuilder.BodyRenderer : null;
+            SpriteRenderer blend = _characterBuilder != null ? _characterBuilder.BodyBlendRenderer : null;
 
             if (frames == null || frames.Length < 2 || renderer == null)
             {
@@ -113,10 +119,72 @@ namespace IdleGymBro.Character
 
             // Ping-pong: N frames produce 2N-2 steps (3 frames -> 0,1,2,1).
             int steps = frames.Length * 2 - 2;
-            int step = Mathf.Clamp(Mathf.FloorToInt(_phase * steps), 0, steps - 1);
-            int index = step < frames.Length ? step : steps - step;
+            float position = _phase * steps;
+            int step = Mathf.Clamp(Mathf.FloorToInt(position), 0, steps - 1);
+            float blendAmount = position - step;
 
-            renderer.sprite = frames[index];
+            renderer.sprite = frames[PingPongIndex(step, frames.Length, steps)];
+
+            if (blend == null)
+            {
+                return;
+            }
+
+            // Cross-fade the next frame in on top. Holding the current frame fully opaque
+            // underneath keeps the silhouette solid — fading BOTH would make the body go
+            // translucent for half of every step.
+            blend.sprite = frames[PingPongIndex(step + 1, frames.Length, steps)];
+            SetAlpha(blend, Mathf.SmoothStep(0f, 1f, blendAmount));
+        }
+
+        private static int PingPongIndex(int step, int frameCount, int steps)
+        {
+            int s = step % steps;
+            return s < frameCount ? s : steps - s;
+        }
+
+        private static void SetAlpha(SpriteRenderer renderer, float alpha)
+        {
+            Color c = renderer.color;
+            c.a = alpha;
+            renderer.color = c;
+        }
+
+        // Occasional blink: the closed-eyelids patch is shown for a fraction of a second, with a
+        // randomised gap so it never reads as a metronome.
+        private void UpdateBlink(float dt)
+        {
+            SpriteRenderer blink = _characterBuilder != null ? _characterBuilder.BlinkRenderer : null;
+            Sprite sprite = _characterBuilder != null ? _characterBuilder.BlinkSprite : null;
+
+            if (blink == null || sprite == null)
+            {
+                return;
+            }
+
+            _blinkTimer += dt;
+
+            if (_blinkTimer >= _nextBlinkAt + _gameConfig.BlinkDurationSeconds)
+            {
+                _blinkTimer = 0f;
+                ScheduleNextBlink();
+            }
+
+            bool closed = _blinkTimer >= _nextBlinkAt;
+
+            if (closed && blink.sprite != sprite)
+            {
+                blink.sprite = sprite;
+            }
+
+            SetAlpha(blink, closed ? 1f : 0f);
+        }
+
+        private void ScheduleNextBlink()
+        {
+            _nextBlinkAt = _gameConfig != null
+                ? Random.Range(_gameConfig.BlinkIntervalMinSeconds, _gameConfig.BlinkIntervalMaxSeconds)
+                : 4f;
         }
 
         // Kept as a deliberate hit-feedback on the player's own reps — not idle motion.
