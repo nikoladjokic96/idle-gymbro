@@ -260,9 +260,22 @@ namespace IdleGymBro.EditorTools
             }
             Debug.Log($"[CoreLoopSceneBootstrap] _gameConfig wired on {wired}/{systems.Length} systems.");
 
+            // --- Top bar ---
+            // A surface behind the readouts. Without it the counter is bare text floating on the
+            // artwork: it competes with the background for contrast and stops being legible the
+            // moment a location's background is bright.
+            var topBar = CreateImage("TopBar", canvasGo.transform, uiSprite, PanelColor);
+            SetRect(topBar.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -215f), new Vector2(1020f, 320f));
+            topBar.raycastTarget = false;
+
+            var gainsIcon = CreateImage("GainsIcon", topBar.transform, LoadIcon("gains"), IconTint);
+            SetRect(gainsIcon.rectTransform, new Vector2(0.5f, 1f), new Vector2(-190f, -80f), new Vector2(72f, 72f));
+            gainsIcon.preserveAspect = true;
+            gainsIcon.raycastTarget = false;
+
             // --- Gains text ---
             var gainsText = CreateText("GainsText", canvasGo.transform, "0", 80f, TextAlignmentOptions.Center);
-            SetRect(gainsText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -140f), new Vector2(700f, 110f));
+            SetRect(gainsText.rectTransform, new Vector2(0.5f, 1f), new Vector2(40f, -140f), new Vector2(620f, 110f));
             var gainsCounterJuice = gainsText.gameObject.AddComponent<GainsCounterJuice>();
             AssignRef(gainsCounterJuice, "_target", gainsText.rectTransform);
 
@@ -271,10 +284,10 @@ namespace IdleGymBro.EditorTools
             SetRect(passiveRateText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -240f), new Vector2(700f, 50f));
 
             // --- Energy bar ---
-            var energyBarBg = CreateImage("EnergyBarBG", canvasGo.transform, uiSprite, new Color(0.15f, 0.15f, 0.15f));
+            var energyBarBg = CreateImage("EnergyBarBG", canvasGo.transform, uiSprite, new Color(0.06f, 0.07f, 0.10f, 0.95f));
             SetRect(energyBarBg.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -330f), new Vector2(700f, 60f));
 
-            var energyBar = CreateImage("EnergyBar", energyBarBg.transform, uiSprite, new Color(0.20f, 0.80f, 0.35f));
+            var energyBar = CreateImage("EnergyBar", energyBarBg.transform, uiSprite, PositiveColor);
             energyBar.type = Image.Type.Filled;
             energyBar.fillMethod = Image.FillMethod.Horizontal;
             energyBar.fillAmount = 1f;
@@ -319,7 +332,7 @@ namespace IdleGymBro.EditorTools
             var openButton = openBtnImage.gameObject.AddComponent<Button>();
             openButton.targetGraphic = openBtnImage;
             var openLabel = CreateText("Label", openBtnImage.transform, "UPGRADES", 36f, TextAlignmentOptions.Center);
-            AddIconToButton(openBtnImage, openLabel, "upgrades");
+            MakeIconButton(openBtnImage, openLabel, "upgrades", AccentColor, 150f);
             SetRect(openLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(220f, 130f));
 
             // --- Booster buttons: left edge, stacked (docs/ui-layout.md "Boost: 2x tap" / "2x passive") ---
@@ -336,6 +349,7 @@ namespace IdleGymBro.EditorTools
             AssignRef(boosterButton, "_button", boosterButtonComponent);
             AssignRef(boosterButton, "_label", boosterLabel);
             AssignRef(boosterButton, "_icon", boosterIcon);
+            StyleRoundButton(boosterBtnImage, boosterIcon, boosterLabel, new Color(0.62f, 0.38f, 0.16f, 0.96f), 140f, keepLabel: true);
 
             var proteinBtnImage = CreateImage("BoosterButton_protein_shake", canvasGo.transform, uiSprite, new Color(0.35f, 0.50f, 0.20f));
             SetRect(proteinBtnImage.rectTransform, new Vector2(0f, 0.5f), new Vector2(130f, -80f), new Vector2(220f, 130f));
@@ -350,6 +364,7 @@ namespace IdleGymBro.EditorTools
             AssignRef(proteinButton, "_button", proteinButtonComponent);
             AssignRef(proteinButton, "_label", proteinLabel);
             AssignRef(proteinButton, "_icon", proteinIcon);
+            StyleRoundButton(proteinBtnImage, proteinIcon, proteinLabel, new Color(0.30f, 0.52f, 0.26f, 0.96f), 140f, keepLabel: true);
 
             // Modal root (starts hidden via ModalToggle). Dimmer fills the screen and, being a
             // raycast target, both blocks clicks to the game and makes TapController skip taps.
@@ -423,7 +438,7 @@ namespace IdleGymBro.EditorTools
 
                 var btnImage = btnGo.GetComponent<Image>();
                 btnImage.sprite = uiSprite;
-                btnImage.color = new Color(0.18f, 0.30f, 0.45f);
+                btnImage.color = ButtonColor;
 
                 var layoutElement = btnGo.GetComponent<LayoutElement>();
                 layoutElement.preferredHeight = 140f;
@@ -462,7 +477,7 @@ namespace IdleGymBro.EditorTools
             var settingsOpenButton = settingsOpenImage.gameObject.AddComponent<Button>();
             settingsOpenButton.targetGraphic = settingsOpenImage;
             var settingsOpenLabel = CreateText("Label", settingsOpenImage.transform, "SETTINGS", 34f, TextAlignmentOptions.Center);
-            AddIconToButton(settingsOpenImage, settingsOpenLabel, "settings");
+            MakeIconButton(settingsOpenImage, settingsOpenLabel, "settings", ButtonColor, 120f);
             StretchFull(settingsOpenLabel.rectTransform);
 
             // --- Periodic reward button (bottom-right per docs/ui-layout.md) ---
@@ -472,6 +487,8 @@ namespace IdleGymBro.EditorTools
             rewardButton.targetGraphic = rewardImage;
             var rewardLabel = CreateText("Label", rewardImage.transform, string.Empty, 28f, TextAlignmentOptions.Center);
             StretchFull(rewardLabel.rectTransform);
+            MakeIconButton(rewardImage, rewardLabel, "reward", PositiveColor, 140f, keepLabel: true);
+
             var periodicRewardUi = rewardImage.gameObject.AddComponent<PeriodicRewardButton>();
             AssignRef(periodicRewardUi, "_button", rewardButton);
             AssignRef(periodicRewardUi, "_label", rewardLabel);
@@ -527,6 +544,8 @@ namespace IdleGymBro.EditorTools
             storyOpenButton.targetGraphic = storyOpenImage;
             var storyOpenLabel = CreateText("Label", storyOpenImage.transform, string.Empty, 30f, TextAlignmentOptions.Center);
             StretchFull(storyOpenLabel.rectTransform);
+
+            MakeIconButton(storyOpenImage, storyOpenLabel, "locations", ButtonColor, 140f, keepLabel: true);
 
             var storyProgressButton = storyOpenImage.gameObject.AddComponent<StoryProgressButton>();
             AssignRef(storyProgressButton, "_label", storyOpenLabel);
@@ -587,7 +606,7 @@ namespace IdleGymBro.EditorTools
             var goalsOpenButton = goalsOpenImage.gameObject.AddComponent<Button>();
             goalsOpenButton.targetGraphic = goalsOpenImage;
             var goalsOpenLabel = CreateText("Label", goalsOpenImage.transform, "GOALS", 30f, TextAlignmentOptions.Center);
-            AddIconToButton(goalsOpenImage, goalsOpenLabel, "achievements", 44f);
+            MakeIconButton(goalsOpenImage, goalsOpenLabel, "achievements", ButtonColor, 140f, keepLabel: true);
             StretchFull(goalsOpenLabel.rectTransform);
             var achievementsButton = goalsOpenImage.gameObject.AddComponent<AchievementsButton>();
             AssignRef(achievementsButton, "_label", goalsOpenLabel);
@@ -646,7 +665,7 @@ namespace IdleGymBro.EditorTools
             var prestigeOpenButton = prestigeOpenImage.gameObject.AddComponent<Button>();
             prestigeOpenButton.targetGraphic = prestigeOpenImage;
             var prestigeOpenLabel = CreateText("Label", prestigeOpenImage.transform, "NEW BULK", 30f, TextAlignmentOptions.Center);
-            AddIconToButton(prestigeOpenImage, prestigeOpenLabel, "prestige", 44f);
+            MakeIconButton(prestigeOpenImage, prestigeOpenLabel, "prestige", DangerColor, 120f);
             StretchFull(prestigeOpenLabel.rectTransform);
 
             var prestigeModal = new GameObject("PrestigeModal", typeof(RectTransform));
@@ -701,7 +720,7 @@ namespace IdleGymBro.EditorTools
             var wardrobeOpenButton = wardrobeOpenImage.gameObject.AddComponent<Button>();
             wardrobeOpenButton.targetGraphic = wardrobeOpenImage;
             var wardrobeOpenLabel = CreateText("Label", wardrobeOpenImage.transform, "WARDROBE", 34f, TextAlignmentOptions.Center);
-            AddIconToButton(wardrobeOpenImage, wardrobeOpenLabel, "wardrobe");
+            MakeIconButton(wardrobeOpenImage, wardrobeOpenLabel, "wardrobe", ButtonColor, 130f);
             StretchFull(wardrobeOpenLabel.rectTransform);
 
             var wardrobeModal = new GameObject("WardrobeModal", typeof(RectTransform));
@@ -927,30 +946,77 @@ namespace IdleGymBro.EditorTools
             return icon;
         }
 
-        // Puts an icon above a HUD button's label and pushes the label into the lower half, so the
-        // button reads as a glyph with a caption rather than a block of text.
-        private static void AddIconToButton(Image buttonImage, TMP_Text label, string iconId, float iconSize = 52f)
+        // --- Palette -------------------------------------------------------------------------
+        // One place, six colours. Before this there were sixteen arbitrary per-button colours,
+        // which is why the HUD read as a pile of unrelated rectangles instead of one interface.
+        // Meaning is carried by SHAPE and ICON; colour only separates surface from action.
+        private static readonly Color PanelColor = new Color(0.10f, 0.12f, 0.16f, 0.94f);
+        private static readonly Color ButtonColor = new Color(0.19f, 0.23f, 0.30f, 0.96f);
+        private static readonly Color AccentColor = new Color(0.26f, 0.54f, 0.90f, 0.96f);
+        private static readonly Color PositiveColor = new Color(0.22f, 0.70f, 0.42f, 0.96f);
+        private static readonly Color DangerColor = new Color(0.80f, 0.33f, 0.29f, 0.96f);
+        private static readonly Color IconTint = new Color(0.95f, 0.97f, 1f, 0.95f);
+
+        private static Sprite CircleSprite => AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+
+        // Turns a HUD button into a round button whose ICON IS THE BUTTON: circular surface, big
+        // centred glyph, no text. Text-in-a-rectangle is what made the old HUD look like a debug
+        // menu. Buttons whose label carries live information (a countdown, a badge, a percentage)
+        // keep it — those are set with keepLabel, and the label sits under the glyph.
+        private static void MakeIconButton(Image buttonImage, TMP_Text label, string iconId, Color tint, float diameter, bool keepLabel = false)
         {
+            buttonImage.sprite = CircleSprite;
+            buttonImage.color = tint;
+            buttonImage.type = Image.Type.Simple;
+
+            RectTransform rt = buttonImage.rectTransform;
+            rt.sizeDelta = new Vector2(diameter, diameter);
+
             Sprite sprite = LoadIcon(iconId);
 
             if (sprite == null)
             {
-                Debug.LogWarning($"[CoreLoopSceneBootstrap] Missing icon 'icon_{iconId}.png' — button keeps its text-only look.");
+                Debug.LogWarning($"[CoreLoopSceneBootstrap] Missing icon 'icon_{iconId}.png' — button keeps its text.");
                 return;
             }
 
-            var icon = CreateImage("Icon", buttonImage.transform, sprite, new Color(1f, 1f, 1f, 0.92f));
-            SetRect(icon.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -(iconSize * 0.5f + 12f)), new Vector2(iconSize, iconSize));
+            var icon = CreateImage("Icon", buttonImage.transform, sprite, IconTint);
+            LayOutIconButton(icon, label, diameter, keepLabel);
+        }
+
+        // Same round-button layout, but for buttons whose icon sprite is filled in at runtime from
+        // a data asset (boosters) rather than looked up here by id.
+        private static void StyleRoundButton(Image buttonImage, Image icon, TMP_Text label, Color tint, float diameter, bool keepLabel)
+        {
+            buttonImage.sprite = CircleSprite;
+            buttonImage.color = tint;
+            buttonImage.type = Image.Type.Simple;
+            buttonImage.rectTransform.sizeDelta = new Vector2(diameter, diameter);
+
+            LayOutIconButton(icon, label, diameter, keepLabel);
+        }
+
+        private static void LayOutIconButton(Image icon, TMP_Text label, float diameter, bool keepLabel)
+        {
+            float glyph = diameter * (keepLabel ? 0.42f : 0.56f);
+            SetRect(icon.rectTransform, new Vector2(0.5f, keepLabel ? 0.68f : 0.5f), Vector2.zero, new Vector2(glyph, glyph));
+            icon.color = IconTint;
             icon.preserveAspect = true;
             icon.raycastTarget = false; // the button underneath must still receive the click
 
-            if (label != null)
+            if (label == null)
             {
-                float height = buttonImage.rectTransform.sizeDelta.y;
-                float width = buttonImage.rectTransform.sizeDelta.x;
-                SetRect(label.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, (height - iconSize - 24f) * 0.5f),
-                    new Vector2(width - 12f, height - iconSize - 24f));
+                return;
             }
+
+            if (!keepLabel)
+            {
+                label.gameObject.SetActive(false);
+                return;
+            }
+
+            label.fontSize = diameter * 0.16f;
+            SetRect(label.rectTransform, new Vector2(0.5f, 0.24f), Vector2.zero, new Vector2(diameter * 0.92f, diameter * 0.34f));
         }
 
         private const string IconFolder = "Assets/_Game/Art/UI/Icons";
