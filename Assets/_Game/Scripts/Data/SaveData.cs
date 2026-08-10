@@ -11,6 +11,7 @@ namespace IdleGymBro.Data
         public long AchievementReps;
         public int AchievementUpgradesBought;
         public int MaxLocationIndex;
+        public double AchievementLifetimeEarned; // survives prestige, unlike TotalEarned
         public System.Collections.Generic.List<string> ClaimedAchievements = new System.Collections.Generic.List<string>();
         public long LastDailyClaimDay;
         public int DailyStreak;

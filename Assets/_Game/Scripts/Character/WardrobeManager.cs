@@ -38,6 +38,13 @@ namespace IdleGymBro.Character
             return _equipped.TryGetValue(layer, out string id) ? id : null;
         }
 
+        // Resolved cosmetic for a layer — the UI reads DisplayName from this instead of showing
+        // the internal asset id to the player.
+        public CosmeticData GetEquipped(CharacterLayer layer)
+        {
+            return FindById(GetEquippedId(layer));
+        }
+
         public void Equip(string id)
         {
             CosmeticData cosmetic = FindById(id);
@@ -116,7 +123,11 @@ namespace IdleGymBro.Character
             {
                 foreach (KeyValuePair<string, string> pair in data.EquippedCosmetics)
                 {
-                    if (Enum.TryParse(pair.Key, out CharacterLayer layer))
+                    // An id that no longer resolves (asset renamed/removed — expect this when the
+                    // placeholder art is replaced by real assets) is DROPPED rather than stored, so
+                    // EnsureDefaults below falls the layer back to a real option. Keeping it would
+                    // desync the character from the wardrobe UI and re-persist the bad id forever.
+                    if (Enum.TryParse(pair.Key, out CharacterLayer layer) && FindById(pair.Value) != null)
                     {
                         _equipped[layer] = pair.Value;
                     }

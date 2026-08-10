@@ -15,7 +15,12 @@ namespace IdleGymBro.Meta
         [SerializeField]
         private AchievementData[] _achievements;
 
-        private double _totalEarned;
+        // Lifetime earned ACROSS prestiges. CurrencyManager.TotalEarned is per-run (prestige zeroes
+        // it), but achievements are permanent records (§12) — a completed goal must not un-complete
+        // itself when the player starts a New Bulk. Accumulated from deltas so a reset just
+        // re-baselines instead of subtracting.
+        private double _lifetimeEarned;
+        private double _lastSeenRunEarned;
         private long _reps;
         private int _upgradesBought;
         private int _maxLocationIndex;
@@ -60,7 +65,7 @@ namespace IdleGymBro.Meta
 
             switch (achievement.Type)
             {
-                case AchievementType.TotalGainsEarned: return _totalEarned;
+                case AchievementType.TotalGainsEarned: return _lifetimeEarned;
                 case AchievementType.RepsPerformed: return _reps;
                 case AchievementType.UpgradesBought: return _upgradesBought;
                 case AchievementType.LocationReached: return _maxLocationIndex;
@@ -107,7 +112,13 @@ namespace IdleGymBro.Meta
 
         private void HandleGainsChanged(GainsChangedEvent e)
         {
-            _totalEarned = e.TotalEarned;
+            // A drop means the run was reset (prestige): re-baseline, never subtract.
+            if (e.TotalEarned >= _lastSeenRunEarned)
+            {
+                _lifetimeEarned += e.TotalEarned - _lastSeenRunEarned;
+            }
+
+            _lastSeenRunEarned = e.TotalEarned;
             PublishState();
         }
 
@@ -160,6 +171,7 @@ namespace IdleGymBro.Meta
             data.AchievementReps = _reps;
             data.AchievementUpgradesBought = _upgradesBought;
             data.MaxLocationIndex = _maxLocationIndex;
+            data.AchievementLifetimeEarned = _lifetimeEarned;
             data.ClaimedAchievements = new List<string>(_claimed);
         }
 
@@ -168,6 +180,14 @@ namespace IdleGymBro.Meta
             _reps = data.AchievementReps;
             _upgradesBought = data.AchievementUpgradesBought;
             _maxLocationIndex = data.MaxLocationIndex;
+
+            // Migration: saves written before lifetime tracking existed have 0 here, so seed from
+            // the run total rather than wiping a player's achievement progress.
+            _lifetimeEarned = data.AchievementLifetimeEarned > 0d ? data.AchievementLifetimeEarned : data.TotalEarned;
+
+            // Baseline against the value CurrencyManager restores, so its republished
+            // GainsChangedEvent contributes a zero delta no matter which of us restores first.
+            _lastSeenRunEarned = data.TotalEarned;
 
             _claimed.Clear();
             if (data.ClaimedAchievements != null)

@@ -20,6 +20,10 @@
 | `SHA256.HashData` ne postoji | Projekat je .NET Standard 2.1 → `SHA256.Create().ComputeHash()` |
 | Portrait UI ogroman/isečen u landscape Game view | `CanvasScaler.screenMatchMode = Expand` (dizajn prostor 1080×1920 uvek staje) |
 | TMP nema kao zaseban paket u Unity 6 | TextMeshPro dolazi unutar `com.unity.ugui` 2.0.0; Essentials resursi su commit-ovani |
+| `FindObjectsByType`/`FindAnyObjectByType` ne vidi objekte sa `HideFlags.HideAndDontSave` | Test rig NE sme da koristi HideFlags — inače `_currency`/`_upgrades` ostanu null i sve tiho pada |
+| Polje dodato u `GameConfig` posle poslednjeg upisa asseta ne postoji u `.asset` YAML-u | Unity zadrži C# field initializer → radi, ali balans živi u kodu; `SetDirty`+`SaveAssets` da se upiše |
+| Jedan izuzetak u smoke-test paketu sakrije sve testove posle njega | Svaki scenario u svom `try/catch` + `EventBus.Clear()` u `finally` |
+| Rebuild scene = ~14k linija git diff-a bez semantičke promene | Unity randomizuje lokalne fileID-jeve; verifikuj markerima iz loga, ne diff-om |
 
 ---
 
@@ -275,3 +279,63 @@ verifikacija, TREBA PLAYTEST.**
 - `UI/WardrobePanel` (3 reda: Hair/Beard/Shorts, „NEXT ▶" cycler) + WARDROBE dugme (dole centar) + **6. ModalToggle**.
 - Verifikacija: batchmode `15 sprites generated`, `wired 12/12`, 8 kozmetika, WardrobeManager `_cosmetics` 8/8,
   panel refs, 6× ModalToggle, `_defaultCosmetics` potpuno uklonjen. Runtime NEtestiran.
+
+## Faza 8 — Runtime verifikacija (zatvaranje „compile-only" duga)
+
+**NALOG #021** — runtime harness + 6 popravki koje je otkrio. **Ovim prestaje „compile-only" era:**
+#019/#020 su sada stvarno izvršeni, ne samo kompajlirani.
+
+- **`Editor/SystemsSmokeTest`** — headless runtime verifikacija BEZ Play mode-a. Edit-mode
+  `AddComponent` ne okida Unity lifecycle, pa rig zove `Awake`/`OnEnable`/`Start` eksplicitno
+  (refleksijom). To nije zaobilaznica nego poenta: `SaveSystem` restore-uje `ISaveable`-ove
+  redosledom koji `FindObjectsByType` vrati (ARBITRARAN), a samo eksplicitni drajver može da
+  iznudi OBA redosleda i dokaže da stanje konvergira. **Ne dira `persistentDataPath`** —
+  round-trip ide kroz statičke `Serialize`/`Encrypt` helpere u memoriji, pa se pravi save
+  developera nikad ne čita ni ne prepisuje. 11 scenarija / **58 provera**.
+- **Negativna kontrola (bitno):** testovi su pušteni i nad NEpopravljenim kodom (`git stash` samo
+  runtime fajlova) → tačno T9/T10/T11 padaju, ostali prolaze. Test koji prolazi i pre i posle ne
+  dokazuje ništa; ovim je dokazano da mere pravu stvar.
+
+**Popravke (F1 i F6 su nađene čitanjem koda, F2–F4 pod-agent „wardrobe" lens):**
+- **F1 (KRITIČNO) — offline zarada nikad nije skalirala.** `OfflineEarningsSystem` je množio
+  `_gameConfig.BasePassiveGainsPerSecond` (konstanta 1/s) umesto efektivnog rate-a, pa su
+  upgrade-ovi, lokacijski i prestige multiplikator bili potpuno ignorisani — suprotno §5 formuli.
+  Izmereno testom: **1.800 umesto 22.500 (12,5× manje)**, a jaz raste bez granice kroz progresiju.
+  Ovo je razbijalo idle stub igre i obesmišljavalo „Spot me bro" x2 offline monetizaciju (§10).
+  Fix: kešira rate iz `PassiveIncomeChangedEvent` (restore svih ISaveable-a se dešava PRE
+  `GameLoadedEvent`, pa je keš već post-upgrade kad offline računica krene).
+- **F2 (major) — dangling kozmetički id.** `WardrobeManager.RestoreState` je primao id koji više
+  ne postoji; `EnsureDefaults` ga nije mogao popraviti (ključ već postoji), `PublishAll` ga tiho
+  preskoči → lik nosi hair_01 a UI piše `hair_99`, i autosave ga ovekovečava. Prvi klik na NEXT
+  ne daje vidljivu promenu. Fix: id koji se ne rezolvira se ODBACUJE, pa ga `EnsureDefaults` vrati
+  na validnu opciju. **Očekuj ovo kad pravi art zameni placeholder-e.**
+- **F3 (major) — wardrobe modal je skrivao lika.** Centrirani neprozirni prozor + 75% dimmer preko
+  celog ekrana, a lik je world-space sprite ISPOD overlay canvas-a → menjaš kozmetiku i ne vidiš
+  ništa osim teksta. Fix: **bottom sheet** (720×620, anchor bottom, y=330) + dimmer 0.75→0.35;
+  lik zauzima design y ≈ −460..+403 (kamera ortho 5), sheet stoji ispod −320 → glava/kosa/brada
+  ostaju čiste. Dimmer i dalje full-screen raycast target (backdrop-close + tap-over-UI guard rade).
+- **F4 (minor)** — `WardrobePanel` je prikazivao sirov asset id; `CosmeticData.DisplayName` je bio
+  autorovan na svih 8 asseta i nigde čitan. + `Refresh()` u `OnEnable` (panel je unsubscribe-ovan
+  dok je modal zatvoren, a `Start` ide samo jednom).
+- **F5 (workflow) — `GameConfig.asset` je imao samo 6 od 17 tunable-a.** Ostalih 11 (offline,
+  periodic, daily, prestige) postojalo je SAMO kao C# inicijalizatori: Unity za polja kojih nema
+  u YAML-u zadrži vrednost iz field initializer-a, pa je igra radila — ali balans je de facto
+  živeo u kodu, što ruši §4 princip #1 i blokira dogovoreni sledeći prioritet (balans tuning).
+  Fix: `GetOrCreateConfig` radi `SetDirty` + `SaveAssets` na postojećem assetu → upisuje se
+  in-memory stanje, pa se **već tuniranje vrednosti ČUVAJU** (nije overwrite), a idempotentno je.
+- **F6 — achievements su gubili progres na prestige.** (Mrlja prijavljena u #019.) `TotalGainsEarned`
+  se čitao iz `CurrencyManager.TotalEarned` koji je per-run; posle „New Bulk" progres pada na 0 i
+  nezatražen završen cilj se tiho ODzavršava (test: progress=0 vs threshold=1000). Achievements su
+  trajni rekordi (§12). Fix: `_lifetimeEarned` akumuliran iz DELTI (pad = re-baseline, nikad
+  oduzimanje) + `SaveData.AchievementLifetimeEarned`; `_lastSeenRunEarned` se baseline-uje na
+  `data.TotalEarned` pa oba redosleda restore-a konvergiraju. Migracija: stari save (0) se seed-uje
+  iz `TotalEarned`.
+
+**Gotchas naučeni ovde:**
+- `FindObjectsByType`/`FindAnyObjectByType` **preskaču objekte sa `HideFlags.HideAndDontSave`** →
+  rig sa hidden objektima je ostavljao `UpgradeManager._currency` null i svaka kupovina je tiho
+  padala (15 lažnih padova u prvom run-u). Test rig NE sme da koristi HideFlags.
+- Jedan izuzetak u paketu testova je gutao rezultate svih testova posle njega → svaki scenario ide
+  kroz svoj `try/catch` (`Run(name, test)`), sa `EventBus.Clear()` u `finally`.
+- Rebuild scene daje ~14k linija diff-a bez semantičke promene (Unity randomizuje lokalne fileID-jeve);
+  scenu treba verifikovati markerima iz loga, ne git diff-om.

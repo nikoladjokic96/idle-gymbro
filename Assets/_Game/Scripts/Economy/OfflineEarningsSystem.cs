@@ -12,14 +12,31 @@ namespace IdleGymBro.Economy
 
         private bool _missingConfigLogged;
 
+        // Effective passive rate (upgrades x location x prestige), cached from PassiveIncomeSystem.
+        // Defaults to the config base so a load that somehow precedes the first stats publish still
+        // grants something rather than nothing.
+        private double _gainsPerSecond;
+
+        private void Awake()
+        {
+            _gainsPerSecond = _gameConfig != null ? _gameConfig.BasePassiveGainsPerSecond : 0d;
+        }
+
         private void OnEnable()
         {
             EventBus.Subscribe<GameLoadedEvent>(HandleGameLoaded);
+            EventBus.Subscribe<PassiveIncomeChangedEvent>(HandlePassiveIncomeChanged);
         }
 
         private void OnDisable()
         {
             EventBus.Unsubscribe<GameLoadedEvent>(HandleGameLoaded);
+            EventBus.Unsubscribe<PassiveIncomeChangedEvent>(HandlePassiveIncomeChanged);
+        }
+
+        private void HandlePassiveIncomeChanged(PassiveIncomeChangedEvent e)
+        {
+            _gainsPerSecond = e.GainsPerSecond;
         }
 
         private void HandleGameLoaded(GameLoadedEvent e)
@@ -41,8 +58,12 @@ namespace IdleGymBro.Economy
                 return; // clock skew guard
             }
 
+            // §5: offlineGains = min(timeAway, cap) x gainsPerSecond x efficiency. gainsPerSecond is
+            // the player's CURRENT effective rate — SaveSystem restores every ISaveable (which
+            // republishes stats -> PassiveIncomeChangedEvent) before it publishes GameLoadedEvent,
+            // so the cached rate is already post-upgrade/location/prestige by the time we run.
             double capped = Math.Min(secondsAway, _gameConfig.OfflineCapSeconds);
-            double gains = capped * _gameConfig.BasePassiveGainsPerSecond * _gameConfig.OfflineEfficiency;
+            double gains = capped * _gainsPerSecond * _gameConfig.OfflineEfficiency;
 
             if (gains <= 0)
             {

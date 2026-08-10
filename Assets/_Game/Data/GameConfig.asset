@@ -18,3 +18,14 @@ MonoBehaviour:
   _energyRegenPerSecond: 10
   _gainsPerRep: 1
   _repIntervalSeconds: 0.25
+  _autoSaveIntervalSeconds: 30
+  _basePassiveGainsPerSecond: 1
+  _offlineCapSeconds: 7200
+  _offlineEfficiency: 0.5
+  _periodicRewardIntervalSeconds: 900
+  _periodicRewardSeconds: 300
+  _dailyRewardSeconds: 600
+  _dailyStreakCycle: 7
+  _prestigeRespectFactor: 1
+  _prestigeMultiplierPerRespect: 0.02
+  _prestigeMinRespect: 10

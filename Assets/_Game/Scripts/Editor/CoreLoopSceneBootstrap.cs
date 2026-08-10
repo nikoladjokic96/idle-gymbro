@@ -681,14 +681,20 @@ namespace IdleGymBro.EditorTools
             wardrobeModal.transform.SetParent(canvasGo.transform, false);
             StretchFull(wardrobeModal.GetComponent<RectTransform>());
 
-            var wardrobeDimmer = CreateImage("Dimmer", wardrobeModal.transform, uiSprite, new Color(0f, 0f, 0f, 0.75f));
+            // Bottom sheet, not a centred dialog: the character is a world-space sprite stack drawn
+            // UNDER this overlay canvas, so a centred opaque window would hide the very thing the
+            // player is customizing. The sheet stays below design-space y=-320 (the character spans
+            // roughly -460..+403 at camera ortho size 5), and the dimmer is kept light so head,
+            // hair and beard read clearly while cycling. Still a full-screen raycast target, so
+            // backdrop-close and the TapController over-UI guard keep working.
+            var wardrobeDimmer = CreateImage("Dimmer", wardrobeModal.transform, uiSprite, new Color(0f, 0f, 0f, 0.35f));
             StretchFull(wardrobeDimmer.rectTransform);
             var wardrobeBackdropButton = wardrobeDimmer.gameObject.AddComponent<Button>();
             wardrobeBackdropButton.transition = Selectable.Transition.None;
             wardrobeBackdropButton.targetGraphic = wardrobeDimmer;
 
             var wardrobeWindow = CreateImage("Window", wardrobeModal.transform, uiSprite, new Color(0.12f, 0.14f, 0.18f, 1f));
-            SetRect(wardrobeWindow.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(720f, 760f));
+            SetRect(wardrobeWindow.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 330f), new Vector2(720f, 620f));
 
             var wardrobeTitle = CreateText("Title", wardrobeWindow.transform, "WARDROBE", 48f, TextAlignmentOptions.Center);
             SetRect(wardrobeTitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(500f, 80f));
@@ -806,6 +812,13 @@ namespace IdleGymBro.EditorTools
             var config = AssetDatabase.LoadAssetAtPath<GameConfig>(ConfigPath);
             if (config != null)
             {
+                // Re-serialize so the .asset on disk carries EVERY tunable. Fields added to
+                // GameConfig after the asset was last written are absent from its YAML and fall
+                // back to the C# initializer — which silently makes balance live in code instead
+                // of in the asset (§4: data-driven). This writes the in-memory values, so any
+                // value the designer already tuned is preserved, and it is a no-op once written.
+                EditorUtility.SetDirty(config);
+                AssetDatabase.SaveAssets();
                 return config;
             }
 

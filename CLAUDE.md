@@ -334,16 +334,18 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 - [x] #019 **Prestige („New Bulk", §6)** — `Progression/PrestigeManager` (`ISaveable`: respect = factor×√TotalEarned, globalMultiplier = 1+respect×factor); `PrestigeEvent` resetuje run (Currency/Upgrade/Energy/Location handleri), multiplikator kroz `UpgradeManager.RecomputeAndPublish` (× location × prestige); `UI/PrestigePanel` + NEW BULK dugme (top-left) + 5. modal. ⚠️ *Compile-only verifikacija — TREBA PLAYTEST.* Mrlja: „TotalGainsEarned" achievement se resetuje uz TotalEarned na prestige (reps/upgrades ne).
 - [x] #020 **Wardrobe/kustomizacija** — `Character/WardrobeManager` (`ISaveable`: equipped po sloju; `CosmeticEquippedEvent` → `CharacterBuilder` menja sprite sloja; `CharacterBuilder` refaktorisan — kozmetika više nije u njemu). 8 `CosmeticData` asseta (hair 1–3, beard 1–2, shorts 1–3), 5 novih placeholder-a. `UI/WardrobePanel` (NEXT cycler po sloju) + WARDROBE dugme (dole centar) + 6. modal. ⚠️ *Compile-only — TREBA PLAYTEST.*
 
-> **STANJE: cela igra izgrađena sa placeholderima (Faze 0–7 + prestige + wardrobe).** 6 modala, 12 sistema na `GameSystems`. Ostaje: realan LevelPlay/IAP (na kraju), pravi art/animacije (čeka assete), **playtest + balans** (prioritet).
-> ⚠️ **#019 (prestige) i #020 (wardrobe) su samo compile-verifikovani** (pod-agenti od #015 na account **spend-limitu** → Fable radi solo bez runtime testa) — playtestovati posebno pažljivo.
-> **Za novi čet:** čitaj ovu sekciju + „Smernice za nastavak" ispod + [`docs/dev-log.md`](docs/dev-log.md). Verifikacija: batchmode komanda ispod, očekuj `15 sprites generated` · `6 backgrounds` · `4 clips` · `_gameConfig wired on 12/12` · `Scene built and saved`.
+- [x] #021 **Runtime verifikacija + 6 popravki** — `Editor/SystemsSmokeTest` (11 scenarija / **58 provera**, headless bez Play mode-a; forsira OBA redosleda `ISaveable` restore-a; ne dira pravi save). Popravljeno: **F1 (kritično)** offline zarada je koristila `BasePassiveGainsPerSecond` umesto efektivnog rate-a → davala **12,5× manje** i nikad nije skalirala (§5 formula); **F2** dangling kozmetički id trajno desinhronizovao lika od UI-ja; **F3** wardrobe modal je skrivao lika kog kastomizuješ → **bottom sheet**; **F4** DisplayName umesto asset id-a; **F5** `GameConfig.asset` imao samo 6/17 tunable-a (balans de facto u kodu — blokiralo tuning); **F6** achievements gubili progres na prestige (mrlja iz #019). Testovi verifikovani **negativnom kontrolom** (na starom kodu padaju tačno T9/T10/T11).
+
+> **STANJE: cela igra izgrađena sa placeholderima (Faze 0–7 + prestige + wardrobe), sada i RUNTIME-verifikovana.** 6 modala, 12 sistema na `GameSystems`. Ostaje: realan LevelPlay/IAP (na kraju), pravi art/animacije (čeka assete), **playtest + balans** (prioritet — sada bezbedan, jer su tunable-i stvarno u assetu i postoji regresiona mreža).
+> **Za novi čet:** čitaj ovu sekciju + „Smernice za nastavak" ispod + [`docs/dev-log.md`](docs/dev-log.md). Verifikacija: obe batchmode komande ispod — očekuj `15 sprites generated` · `6 backgrounds` · `4 clips` · `_gameConfig wired on 12/12` · `Scene built and saved`, pa `[SystemsSmokeTest] PASS — 58 checks, 0 failures`.
 
 **MVP status: faze 0–4 funkcionalno kompletne sa placeholderima; monetizacioni TOKOVI mockovani (§10 poštovan — sve opt-in)** — sledeće: pravi art (čeka assete), balans tuning kroz playtest, animacije; realan LevelPlay/IAP na samom kraju.
-- [ ] Faza 3 nastavak: animacije (idle + rep po tieru), wardrobe/kustomizacija UI, pravi pixel art (čeka assete — [`docs/asset-checklist.md`](docs/asset-checklist.md))
-- [ ] Balans tuning (krive cena/prihoda kroz playtest — §6/§10)
-- [ ] Više stat tipova (maxEnergy/regen), još upgrade-ova; prestige je post-MVP
+- [ ] Faza 3 nastavak: animacije (idle + rep po tieru), pravi pixel art (čeka assete — [`docs/asset-checklist.md`](docs/asset-checklist.md))
+- [ ] Balans tuning (krive cena/prihoda kroz playtest — §6/§10) — **odblokirano #021-om:** svih 17 tunable-a je sada u `GameConfig.asset`, a `SystemsSmokeTest` hvata regresije
+- [ ] Više stat tipova (maxEnergy/regen), još upgrade-ova
 
-> **Sledeći korak (za razmatranje):** Faza 3 nastavak (animacioni sistem + wardrobe) · ILI Faza 4 polish (HUD raspored po [`docs/ui-layout.md`](docs/ui-layout.md), DOTween juice, zvuk) · ILI balans tuning.
+> **Sledeći korak:** **balans tuning kroz playtest** (prioritet #1 iz smernica; menjaj SAMO `.asset` vrednosti) · ILI animacioni sistem (poslednja stavka Faze 3).
+> ⚠️ **Playtest nije zamenjen testovima** — `SystemsSmokeTest` dokazuje logiku (58 provera), ali NE dokazuje *feel*: tap odziv, čitljivost HUD-a, da li se dugmad preklapaju, da li je kriva zabavna. To i dalje traži telefon i ruke.
 > Setup na novom PC-u: `scripts/setup-dev-env.ps1` (vidi `SETUP.md`).
 
 ### Smernice za nastavak (čitaj OVO ako nastavljaš projekat u novoj sesiji)
@@ -361,12 +363,20 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 - Novi upgrade/booster/tier/kozmetika = novi `.asset` (kroz `GetOrCreate*` u bootstrap-u) — logika je generička, UI se generiše iz nizova.
 - Nova UI/scena komponenta = izmena `Editor/CoreLoopSceneBootstrap` + rebuild (NIKAD ručno u editoru — izgubiće se!). Modali kroz `ModalToggle` (open/X/backdrop šablon postoji ×2).
 - Novi sistem = MonoBehaviour na `GameSystems`, komunikacija SAMO kroz EventBus (§16 obrasci), tunables u SO.
+- **Nova logika = novi scenario u `Editor/SystemsSmokeTest`** (rig već diže ceo graf sistema; dodaj `Run("Tn ...", TestX)`). Obavezno proveri negativnom kontrolom da test zaista pada bez popravke.
 
 **Verifikacija (tačne komande, pre SVAKOG commit-a):**
 ```
 & "$env:USERPROFILE\Unity\Hub\Editor\6000.0.79f1\Editor\Unity.exe" -batchmode -quit -nographics -projectPath "F:\idle-gymbro" -executeMethod IdleGymBro.EditorTools.CoreLoopSceneBootstrap.BuildCoreLoopScene -logFile "$env:TEMP\igb.log"
 ```
-Log mora imati: 0× `error CS` · `15 sprites generated` · `6 backgrounds generated` · `4 clips generated` · `_gameConfig wired on 12/12` · `Scene built and saved`. Editor i batchmode ne mogu istovremeno; prvi run posle novih skripti ume samo da kompajlira → ponovi. Smoke test: `-executeMethod IdleGymBro.EditorTools.SaveSystemSmokeTest.RunSaveRoundTrip`.
+Log mora imati: 0× `error CS` · `15 sprites generated` · `6 backgrounds generated` · `4 clips generated` · `_gameConfig wired on 12/12` · `Scene built and saved`. Editor i batchmode ne mogu istovremeno; prvi run posle novih skripti ume samo da kompajlira → ponovi (Unity se lansira kao detached child — čekaj PID, ne veruj povratku komande).
+
+**Runtime verifikacija (OBAVEZNA za svaku izmenu logike):**
+```
+& "$env:USERPROFILE\Unity\Hub\Editor\6000.0.79f1\Editor\Unity.exe" -batchmode -quit -nographics -projectPath "F:\idle-gymbro" -executeMethod IdleGymBro.EditorTools.SystemsSmokeTest.RunAll -logFile "$env:TEMP\igb_smoke.log"
+```
+Očekuj `[SystemsSmokeTest] PASS — 58 checks, 0 failures`. Save round-trip: `-executeMethod IdleGymBro.EditorTools.SaveSystemSmokeTest.RunSaveRoundTrip`.
+> Kad dodaješ test u `SystemsSmokeTest`, **proveri ga negativnom kontrolom** (`git stash` popravke → test MORA pasti). Test koji prolazi i pre i posle ne meri ništa.
 
 ### Radni model (arhitekta + pod-agenti)
 Arhitekta (Opus/Fable) piše „Nalog za Pod-Agenta" → jeftiniji model (Sonnet/Haiku) piše kod → arhitekta radi pregled (konvencije §16, leak-ovi, data-driven, event ordering) → **verifikacioni protokol iz §4** → commit + push (samo arhitekta). Pod-agent ne commit-uje. Korisniku se piše na srpskom; sav in-game tekst na engleskom (§11).

@@ -43,6 +43,10 @@ namespace IdleGymBro.UI
             if (_hairNext != null) { _hairNext.onClick.AddListener(OnHairNext); }
             if (_beardNext != null) { _beardNext.onClick.AddListener(OnBeardNext); }
             if (_shortsNext != null) { _shortsNext.onClick.AddListener(OnShortsNext); }
+
+            // The panel is unsubscribed while the modal is closed, so re-read state on every open
+            // (Start only ever runs once, on the first open).
+            Refresh();
         }
 
         private void OnDisable()
@@ -79,8 +83,10 @@ namespace IdleGymBro.UI
         {
             if (label != null)
             {
-                string equipped = _manager.GetEquippedId(layer);
-                label.text = $"{title}: {(string.IsNullOrEmpty(equipped) ? "-" : equipped)}";
+                // Player-facing name, never the internal asset id (which gets uglier once real
+                // art lands with slug-style ids).
+                CosmeticData equipped = _manager.GetEquipped(layer);
+                label.text = $"{title}: {(equipped != null ? equipped.DisplayName : "-")}";
             }
         }
     }
