@@ -32,7 +32,9 @@ namespace IdleGymBro.Character
         private float _timeSinceRep = 999f;
         private float _blinkTimer;
         private float _nextBlinkAt = 3f;
-        private bool _wasWorking;
+        private float _workoutBlend;      // 0 = arms down, 1 = fully raised and held
+        private float _holdPhase;         // drives the tremor at the top of the hold
+        private float _cycleVariation = 1f;
         private bool _tired;
         private bool _missingConfigLogged;
 
@@ -96,55 +98,108 @@ namespace IdleGymBro.Character
             SpriteRenderer renderer = _characterBuilder != null ? _characterBuilder.BodyRenderer : null;
             SpriteRenderer blend = _characterBuilder != null ? _characterBuilder.BodyBlendRenderer : null;
 
-            // Holding the screen puts him through curls; letting go drops back to breathing.
-            bool training = _timeSinceRep < _gameConfig.IdleTrainingWindowSeconds;
+            if (renderer == null)
+            {
+                return;
+            }
 
             Sprite[] workout = _characterBuilder != null ? _characterBuilder.CurrentWorkoutFrames : null;
             Sprite[] idle = _characterBuilder != null ? _characterBuilder.CurrentIdleFrames : null;
 
-            bool working = training && workout != null && workout.Length >= 2;
-            Sprite[] frames = working ? workout : idle;
+            bool training = _timeSinceRep < _gameConfig.IdleTrainingWindowSeconds;
+            bool canWork = workout != null && workout.Length >= 2;
 
-            if (frames == null || frames.Length < 2 || renderer == null)
+            // Holding the screen RAISES the arms and keeps them there; it does not rep up and down.
+            // A repeating curl loop read as a machine, so the hold is the pose and the only motion
+            // on top of it is a small tremor, the way a real held contraction shakes.
+            float target = training && canWork ? 1f : 0f;
+            float raiseSpeed = 1f / Mathf.Max(0.05f, _gameConfig.WorkoutRaiseSeconds);
+            _workoutBlend = Mathf.MoveTowards(_workoutBlend, target, dt * raiseSpeed);
+
+            if (_workoutBlend > 0f && canWork)
+            {
+                PlayHeldWorkout(workout, renderer, blend, dt);
+                return;
+            }
+
+            if (idle == null || idle.Length < 2)
             {
                 return; // tier without an authored clip simply holds its static pose
             }
 
-            // Restart the cycle when switching clips so a curl always begins from arms-down
-            // instead of snapping in halfway through the motion.
-            if (working != _wasWorking)
+            PlayIdleLoop(idle, renderer, blend, dt);
+        }
+
+        // Position along the workout frames is the raise amount itself: 0 = arms down (frame 0),
+        // 1 = fully contracted (last frame). At the top a slow tremor eases the pose back a
+        // fraction of a frame and forward again, so the hold breathes without becoming a rep.
+        private void PlayHeldWorkout(Sprite[] frames, SpriteRenderer renderer, SpriteRenderer blend, float dt)
+        {
+            float top = frames.Length - 1;
+            float position = Mathf.SmoothStep(0f, 1f, _workoutBlend) * top;
+
+            if (_workoutBlend >= 1f)
             {
-                _wasWorking = working;
-                _phase = 0f;
+                _holdPhase += dt * _gameConfig.WorkoutHoldTremorSpeed;
+                _holdPhase -= Mathf.Floor(_holdPhase);
+
+                float tremor = (1f - Mathf.Cos(_holdPhase * Mathf.PI * 2f)) * 0.5f; // 0..1..0
+                position = top - tremor * _gameConfig.WorkoutHoldTremorAmount;
             }
 
-            float rate = working
-                ? _gameConfig.WorkoutCyclesPerSecond
-                : _tired
-                    ? _gameConfig.IdleBreathCyclesPerSecond * _gameConfig.IdleTiredRateMultiplier
-                    : _gameConfig.IdleBreathCyclesPerSecond;
+            ApplyBlendedFrame(frames, position, renderer, blend);
+        }
+
+        private void PlayIdleLoop(Sprite[] frames, SpriteRenderer renderer, SpriteRenderer blend, float dt)
+        {
+            float rate = _gameConfig.IdleBreathCyclesPerSecond * _cycleVariation;
+
+            if (_tired)
+            {
+                rate *= _gameConfig.IdleTiredRateMultiplier;
+            }
 
             _phase += dt * rate;
-            _phase -= Mathf.Floor(_phase); // keep in 0..1 without losing precision over a session
+
+            // Re-roll the tempo once per breath so the loop never settles into a metronome.
+            if (_phase >= 1f)
+            {
+                _phase -= Mathf.Floor(_phase);
+                _cycleVariation = Random.Range(1f - _gameConfig.IdleCycleVariation, 1f + _gameConfig.IdleCycleVariation);
+            }
 
             // Ping-pong: N frames produce 2N-2 steps (3 frames -> 0,1,2,1).
             int steps = frames.Length * 2 - 2;
             float position = _phase * steps;
             int step = Mathf.Clamp(Mathf.FloorToInt(position), 0, steps - 1);
-            float blendAmount = position - step;
+            float t = position - step;
 
-            renderer.sprite = frames[PingPongIndex(step, frames.Length, steps)];
+            int a = PingPongIndex(step, frames.Length, steps);
+            int b = PingPongIndex(step + 1, frames.Length, steps);
+            ApplyPair(frames[a], frames[b], t, renderer, blend);
+        }
+
+        // Splits a fractional frame position into the two frames it sits between.
+        private static void ApplyBlendedFrame(Sprite[] frames, float position, SpriteRenderer renderer, SpriteRenderer blend)
+        {
+            int a = Mathf.Clamp(Mathf.FloorToInt(position), 0, frames.Length - 1);
+            int b = Mathf.Min(a + 1, frames.Length - 1);
+            ApplyPair(frames[a], frames[b], position - a, renderer, blend);
+        }
+
+        // Cross-fade: the lower frame stays fully opaque and the next one fades in over it.
+        // Fading BOTH would make the body translucent for half of every step.
+        private static void ApplyPair(Sprite a, Sprite b, float t, SpriteRenderer renderer, SpriteRenderer blend)
+        {
+            renderer.sprite = a;
 
             if (blend == null)
             {
                 return;
             }
 
-            // Cross-fade the next frame in on top. Holding the current frame fully opaque
-            // underneath keeps the silhouette solid — fading BOTH would make the body go
-            // translucent for half of every step.
-            blend.sprite = frames[PingPongIndex(step + 1, frames.Length, steps)];
-            SetAlpha(blend, Mathf.SmoothStep(0f, 1f, blendAmount));
+            blend.sprite = b;
+            SetAlpha(blend, Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t)));
         }
 
         private static int PingPongIndex(int step, int frameCount, int steps)

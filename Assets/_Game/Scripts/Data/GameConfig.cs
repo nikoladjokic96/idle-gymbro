@@ -101,13 +101,32 @@ namespace IdleGymBro.Data
         [Min(0f)]
         private float _idleTiredRateMultiplier = 0.55f; // out of energy -> slower breathing
 
-        // Curls per second while the player holds the screen. Deliberately decoupled from
-        // RepIntervalSeconds (4 reps/s) — one curl per rep would be an unreadable twitch.
+        // Randomises each breath's tempo by +/- this fraction, so the idle loop never settles into
+        // an obvious metronome. 0 = perfectly regular.
+        [SerializeField]
+        [Range(0f, 0.5f)]
+        private float _idleCycleVariation = 0.18f;
+
+        [Header("Character Animation — workout hold")]
+        // Time to raise the arms into the held contraction (and to lower them again on release).
         [SerializeField]
         [Min(0.05f)]
-        private float _workoutCyclesPerSecond = 1.1f;
+        private float _workoutRaiseSeconds = 0.32f;
 
-        public float WorkoutCyclesPerSecond => _workoutCyclesPerSecond;
+        // While held, the pose eases back this fraction of a frame and forward again — a real
+        // contraction shakes. Keep it small; large values turn the hold back into a rep.
+        [SerializeField]
+        [Range(0f, 1f)]
+        private float _workoutHoldTremorAmount = 0.22f;
+
+        [SerializeField]
+        [Min(0.05f)]
+        private float _workoutHoldTremorSpeed = 1.5f; // tremors per second
+
+        public float IdleCycleVariation => _idleCycleVariation;
+        public float WorkoutRaiseSeconds => _workoutRaiseSeconds;
+        public float WorkoutHoldTremorAmount => _workoutHoldTremorAmount;
+        public float WorkoutHoldTremorSpeed => _workoutHoldTremorSpeed;
 
         [SerializeField]
         [Min(0.02f)]
