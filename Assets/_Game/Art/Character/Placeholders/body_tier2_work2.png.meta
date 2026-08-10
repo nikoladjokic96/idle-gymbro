@@ -116,9 +116,9 @@ TextureImporter:
       name: body_tier2_work2_0
       rect:
         serializedVersion: 2
-        x: 102
+        x: 203
         y: 60
-        width: 645
+        width: 443
         height: 1125
       alignment: 0
       pivot: {x: 0, y: 0}

@@ -23,3 +23,4 @@ MonoBehaviour:
   _workoutFrames:
   - {fileID: 21300000, guid: 7afce574ff309bc46ae2daf10ef02158, type: 3}
   - {fileID: 21300000, guid: fe907d3f45b0c1f4a87c0fde7c0b0c6b, type: 3}
+  - {fileID: 21300000, guid: 5622de5739fae1a47853b8f6f925184b, type: 3}
