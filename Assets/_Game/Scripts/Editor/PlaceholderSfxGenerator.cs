@@ -14,9 +14,39 @@ namespace IdleGymBro.EditorTools
         private const int SampleRate = 44100;
         private const int NoiseSeed = 42;
 
+        // Same rule as the art generators: the bootstrap runs this on every scene build, so real
+        // recorded SFX dropped into the folder is KEPT, never silently overwritten.
+        private static bool _overwriteExisting;
+        private static int _written;
+        private static int _kept;
+
         [MenuItem("IdleGymBro/Generate Placeholder SFX")]
         public static void Generate()
         {
+            Run(false);
+        }
+
+        [MenuItem("IdleGymBro/DANGER — Regenerate Placeholder SFX (overwrites real audio)")]
+        public static void Regenerate()
+        {
+            if (!EditorUtility.DisplayDialog(
+                    "Overwrite SFX?",
+                    $"This OVERWRITES every .wav in {OutputFolder} with generated placeholders.\n\n" +
+                    "Any real audio in that folder will be lost.",
+                    "Overwrite", "Cancel"))
+            {
+                return;
+            }
+
+            Run(true);
+        }
+
+        private static void Run(bool overwriteExisting)
+        {
+            _overwriteExisting = overwriteExisting;
+            _written = 0;
+            _kept = 0;
+
             EnsureFolder(OutputFolder);
 
             WriteWav($"{OutputFolder}/tap.wav", BuildTap());
@@ -25,7 +55,7 @@ namespace IdleGymBro.EditorTools
             WriteWav($"{OutputFolder}/booster.wav", BuildBooster());
 
             AssetDatabase.SaveAssets();
-            Debug.Log("[PlaceholderSfxGenerator] 4 clips generated.");
+            Debug.Log($"[PlaceholderSfxGenerator] 4 clips ready ({_written} generated, {_kept} kept).");
         }
 
         // 50ms 880Hz square wave, linear fade-out over the whole clip.
@@ -129,6 +159,14 @@ namespace IdleGymBro.EditorTools
             int dataSize = samples.Length * blockAlign;
 
             string absolutePath = Path.Combine(Application.dataPath, path.Substring("Assets/".Length));
+
+            if (!_overwriteExisting && File.Exists(absolutePath))
+            {
+                _kept++;
+                return;
+            }
+
+            _written++;
 
             using (var stream = new FileStream(absolutePath, FileMode.Create))
             using (var writer = new BinaryWriter(stream))

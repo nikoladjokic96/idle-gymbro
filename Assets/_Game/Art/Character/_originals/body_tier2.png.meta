@@ -1,31 +1,25 @@
 fileFormatVersion: 2
-guid: 015e8f7c6b1540c40be49caab7c4516c
+guid: 73a1991e83a7eef4991558a3ef3ccbde
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 5437545122616795298
-    second: shorts_02_0
+      213: 828975404477356377
+    second: body_tier2_0
   - first:
-      213: -4440517779308175540
-    second: shorts_02_1
+      213: -2139511702177700433
+    second: body_tier2_1
   - first:
-      213: -7140059190060997613
-    second: shorts_02_2
+      213: -514758443518058309
+    second: body_tier2_2
   - first:
-      213: 2683369543567729020
-    second: shorts_02_3
+      213: 7181142115376506934
+    second: body_tier2_3
   - first:
-      213: -1888658625248479157
-    second: shorts_02_4
+      213: -8546196754955221975
+    second: body_tier2_4
   - first:
-      213: 7138593110033629046
-    second: shorts_02_5
-  - first:
-      213: 7412874928711691443
-    second: shorts_02_6
-  - first:
-      213: 2521910546390609828
-    second: shorts_02_7
+      213: -4150347499753571384
+    second: body_tier2_5
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -70,9 +64,9 @@ TextureImporter:
   spriteMode: 2
   spriteExtrude: 1
   spriteMeshType: 1
-  alignment: 7
+  alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 842.6667
+  spritePixelsToUnits: 100
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -96,7 +90,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 0
+    textureCompression: 1
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -134,29 +128,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: shorts_02_0
-      rect:
-        serializedVersion: 2
-        x: 39
-        y: 63
-        width: 51
-        height: 29
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 2a06bbbca7a067b40800000000000000
-      internalID: 5437545122616795298
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: shorts_02_1
+      name: body_tier2_0
       rect:
         serializedVersion: 2
         x: 1
@@ -171,14 +143,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: c4f97894b9c1062c0800000000000000
-      internalID: -4440517779308175540
+      spriteID: 959986ffcbc118b00800000000000000
+      internalID: 828975404477356377
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: shorts_02_2
+      name: body_tier2_1
       rect:
         serializedVersion: 2
         x: 7
@@ -193,14 +165,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 314a62d0ff969ec90800000000000000
-      internalID: -7140059190060997613
+      spriteID: fa528e6417dee42e0800000000000000
+      internalID: -2139511702177700433
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: shorts_02_3
+      name: body_tier2_2
       rect:
         serializedVersion: 2
         x: 13
@@ -215,14 +187,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: c71e47df16e3d3520800000000000000
-      internalID: 2683369543567729020
+      spriteID: bb029f44ce53bd8f0800000000000000
+      internalID: -514758443518058309
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: shorts_02_4
+      name: body_tier2_3
       rect:
         serializedVersion: 2
         x: 19
@@ -237,14 +209,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: b483614acf22ac5e0800000000000000
-      internalID: -1888658625248479157
+      spriteID: 6382d94e4ba88a360800000000000000
+      internalID: 7181142115376506934
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: shorts_02_5
+      name: body_tier2_4
       rect:
         serializedVersion: 2
         x: 25
@@ -259,20 +231,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 67ffa979c90611360800000000000000
-      internalID: 7138593110033629046
+      spriteID: 9244c40c45fc56980800000000000000
+      internalID: -8546196754955221975
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: shorts_02_6
+      name: body_tier2_5
       rect:
         serializedVersion: 2
-        x: 31
-        y: 1
-        width: 7
-        height: 9
+        x: 36
+        y: 7
+        width: 57
+        height: 179
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -281,30 +253,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 3bc624af872dfd660800000000000000
-      internalID: 7412874928711691443
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: shorts_02_7
-      rect:
-        serializedVersion: 2
-        x: 37
-        y: 1
-        width: 7
-        height: 9
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 4af6ce0c740aff220800000000000000
-      internalID: 2521910546390609828
+      spriteID: 8cbf1ce30f00766c0800000000000000
+      internalID: -4150347499753571384
       vertices: []
       indices: 
       edges: []
@@ -323,14 +273,12 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      shorts_02_0: 5437545122616795298
-      shorts_02_1: -4440517779308175540
-      shorts_02_2: -7140059190060997613
-      shorts_02_3: 2683369543567729020
-      shorts_02_4: -1888658625248479157
-      shorts_02_5: 7138593110033629046
-      shorts_02_6: 7412874928711691443
-      shorts_02_7: 2521910546390609828
+      body_tier2_0: 828975404477356377
+      body_tier2_1: -2139511702177700433
+      body_tier2_2: -514758443518058309
+      body_tier2_3: 7181142115376506934
+      body_tier2_4: -8546196754955221975
+      body_tier2_5: -4150347499753571384
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -5,6 +5,15 @@
 >
 > Svaki fajl ovde 1:1 zamenjuje generisani placeholder — ubaciš PNG preko postojećeg
 > fajla u `Assets/_Game/Art/Character/Placeholders/` (ili novi u svoj folder + javi da preožičim slot).
+>
+> ⚠️ **AŽURIRANO (#022):** do #022 je ovaj savet bio OPASAN — generatori su na svaki rebuild scene
+> bezuslovno prepisivali te fajlove, pa bi pravi art nestao pri prvom `BuildCoreLoopScene`.
+> Sada generatori **preskaču postojeće fajlove** (log: `0 generated, 15 kept`), pa je ubacivanje
+> preko placeholder-a bezbedno. Namerno vraćanje placeholder-a ide kroz `IdleGymBro → DANGER — Regenerate…`.
+>
+> ⚠️ **Stil je promenjen u #022**: lik više NIJE pixel art nego **hand-painted cartoon**, canvas
+> **848×1264 (2:3)**, PPU se izvodi automatski iz visine (`height/1.5`) — vidi `art-brief.md`.
+> Donja lista (128×192, stopala na y=8) važi samo ako se svesno vraćaš na pixel art.
 
 **Format za sve:** PNG, providna pozadina, **128×192 px po frejmu**, lik centriran po X,
 **stopala na y=8 od dna**, bez anti-aliasa. Paleta ~24–32 boje, ista svuda.

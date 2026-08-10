@@ -331,7 +331,50 @@ verifikacija, TREBA PLAYTEST.**
   `data.TotalEarned` pa oba redosleda restore-a konvergiraju. Migracija: stari save (0) se seed-uje
   iz `TotalEarned`.
 
-**Gotchas naučeni ovde:**
+## Faza 3 (nastavak) — pravi art za lika
+
+**NALOG #022** — hand-painted art kroz `game-assets-enhancement` skill + fal.ai. **Menja zaključanu
+odluku §2** (pixel art → hand-painted cartoon) — svesna odluka korisnika.
+
+- **Instalacija skill-a:** korisnik je kloniran sa `\~/.claude/skills/...` — backslash je sprečio
+  ekspanziju tilde, pa je završio u `F:\~\.claude\skills\`. Premešten u `C:\Users\nikol\.claude\skills\`.
+- **Pipeline (validiran u sve tri tačke pre masovnog trošenja kredita):** `fal-ai/nano-banana-pro`
+  (`aspect_ratio: "2:3"`, chroma-green pozadina) → `pixelcut/background-removal` → transparentan PNG.
+- **Registracija slojeva — ključni trik:** svi asseti su **editi jednog anchor-a** (tier3).
+  Edit čuva kompoziciju, pa svih 14 fajlova izađe kao **identičnih 848×1264** sa istom visinom
+  glave i istom linijom stopala → slojevi se poklapaju **po konstrukciji**, bez ručnog poravnavanja.
+  Prompt eksplicitno zakucava: „do NOT rescale, move or rotate; top of head and soles stay on the same line".
+- **`Editor/CosmeticLayerExtractor`** — model ne ume pouzdano da nacrta „samo kosu, u tačnoj poziciji",
+  ali ume da EDITUJE referencu. Zato se sloj dobija kao **razlika varijante i baze** unutar zadatog
+  vertikalnog pojasa (kosa 0.00–0.15, brada 0.10–0.21, šorc 0.40–0.62). Pojas postoji jer edit
+  usput blago precrta i lice — bez njega „duh" obrva/osmeha uđe u sloj kose.
+- **14 naslikanih asseta:** body_tier1–6, hair_01–03, beard_01–02, shorts_01–03. Pozadine (6) ostaju placeholderi.
+
+**Popravljeno usput (nađeno tokom integracije):**
+- 🔴 **Generatori placeholder-a su bezuslovno prepisivali sve na SVAKI rebuild scene.** Pošto je
+  rebuild obavezan deo workflow-a, prvi `BuildCoreLoopScene` posle ubacivanja pravog arta bi ga
+  nepovratno obrisao — a `asset-checklist.md` je baš to i preporučivao. Sada `File.Exists` guard u
+  sva tri generatora (art/pozadine/SFX) + zaseban `DANGER — Regenerate…` menu sa potvrdom.
+  Log marker promenjen: `N generated.` → `N ready (x generated, y kept)`.
+- **PPU se izvodi iz visine teksture** (`height / 1.5f`) umesto hardkodovanih 128. Placeholder
+  (192px → PPU 128) i naslikani art (1264px → PPU 842.667) zauzimaju istih 1.5 world jedinica →
+  zamena arta bilo koje rezolucije ne menja veličinu lika i ne lomi poravnanje. Filter je Point za
+  pixel-art, Bilinear za art veće rezolucije (inače ružno alias-uje na telefonu).
+- **`_headSprite` očišćen na svih 6 tierova** — naslikana tela sadrže glavu, pa bi zaseban Head sloj
+  crtao drugo lice preko prvog. `CharacterBuilder` već tretira null HeadSprite.
+
+**Gotchas:**
+- `image_size` nano-banana-pro ignoriše; koristi `aspect_ratio` (enum: `auto,21:9,16:9,3:2,4:3,5:4,1:1,4:5,3:4,2:3,9:16`).
+  Nevalidna vrednost vrati 422 sa celim enumom — jeftin način da se sazna schema (422 se ne naplaćuje).
+- Okruženje nema `jq` ni `python` → JSON za curl se pravi heredoc-om.
+- Pri izolovanju sloja **nuliraj i RGB, ne samo alfu** — inače PNG ostane ogroman (583 KB vs 49 KB)
+  i svaki preview izgleda kao da je ceo lik preživeo, jer render spljošti alfu.
+
+**Verifikacija:** batchmode 0 `error CS`, `15 sprites ready (0 generated, 15 kept)` (= art preživeo
+rebuild), `wired 12/12`, `Scene built and saved`, `SystemsSmokeTest PASS 58/58` (zamena arta nije
+napravila regresiju), `tier3_fit.asset _headSprite: {fileID: 0}`.
+
+**Gotchas naučeni ranije (#021):**
 - `FindObjectsByType`/`FindAnyObjectByType` **preskaču objekte sa `HideFlags.HideAndDontSave`** →
   rig sa hidden objektima je ostavljao `UpgradeManager._currency` null i svaka kupovina je tiho
   padala (15 lažnih padova u prvom run-u). Test rig NE sme da koristi HideFlags.

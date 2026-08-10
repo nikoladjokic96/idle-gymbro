@@ -16,4 +16,4 @@ MonoBehaviour:
   _displayName: Enhanced
   _totalEarnedThreshold: 500000000
   _bodySprite: {fileID: -104429363331363117, guid: c6e8140f3ced759489c6fdd0fcb37f1c, type: 3}
-  _headSprite: {fileID: 6804083144487200740, guid: 71bb127aa27db8d4c80dd462107b1f1b, type: 3}
+  _headSprite: {fileID: 0}

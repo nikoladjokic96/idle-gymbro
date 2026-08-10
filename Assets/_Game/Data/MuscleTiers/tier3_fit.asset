@@ -16,4 +16,4 @@ MonoBehaviour:
   _displayName: Fit
   _totalEarnedThreshold: 25000
   _bodySprite: {fileID: 6065425155155303286, guid: 0cd3cd4ce3a56c442a49df0186c4facd, type: 3}
-  _headSprite: {fileID: 6804083144487200740, guid: 71bb127aa27db8d4c80dd462107b1f1b, type: 3}
+  _headSprite: {fileID: 0}

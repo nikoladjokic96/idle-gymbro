@@ -30,7 +30,7 @@ Jak, deljiv identitet = besplatni viralni marketing.
 |---|---|
 | Engine | **Unity 6 (LTS)**, 2D URP |
 | Jezik | **C#** |
-| Art | **Pixel art, front-view** (standard: [`docs/art-brief.md`](docs/art-brief.md) — canvas 128×192, PPU 128, pivot bottom-center). Izvor: Aseprite/umetnik/AI → **sve mora biti swappable** kroz imenovane slotove |
+| Art | **Hand-painted cartoon, front-view** (promenjeno iz pixel-arta u #022 — odluka korisnika). Canvas **848×1264 (2:3)**, pivot bottom-center, **PPU se IZVODI iz visine teksture** (`height / 1.5`) pa svetska veličina lika ne zavisi od rezolucije arta. Izvor: fal.ai `nano-banana-pro` (style anchor + editi) → **sve i dalje swappable** kroz imenovane slotove |
 | Platforma | **Android prvo** (min API 24, IL2CPP, ARM64) |
 | Data | **ScriptableObjects** (data-driven, balans bez koda) |
 | Monetizacija | **Soft "Medieval Idle Prayer" model** — duga progresija, opt-in reklame, soft wall, zarada nenametljiva (vidi [sekciju 10](#10-monetizacija)) |
@@ -336,7 +336,9 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 
 - [x] #021 **Runtime verifikacija + 6 popravki** — `Editor/SystemsSmokeTest` (11 scenarija / **58 provera**, headless bez Play mode-a; forsira OBA redosleda `ISaveable` restore-a; ne dira pravi save). Popravljeno: **F1 (kritično)** offline zarada je koristila `BasePassiveGainsPerSecond` umesto efektivnog rate-a → davala **12,5× manje** i nikad nije skalirala (§5 formula); **F2** dangling kozmetički id trajno desinhronizovao lika od UI-ja; **F3** wardrobe modal je skrivao lika kog kastomizuješ → **bottom sheet**; **F4** DisplayName umesto asset id-a; **F5** `GameConfig.asset` imao samo 6/17 tunable-a (balans de facto u kodu — blokiralo tuning); **F6** achievements gubili progres na prestige (mrlja iz #019). Testovi verifikovani **negativnom kontrolom** (na starom kodu padaju tačno T9/T10/T11).
 
-> **STANJE: cela igra izgrađena sa placeholderima (Faze 0–7 + prestige + wardrobe), sada i RUNTIME-verifikovana.** 6 modala, 12 sistema na `GameSystems`. Ostaje: realan LevelPlay/IAP (na kraju), pravi art/animacije (čeka assete), **playtest + balans** (prioritet — sada bezbedan, jer su tunable-i stvarno u assetu i postoji regresiona mreža).
+- [x] #022 **Pravi art za lika (fal.ai pipeline)** — `game-assets-enhancement` skill + fal.ai `nano-banana-pro`. Style anchor (tier3) → svih 5 ostalih tierova i svih 8 kozmetika generisano kao **editi anchor-a** (edit čuva kompoziciju → registracija tačna po konstrukciji: identičan canvas 848×1264, ista visina glave, ista linija stopala). `Editor/CosmeticLayerExtractor` izoluje sloj kao razliku „varijanta − baza" u zadatom pojasu. **14 naslikanih asseta** (6 tierova, 3 kose, 2 brade, 3 šorca). Usput popravljeno: (a) **generatori placeholder-a su prepisivali pravi art na SVAKI rebuild scene** — sad `File.Exists` guard + zaseban „DANGER" menu za forsiranje; (b) PPU se izvodi iz visine teksture pa art bilo koje rezolucije zadržava svetsku veličinu; (c) `_headSprite` očišćen (naslikana tela sadrže glavu → inače dvostruko lice). Ostalo: 6 pozadina i dalje placeholderi.
+
+> **STANJE: cela igra izgrađena (Faze 0–7 + prestige + wardrobe), RUNTIME-verifikovana, lik na pravom artu.** 6 modala, 12 sistema na `GameSystems`. Ostaje: realan LevelPlay/IAP (na kraju), pravi art/animacije (čeka assete), **playtest + balans** (prioritet — sada bezbedan, jer su tunable-i stvarno u assetu i postoji regresiona mreža).
 > **Za novi čet:** čitaj ovu sekciju + „Smernice za nastavak" ispod + [`docs/dev-log.md`](docs/dev-log.md). Verifikacija: obe batchmode komande ispod — očekuj `15 sprites generated` · `6 backgrounds` · `4 clips` · `_gameConfig wired on 12/12` · `Scene built and saved`, pa `[SystemsSmokeTest] PASS — 58 checks, 0 failures`.
 
 **MVP status: faze 0–4 funkcionalno kompletne sa placeholderima; monetizacioni TOKOVI mockovani (§10 poštovan — sve opt-in)** — sledeće: pravi art (čeka assete), balans tuning kroz playtest, animacije; realan LevelPlay/IAP na samom kraju.
@@ -369,7 +371,8 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 ```
 & "$env:USERPROFILE\Unity\Hub\Editor\6000.0.79f1\Editor\Unity.exe" -batchmode -quit -nographics -projectPath "F:\idle-gymbro" -executeMethod IdleGymBro.EditorTools.CoreLoopSceneBootstrap.BuildCoreLoopScene -logFile "$env:TEMP\igb.log"
 ```
-Log mora imati: 0× `error CS` · `15 sprites generated` · `6 backgrounds generated` · `4 clips generated` · `_gameConfig wired on 12/12` · `Scene built and saved`. Editor i batchmode ne mogu istovremeno; prvi run posle novih skripti ume samo da kompajlira → ponovi (Unity se lansira kao detached child — čekaj PID, ne veruj povratku komande).
+Log mora imati: 0× `error CS` · `15 sprites ready` · `6 backgrounds ready` · `4 clips ready` · `_gameConfig wired on 12/12` · `Scene built and saved`.
+> ⚠️ Od #022 generatori **ne prepisuju postojeće fajlove** — normalno je `(0 generated, 15 kept)`. Ako vidiš `15 generated`, znači da je pravi art nestao sa diska i generator ga je zamenio placeholderima. Editor i batchmode ne mogu istovremeno; prvi run posle novih skripti ume samo da kompajlira → ponovi (Unity se lansira kao detached child — čekaj PID, ne veruj povratku komande).
 
 **Runtime verifikacija (OBAVEZNA za svaku izmenu logike):**
 ```

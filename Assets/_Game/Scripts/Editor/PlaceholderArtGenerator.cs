@@ -12,13 +12,49 @@ namespace IdleGymBro.EditorTools
         private const int Width = 128;
         private const int Height = 192;
 
+        // World height one character layer spans, in Unity units (the original 192px / 128 PPU).
+        // Every layer's PPU is derived from this so all layers stay pixel-aligned to each other.
+        private const float CharacterWorldHeightUnits = 1.5f;
+
         private static readonly Color SkinTone = new Color(0.87f, 0.62f, 0.44f);
         private static readonly Color DarkBrown = new Color(0.15f, 0.10f, 0.06f);
         private static readonly Color DarkGray = new Color(0.15f, 0.15f, 0.18f);
 
+        // Real art dropped into OutputFolder MUST survive a scene rebuild. CoreLoopSceneBootstrap
+        // calls Generate() on every build, so an unconditional write would silently destroy hours
+        // of art the first time anyone rebuilds the scene. Existing files are therefore kept;
+        // overwriting is an explicit, separate menu action.
+        private static bool _overwriteExisting;
+        private static int _written;
+        private static int _kept;
+
         [MenuItem("IdleGymBro/Generate Placeholder Character Art")]
         public static void Generate()
         {
+            Run(false);
+        }
+
+        [MenuItem("IdleGymBro/DANGER — Regenerate Placeholder Character Art (overwrites real art)")]
+        public static void Regenerate()
+        {
+            if (!EditorUtility.DisplayDialog(
+                    "Overwrite character art?",
+                    $"This OVERWRITES every PNG in {OutputFolder} with generated placeholders.\n\n" +
+                    "Any real art in that folder will be lost.",
+                    "Overwrite", "Cancel"))
+            {
+                return;
+            }
+
+            Run(true);
+        }
+
+        private static void Run(bool overwriteExisting)
+        {
+            _overwriteExisting = overwriteExisting;
+            _written = 0;
+            _kept = 0;
+
             EnsureFolder(OutputFolder);
 
             int count = 0;
@@ -58,7 +94,7 @@ namespace IdleGymBro.EditorTools
             count++;
 
             AssetDatabase.SaveAssets();
-            Debug.Log($"[PlaceholderArtGenerator] {count} sprites generated.");
+            Debug.Log($"[PlaceholderArtGenerator] {count} sprites ready ({_written} generated, {_kept} kept).");
         }
 
         // Bakes a magenta identifier into the bottom-left corner (an empty area on every
@@ -127,8 +163,19 @@ namespace IdleGymBro.EditorTools
 
             string path = $"{OutputFolder}/{fileName}.png";
             string absolutePath = Path.Combine(Application.dataPath, path.Substring("Assets/".Length));
-            File.WriteAllBytes(absolutePath, png);
 
+            if (_overwriteExisting || !File.Exists(absolutePath))
+            {
+                File.WriteAllBytes(absolutePath, png);
+                _written++;
+            }
+            else
+            {
+                _kept++;
+            }
+
+            // Import settings are (re)applied either way, so a hand-authored PNG dropped into the
+            // slot still gets the pivot/PPU/filtering the layer stack depends on.
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
             ConfigureImporter(path);
         }
@@ -143,8 +190,19 @@ namespace IdleGymBro.EditorTools
             }
 
             importer.textureType = TextureImporterType.Sprite;
-            importer.spritePixelsPerUnit = 128;
-            importer.filterMode = FilterMode.Point;
+
+            // PPU is DERIVED from the texture height so every character layer occupies the same
+            // world height (CharacterWorldHeightUnits) no matter what resolution the art is drawn
+            // at. The 128x192 placeholders and 848x1264 painted art therefore render identically —
+            // dropping in higher-res art never rescales the character or breaks layer alignment.
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            importer.spritePixelsPerUnit = texture != null && texture.height > 0
+                ? texture.height / CharacterWorldHeightUnits
+                : Height / CharacterWorldHeightUnits;
+
+            // Point filtering is for the pixel-art placeholders; painted art at 6x the resolution
+            // needs bilinear or its edges alias badly when scaled down on a phone.
+            importer.filterMode = texture != null && texture.height > Height ? FilterMode.Bilinear : FilterMode.Point;
             importer.mipmapEnabled = false;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
             importer.alphaIsTransparency = true;

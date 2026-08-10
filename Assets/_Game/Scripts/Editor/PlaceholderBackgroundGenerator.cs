@@ -29,9 +29,39 @@ namespace IdleGymBro.EditorTools
             }
         }
 
+        // See PlaceholderArtGenerator: the bootstrap regenerates on every scene build, so existing
+        // files are kept rather than overwritten — otherwise real backgrounds die on first rebuild.
+        private static bool _overwriteExisting;
+        private static int _written;
+        private static int _kept;
+
         [MenuItem("IdleGymBro/Generate Placeholder Backgrounds")]
         public static void Generate()
         {
+            Run(false);
+        }
+
+        [MenuItem("IdleGymBro/DANGER — Regenerate Placeholder Backgrounds (overwrites real art)")]
+        public static void Regenerate()
+        {
+            if (!EditorUtility.DisplayDialog(
+                    "Overwrite backgrounds?",
+                    $"This OVERWRITES every PNG in {OutputFolder} with generated placeholders.\n\n" +
+                    "Any real art in that folder will be lost.",
+                    "Overwrite", "Cancel"))
+            {
+                return;
+            }
+
+            Run(true);
+        }
+
+        private static void Run(bool overwriteExisting)
+        {
+            _overwriteExisting = overwriteExisting;
+            _written = 0;
+            _kept = 0;
+
             EnsureFolder(OutputFolder);
 
             var backgrounds = new[]
@@ -50,7 +80,7 @@ namespace IdleGymBro.EditorTools
             }
 
             AssetDatabase.SaveAssets();
-            Debug.Log($"[PlaceholderBackgroundGenerator] {backgrounds.Length} backgrounds generated.");
+            Debug.Log($"[PlaceholderBackgroundGenerator] {backgrounds.Length} backgrounds ready ({_written} generated, {_kept} kept).");
         }
 
         private static void Write(Bg bg)
@@ -106,7 +136,16 @@ namespace IdleGymBro.EditorTools
 
             string path = $"{OutputFolder}/{fileName}.png";
             string absolutePath = Path.Combine(Application.dataPath, path.Substring("Assets/".Length));
-            File.WriteAllBytes(absolutePath, png);
+
+            if (_overwriteExisting || !File.Exists(absolutePath))
+            {
+                File.WriteAllBytes(absolutePath, png);
+                _written++;
+            }
+            else
+            {
+                _kept++;
+            }
 
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
             ConfigureImporter(path);

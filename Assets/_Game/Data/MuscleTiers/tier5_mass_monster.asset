@@ -16,4 +16,4 @@ MonoBehaviour:
   _displayName: Mass Monster
   _totalEarnedThreshold: 10000000
   _bodySprite: {fileID: 5327664388357762221, guid: da070c294a093c940b59c114ad8b2219, type: 3}
-  _headSprite: {fileID: 6804083144487200740, guid: 71bb127aa27db8d4c80dd462107b1f1b, type: 3}
+  _headSprite: {fileID: 0}

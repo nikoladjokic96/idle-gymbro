@@ -109,12 +109,15 @@ namespace IdleGymBro.EditorTools
             // Muscle tiers (data-driven; thresholds are lifetime TotalEarned, not balance).
             var tiers = new MuscleTierData[]
             {
-                GetOrCreateTier("tier1_skinny", 1, "Skinny", 0d, $"{CharacterArtFolder}/body_tier1.png", $"{CharacterArtFolder}/head_01.png"),
-                GetOrCreateTier("tier2_slim_fit", 2, "Slim Fit", 1000d, $"{CharacterArtFolder}/body_tier2.png", $"{CharacterArtFolder}/head_01.png"),
-                GetOrCreateTier("tier3_fit", 3, "Fit", 25000d, $"{CharacterArtFolder}/body_tier3.png", $"{CharacterArtFolder}/head_01.png"),
-                GetOrCreateTier("tier4_jacked", 4, "Jacked", 500000d, $"{CharacterArtFolder}/body_tier4.png", $"{CharacterArtFolder}/head_01.png"),
-                GetOrCreateTier("tier5_mass_monster", 5, "Mass Monster", 10000000d, $"{CharacterArtFolder}/body_tier5.png", $"{CharacterArtFolder}/head_01.png"),
-                GetOrCreateTier("tier6_enhanced", 6, "Enhanced", 500000000d, $"{CharacterArtFolder}/body_tier6.png", $"{CharacterArtFolder}/head_01.png"),
+                // headSpritePath is null: the painted tier bodies already include the head, so a
+                // separate Head layer would draw a second face on top of the first. Pass a path
+                // again only if head art is ever split back out into its own layer.
+                GetOrCreateTier("tier1_skinny", 1, "Skinny", 0d, $"{CharacterArtFolder}/body_tier1.png", null),
+                GetOrCreateTier("tier2_slim_fit", 2, "Slim Fit", 1000d, $"{CharacterArtFolder}/body_tier2.png", null),
+                GetOrCreateTier("tier3_fit", 3, "Fit", 25000d, $"{CharacterArtFolder}/body_tier3.png", null),
+                GetOrCreateTier("tier4_jacked", 4, "Jacked", 500000d, $"{CharacterArtFolder}/body_tier4.png", null),
+                GetOrCreateTier("tier5_mass_monster", 5, "Mass Monster", 10000000d, $"{CharacterArtFolder}/body_tier5.png", null),
+                GetOrCreateTier("tier6_enhanced", 6, "Enhanced", 500000000d, $"{CharacterArtFolder}/body_tier6.png", null),
             };
 
             // Default cosmetics (free, unlocked from the start; wardrobe/shop is post-MVP).
@@ -1008,8 +1011,10 @@ namespace IdleGymBro.EditorTools
             so.FindProperty("_displayName").stringValue = displayName;
             so.FindProperty("_totalEarnedThreshold").doubleValue = threshold;
             so.FindProperty("_bodySprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(bodySpritePath);
-            // Head is SHARED across tiers for the MVP: one sprite (head_01.png), all 6 tiers.
-            so.FindProperty("_headSprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(headSpritePath);
+            // Null when the body art already contains the head (see call site).
+            so.FindProperty("_headSprite").objectReferenceValue = string.IsNullOrEmpty(headSpritePath)
+                ? null
+                : AssetDatabase.LoadAssetAtPath<Sprite>(headSpritePath);
             so.ApplyModifiedProperties();
 
             AssetDatabase.SaveAssets();

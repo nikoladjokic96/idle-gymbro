@@ -16,4 +16,4 @@ MonoBehaviour:
   _displayName: Skinny
   _totalEarnedThreshold: 0
   _bodySprite: {fileID: 6456798711732223293, guid: 17937d6241608cd4d910f61a5aeea6dd, type: 3}
-  _headSprite: {fileID: 6804083144487200740, guid: 71bb127aa27db8d4c80dd462107b1f1b, type: 3}
+  _headSprite: {fileID: 0}
