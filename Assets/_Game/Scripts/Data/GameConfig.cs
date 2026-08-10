@@ -113,20 +113,20 @@ namespace IdleGymBro.Data
         [Min(0.05f)]
         private float _workoutRaiseSeconds = 0.32f;
 
-        // While held, the pose eases back this fraction of a frame and forward again — a real
-        // contraction shakes. Keep it small; large values turn the hold back into a rep.
-        [SerializeField]
-        [Range(0f, 1f)]
-        private float _workoutHoldTremorAmount = 0.22f;
-
+        // While held, the pose drops back one frame for a short beat each cycle so the contraction
+        // pulses instead of freezing. Frames snap (never blend) here — see CharacterAnimator.
         [SerializeField]
         [Min(0.05f)]
-        private float _workoutHoldTremorSpeed = 1.5f; // tremors per second
+        private float _workoutHoldPulseSpeed = 1.4f; // pulses per second
+
+        [SerializeField]
+        [Range(0.05f, 0.5f)]
+        private float _workoutHoldPulseDuty = 0.28f; // fraction of each cycle spent eased back
 
         public float IdleCycleVariation => _idleCycleVariation;
         public float WorkoutRaiseSeconds => _workoutRaiseSeconds;
-        public float WorkoutHoldTremorAmount => _workoutHoldTremorAmount;
-        public float WorkoutHoldTremorSpeed => _workoutHoldTremorSpeed;
+        public float WorkoutHoldPulseSpeed => _workoutHoldPulseSpeed;
+        public float WorkoutHoldPulseDuty => _workoutHoldPulseDuty;
 
         [SerializeField]
         [Min(0.02f)]

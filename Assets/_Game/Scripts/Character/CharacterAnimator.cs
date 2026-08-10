@@ -131,23 +131,36 @@ namespace IdleGymBro.Character
         }
 
         // Position along the workout frames is the raise amount itself: 0 = arms down (frame 0),
-        // 1 = fully contracted (last frame). At the top a slow tremor eases the pose back a
-        // fraction of a frame and forward again, so the hold breathes without becoming a rep.
+        // 1 = fully raised (last frame).
+        //
+        // Frames SNAP here — deliberately. The arms travel a long way between poses, so
+        // cross-fading them draws the lower frame's arms at full opacity with the next frame's
+        // arms appearing on top: the character visibly grows a second pair of arms. Blending only
+        // works when consecutive frames barely differ, which is true of the breathing clip and
+        // false of this one. Snapping through 4 frames in WorkoutRaiseSeconds (~10 fps) is how 2D
+        // animation actually reads.
         private void PlayHeldWorkout(Sprite[] frames, SpriteRenderer renderer, SpriteRenderer blend, float dt)
         {
-            float top = frames.Length - 1;
-            float position = Mathf.SmoothStep(0f, 1f, _workoutBlend) * top;
+            int top = frames.Length - 1;
+            int index = Mathf.Clamp(Mathf.RoundToInt(Mathf.SmoothStep(0f, 1f, _workoutBlend) * top), 0, top);
 
-            if (_workoutBlend >= 1f)
+            // Once fully raised he holds the pose, easing back one frame for a short beat each
+            // cycle — a held contraction that pulses instead of freezing. Also a snap, for the
+            // same reason as above.
+            if (_workoutBlend >= 1f && top >= 1)
             {
-                _holdPhase += dt * _gameConfig.WorkoutHoldTremorSpeed;
+                _holdPhase += dt * _gameConfig.WorkoutHoldPulseSpeed;
                 _holdPhase -= Mathf.Floor(_holdPhase);
 
-                float tremor = (1f - Mathf.Cos(_holdPhase * Mathf.PI * 2f)) * 0.5f; // 0..1..0
-                position = top - tremor * _gameConfig.WorkoutHoldTremorAmount;
+                index = _holdPhase > 1f - _gameConfig.WorkoutHoldPulseDuty ? top - 1 : top;
             }
 
-            ApplyBlendedFrame(frames, position, renderer, blend);
+            renderer.sprite = frames[index];
+
+            if (blend != null)
+            {
+                SetAlpha(blend, 0f); // nothing may linger on top of a snapped frame
+            }
         }
 
         private void PlayIdleLoop(Sprite[] frames, SpriteRenderer renderer, SpriteRenderer blend, float dt)
@@ -179,16 +192,12 @@ namespace IdleGymBro.Character
             ApplyPair(frames[a], frames[b], t, renderer, blend);
         }
 
-        // Splits a fractional frame position into the two frames it sits between.
-        private static void ApplyBlendedFrame(Sprite[] frames, float position, SpriteRenderer renderer, SpriteRenderer blend)
-        {
-            int a = Mathf.Clamp(Mathf.FloorToInt(position), 0, frames.Length - 1);
-            int b = Mathf.Min(a + 1, frames.Length - 1);
-            ApplyPair(frames[a], frames[b], position - a, renderer, blend);
-        }
-
         // Cross-fade: the lower frame stays fully opaque and the next one fades in over it.
         // Fading BOTH would make the body translucent for half of every step.
+        //
+        // ONLY safe for the breathing clip, where consecutive frames differ by a few thousand
+        // pixels of torso outline. Applied to a clip whose limbs travel (the workout curl) it
+        // renders the old arms and the new arms at once — see PlayHeldWorkout.
         private static void ApplyPair(Sprite a, Sprite b, float t, SpriteRenderer renderer, SpriteRenderer blend)
         {
             renderer.sprite = a;
