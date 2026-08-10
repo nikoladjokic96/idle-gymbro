@@ -40,6 +40,25 @@ Ikonice su preuzete kao bele na providnoj pozadini (512×512 PNG) i boje se u en
 
 ---
 
+## UI kit — Kenney
+
+**Licenca:** CC0 (javno dobro) — bez ikakvih obaveza, ni pomen autora nije nužan.
+
+| Fajl | Original | Izvor |
+|---|---|---|
+| `Art/UI/Kit/icon_cross.png` | icon_cross | [Kenney UI Pack v2](https://kenney.nl/assets/ui-pack) |
+
+> Od Kenney paketa je zadržan **samo cross glif**. Paneli i dugmad iz paketa su imali
+> **zapečenu senku/gradijent u samim pikselima**, što se ne može ukloniti bojenjem — a
+> dogovoreni stil je ravan, bez lažnog 3D-a. Zamenjeni su generisanim oblicima (ispod).
+
+## UI oblici — generisano
+
+`Art/UI/Shapes/` — `Editor/UiShapeGenerator` pravi bele, antialiasovane oblike
+(zaobljeni pravougaonici + krug) sa 9-slice ivicom koja prati radijus. Boja dolazi
+isključivo iz palete u `CoreLoopSceneBootstrap` (`Image.color`), pa se izgled menja
+na jednom mestu. Bez licence, bez zavisnosti.
+
 ## Karakter i pozadine — generisano
 
 `Assets/_Game/Art/Character/` i `Assets/_Game/Art/Backgrounds/` — generisano kroz
