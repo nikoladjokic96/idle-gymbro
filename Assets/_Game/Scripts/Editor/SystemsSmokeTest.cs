@@ -67,6 +67,7 @@ namespace IdleGymBro.EditorTools
             Run("T9 wardrobe dangling id", TestWardrobeRecoversFromDanglingId);
             Run("T10 offline earnings scale", TestOfflineEarningsScaleWithEffectiveRate);
             Run("T11 achievements vs prestige", TestAchievementProgressSurvivesPrestige);
+            Run("T12 idle clip per tier", TestEveryTierHasAnIdleClip);
 
             EventBus.Clear();
 
@@ -423,6 +424,50 @@ namespace IdleGymBro.EditorTools
             Check(rig.Achievements.IsClaimable(earnedAchievement),
                 "T11 unclaimed achievement stays claimable across prestige",
                 $"progress={rig.Achievements.GetProgress(earnedAchievement)} threshold={earnedAchievement.Threshold}");
+        }
+
+        // The idle animation is data, not code: a renamed or missing frame file silently degrades
+        // the character back to a static pose with nothing failing loudly. This pins the wiring.
+        private static void TestEveryTierHasAnIdleClip()
+        {
+            MuscleTierData[] tiers = LoadAll<MuscleTierData>(TiersFolder).OrderBy(t => t.TotalEarnedThreshold).ToArray();
+
+            if (!Check(tiers.Length > 0, "T12 muscle tiers exist"))
+            {
+                return;
+            }
+
+            foreach (MuscleTierData tier in tiers)
+            {
+                Check(tier.BodySprite != null, $"T12 {tier.name}: has a static body sprite");
+                Check(tier.IdleFrames != null && tier.IdleFrames.Length >= 1,
+                    $"T12 {tier.name}: has idle frames",
+                    $"got {(tier.IdleFrames == null ? 0 : tier.IdleFrames.Length)}");
+
+                if (tier.IdleFrames == null)
+                {
+                    continue;
+                }
+
+                foreach (Sprite frame in tier.IdleFrames)
+                {
+                    Check(frame != null, $"T12 {tier.name}: no null frame in the clip");
+
+                    // Every frame must share the static pose's canvas, or the character jumps
+                    // between frames and the static cosmetic layers stop lining up.
+                    if (frame != null && tier.BodySprite != null)
+                    {
+                        Check(Mathf.Approximately(frame.rect.width, tier.BodySprite.rect.width) &&
+                              Mathf.Approximately(frame.rect.height, tier.BodySprite.rect.height),
+                            $"T12 {tier.name}: frame '{frame.name}' matches the body canvas",
+                            $"{frame.rect.width}x{frame.rect.height} vs {tier.BodySprite.rect.width}x{tier.BodySprite.rect.height}");
+
+                        Check(Mathf.Approximately(frame.pixelsPerUnit, tier.BodySprite.pixelsPerUnit),
+                            $"T12 {tier.name}: frame '{frame.name}' matches the body PPU",
+                            $"{frame.pixelsPerUnit} vs {tier.BodySprite.pixelsPerUnit}");
+                    }
+                }
+            }
         }
 
         // ---------------------------------------------------------------- helpers

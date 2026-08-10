@@ -238,6 +238,7 @@ namespace IdleGymBro.EditorTools
             // component, because both drive the root transform and two writers fight each other.
             var characterAnimator = characterGo.AddComponent<CharacterAnimator>();
             AssignRef(characterAnimator, "_gameConfig", config);
+            AssignRef(characterAnimator, "_characterBuilder", builder);
             AssignArray(builder, "_tiers", tiers);
 
             // Self-check: verify the asset reference actually serialized (asset refs are
@@ -995,6 +996,40 @@ namespace IdleGymBro.EditorTools
             return AssetDatabase.LoadAssetAtPath<AchievementData>(path);
         }
 
+        // Discovers "<body>_idle1.png", "_idle2.png", … next to the tier's static body sprite and
+        // fills MuscleTierData._idleFrames with them, stopping at the first gap.
+        private static void AssignIdleFrames(SerializedObject tierSo, string bodySpritePath)
+        {
+            SerializedProperty frames = tierSo.FindProperty("_idleFrames");
+
+            if (frames == null || string.IsNullOrEmpty(bodySpritePath))
+            {
+                return;
+            }
+
+            string withoutExtension = bodySpritePath.Substring(0, bodySpritePath.Length - ".png".Length);
+            var found = new System.Collections.Generic.List<Sprite>();
+
+            for (int i = 1; ; i++)
+            {
+                var sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{withoutExtension}_idle{i}.png");
+
+                if (sprite == null)
+                {
+                    break;
+                }
+
+                found.Add(sprite);
+            }
+
+            frames.arraySize = found.Count;
+
+            for (int i = 0; i < found.Count; i++)
+            {
+                frames.GetArrayElementAtIndex(i).objectReferenceValue = found[i];
+            }
+        }
+
         private const string MuscleTiersFolder = "Assets/_Game/Data/MuscleTiers";
 
         private static MuscleTierData GetOrCreateTier(string fileName, int tier, string displayName, double threshold, string bodySpritePath, string headSpritePath)
@@ -1021,6 +1056,10 @@ namespace IdleGymBro.EditorTools
             so.FindProperty("_headSprite").objectReferenceValue = string.IsNullOrEmpty(headSpritePath)
                 ? null
                 : AssetDatabase.LoadAssetAtPath<Sprite>(headSpritePath);
+
+            // Idle breathing clip: body_tierN_idle1..N alongside the static pose. Missing files are
+            // simply skipped, so a tier with no clip authored holds its static sprite.
+            AssignIdleFrames(so, bodySpritePath);
             so.ApplyModifiedProperties();
 
             AssetDatabase.SaveAssets();

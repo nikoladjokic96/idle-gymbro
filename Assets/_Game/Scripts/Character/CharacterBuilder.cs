@@ -20,6 +20,13 @@ namespace IdleGymBro.Character
         private int _currentTierIndex = -1;
         private bool _missingTiersLogged;
 
+        // The Body layer's renderer and the active tier's idle clip, exposed so CharacterAnimator
+        // can play frames without reaching into the layer stack itself. Frame 0 is always the
+        // tier's static BodySprite, so a tier with no clip authored simply never animates.
+        public SpriteRenderer BodyRenderer => _renderers.TryGetValue(CharacterLayer.Body, out SpriteRenderer r) ? r : null;
+
+        public Sprite[] CurrentIdleFrames { get; private set; }
+
         private void Awake()
         {
             foreach (CharacterLayer layer in Enum.GetValues(typeof(CharacterLayer)))
@@ -92,6 +99,10 @@ namespace IdleGymBro.Character
             MuscleTierData tier = _tiers[idx];
             _currentTierIndex = idx;
 
+            // Frame 0 is the static pose; any authored frames follow it, so the clip always starts
+            // from exactly what a non-animating tier would show.
+            CurrentIdleFrames = BuildIdleClip(tier);
+
             if (_renderers.TryGetValue(CharacterLayer.Body, out SpriteRenderer bodyRenderer))
             {
                 bodyRenderer.sprite = tier.BodySprite;
@@ -106,6 +117,29 @@ namespace IdleGymBro.Character
         }
 
         public int CurrentTier => _currentTierIndex >= 0 && _tiers != null && _currentTierIndex < _tiers.Length && _tiers[_currentTierIndex] != null ? _tiers[_currentTierIndex].Tier : 0;
+
+        private static Sprite[] BuildIdleClip(MuscleTierData tier)
+        {
+            if (tier == null || tier.BodySprite == null)
+            {
+                return null;
+            }
+
+            var clip = new List<Sprite> { tier.BodySprite };
+
+            if (tier.IdleFrames != null)
+            {
+                foreach (Sprite frame in tier.IdleFrames)
+                {
+                    if (frame != null)
+                    {
+                        clip.Add(frame);
+                    }
+                }
+            }
+
+            return clip.Count > 1 ? clip.ToArray() : null;
+        }
 
         private bool ValidateTiers()
         {

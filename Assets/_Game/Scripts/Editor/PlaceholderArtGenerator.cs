@@ -93,8 +93,14 @@ namespace IdleGymBro.EditorTools
             LabelAndWrite("shorts_03", BuildRectPixels(64, 24, 64, 90, new Color(0.16f, 0.22f, 0.50f)), "SHORTS3");
             count++;
 
+            // Import settings are applied to EVERY png in the folder, not just the ones this
+            // generator knows how to draw. Hand-added art — animation frames, extra cosmetics —
+            // otherwise lands with Unity's defaults (PPU 100, auto-cropped rect), which silently
+            // breaks layer alignment and makes the character jump between frames.
+            int configured = ConfigureAllInFolder();
+
             AssetDatabase.SaveAssets();
-            Debug.Log($"[PlaceholderArtGenerator] {count} sprites ready ({_written} generated, {_kept} kept).");
+            Debug.Log($"[PlaceholderArtGenerator] {count} sprites ready ({_written} generated, {_kept} kept); {configured} png import settings applied.");
         }
 
         // Bakes a magenta identifier into the bottom-left corner (an empty area on every
@@ -178,6 +184,28 @@ namespace IdleGymBro.EditorTools
             // slot still gets the pivot/PPU/filtering the layer stack depends on.
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
             ConfigureImporter(path);
+        }
+
+        private static int ConfigureAllInFolder()
+        {
+            string absoluteFolder = Path.Combine(Application.dataPath, OutputFolder.Substring("Assets/".Length));
+
+            if (!Directory.Exists(absoluteFolder))
+            {
+                return 0;
+            }
+
+            int configured = 0;
+
+            foreach (string file in Directory.GetFiles(absoluteFolder, "*.png", SearchOption.TopDirectoryOnly))
+            {
+                string assetPath = $"{OutputFolder}/{Path.GetFileName(file)}";
+                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+                ConfigureImporter(assetPath);
+                configured++;
+            }
+
+            return configured;
         }
 
         private static void ConfigureImporter(string path)
