@@ -20,20 +20,42 @@
 
 ## 2. Tehnički standard (OBAVEZNO isto za sve)
 
+> **Zaključano 2026-08-12 (PixelLab migracija).** Brojke ispod su izvedene iz PixelLab limita,
+> ne proizvoljne — vidi [`pixellab-migration.md`](pixellab-migration.md) §4 za obrazloženje.
+
 | Parametar | Vrednost |
 |---|---|
-| **Canvas po frejmu** | **128 × 192 px** (portret), isto za SVE slojeve i frejmove |
-| **Registracija** | lik centriran po X; **stopala na fiksnoj baznoj liniji** (npr. y=8 od dna) |
+| **Canvas lika po frejmu** | **96 × 144 px** (portret 2:3), isto za SVE slojeve i frejmove |
+| **Canvas UI ikonice** | **64 × 64 px**, transparentna pozadina |
+| **Canvas pozadine** | **216 × 384 px** (9:16 — tačno 1/5 dizajn prostora 1080×1920) |
+| **Registracija** | lik centriran po X; **stopala na fiksnoj baznoj liniji** (y=6 od dna) |
 | **Pivot** | **Bottom-Center** — isti za svaki sloj → slojevi se slažu pixel-perfect |
-| **Pixels Per Unit (PPU)** | **128** (isto za sve sprite-ove) |
-| **Skala** | crtaj u 1× (128×192); Unity skalira gore Point filterom |
+| **Pixels Per Unit (PPU)** | **IZVODI SE, ne kuca se ručno** — lik `height / 1.5`, pozadina `height / 15` |
+| **Skala** | crtaj u 1× (96×144); Unity skalira gore Point filterom |
+
+### Zašto baš 96 × 144
+
+Canvas je biran da **animacija košta 1 generaciju**. PixelLab naplaćuje `animate_image`
+po formuli `ceil(w · h · frames / 65536)` po pravcu:
+
+| Canvas | 4 frejma | 8 frejmova |
+|---|---|---|
+| **96 × 144** | **1 gen** ✅ | 2 gen |
+| 128 × 192 (stari brief) | 2 gen | 3 gen |
+
+Uz 6 tierova × 2 animacije (idle + rep), razlika je **12 vs 24+ generacija** — na nalogu
+od 40 to je razlika između „animacije staju" i „ne staju".
+
+> **Ne menjaj canvas bez ponovnog računa.** Limiti: `create_image_pixflux` prima 16–400 px
+> po strani (ukupna površina do 400×400); `animate_image` traži frejm ≤ 256×256 i
+> `w · h · frame_count ≤ 524288`. 96×144 prolazi kroz oba sa rezervom.
 
 ### Unity import (za svaki sprite/sheet)
 - **Filter Mode: Point (no filter)**
 - **Compression: None**
 - **Generate Mip Maps: OFF**
 - **Mesh Type: Full Rect**
-- **Pixels Per Unit: 128**
+- **Pixels Per Unit: IZVEDEN iz visine teksture** (`PlaceholderArtGenerator` / `PlaceholderBackgroundGenerator` to rade automatski) — nikad fiksna vrednost, inače art druge rezolucije nemo promeni veličinu scene
 - Pivot: Custom → Bottom-Center (ili Custom po anchoru dole)
 
 > Ključ modularnosti: **isti canvas + isti pivot** za svaki sloj. Ako svi crtaju lika

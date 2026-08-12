@@ -85,14 +85,27 @@ Mapa svakog asseta: [`asset-catalog.md`](asset-catalog.md).
 
 1. **§2 „Zaključane odluke" se menja.** Trenutno: *hand-painted cartoon, 848×1264, fal.ai `nano-banana-pro`* (odluka #022). Novo: *pixel art, PixelLab*. Ovo poništava #022 i vraća nas na pixel art iz originalnog [`art-brief.md`](art-brief.md).
 
-2. **Canvas/PPU se menja.** 848×1264 nema smisla za pixel art. PPU se trenutno izvodi kao `height / 1.5` (`CharacterBuilder`) — to i dalje radi za bilo koju rezoluciju, ali brojke u [`art-brief.md`](art-brief.md) i [`asset-checklist.md`](asset-checklist.md) treba uskladiti.
-   > **Cena zavisi od canvasa:** `animate_character` v3 je ~1 gen/pravac na ≤96px, 2/dir na 128px, 4/dir na 160px. **Manji canvas = jeftinije animacije.** Preporuka: **96×144** (najjeftinije) ili **128×192** (stari brief, dvostruko skuplje animacije).
+2. **Canvas/PPU — ✅ ZAKLJUČANO 2026-08-12.** Standard je u [`art-brief.md`](art-brief.md) §2:
+   **lik 96×144 · ikonica 64×64 · pozadina 216×384**, PPU se svuda **izvodi iz visine teksture**
+   (lik `height / 1.5`, pozadina `height / 15`) pa svetska veličina ne zavisi od rezolucije arta.
+   Obrazloženje: 96×144 je najveći portret canvas na kome `animate_image` košta **1 generaciju** za 4 frejma.
 
-3. **Kozmetika kao slojevi — PixelLab nema direktan ekvivalent.** `create_character_state` daje varijantu lika (isti identitet, druga odeća) ali košta 20–40 gen po komadu. Jeftina alternativa: generisati varijantu preko `create_image_pixflux` img2img (1 gen) pa izolovati sloj postojećim `Editor/CosmeticLayerExtractor`-om (razlika „varijanta − baza"). **Taj tool već postoji i radi** — pisan je za fal.ai, ali je logika generička (razlika u zadatom pojasu).
+3. **⚠️ `create_character` se NE koristi — canvas mu je kvadratni.** `size` je jedan integer (16–256),
+   a stvarni canvas je još ~40% veći „to make room for animations". Kvadrat ne može da nosi portret lika,
+   a 8 pravaca nam ne treba jer je igra front-view (§2).
+   **Pipeline je umesto toga:**
+   ```
+   create_image_pixflux (1 gen, slobodan 96×144)  →  animate_image (1 gen, radi na "loose sprite")
+   ```
+   `animate_image` je ključan nalaz: animira **bilo koji** PNG, ne traži PixelLab-ov rig
+   (za razliku od `animate_character` / `animate_object`). Time zaobilazimo i kvadratni canvas
+   i cenu `create_character_state`-a.
 
-4. **Front-view only.** Igra je front-view (§2), a PixelLab pravi 4/8 pravaca. Koristimo samo `south`. Ne plaćamo više zbog toga (standard mode = 1 gen bez obzira na broj pravaca), ali `create_image_pixflux` je direktniji za sve što nije lik.
+4. **Kozmetika kao slojevi — PixelLab nema direktan ekvivalent.** `create_character_state` daje varijantu lika (isti identitet, druga odeća) ali košta 20–40 gen po komadu. Jeftina alternativa: generisati varijantu preko `create_image_pixflux` img2img (1 gen) pa izolovati sloj postojećim `Editor/CosmeticLayerExtractor`-om (razlika „varijanta − baza"). **Taj tool već postoji i radi** — pisan je za fal.ai, ali je logika generička (razlika u zadatom pojasu).
 
-5. **Generatori placeholder-a imaju `File.Exists` guard** (od #022) — neće pregaziti novi art. Ako se u logu pojavi `15 generated` umesto `(0 generated, 15 kept)`, znači da je pravi art nestao s diska.
+5. **Pozadine više nisu 1080×1920.** `create_image_pixflux` prima najviše 400 px po strani, pa pozadine idu na **216×384** (isti 9:16, tačno 1/5). `PlaceholderBackgroundGenerator` je zato prepravljen da **izvodi PPU** (`height / 15`) umesto hardkodovanih `128` — bez toga bi se pozadina od 216×384 renderovala na 1/5 veličine.
+
+6. **Generatori placeholder-a imaju `File.Exists` guard** (od #022) — neće pregaziti novi art. Ako se u logu pojavi `15 generated` umesto `(0 generated, 15 kept)`, znači da je pravi art nestao s diska.
 
 ---
 
@@ -114,9 +127,9 @@ Mapa svakog asseta: [`asset-catalog.md`](asset-catalog.md).
 
 ## 6. Otvorene odluke za korisnika
 
-1. **Budžet** — kupuje se pretplata, ili trošimo trial na Fazu A+delić B kao dokaz stila?
-2. **Canvas** — 96×144 (jeftine animacije) ili 128×192 (stari `art-brief.md` standard)?
-3. **UI paneli i font** — `create_ui_asset` (20–40 gen/panel) i `create_font` (25 gen) su skupi. Ostaju postojeći `UiShapeGenerator` oblici, ili ulaze u budžet?
+1. **Budžet** — kupuje se pretplata, ili trošimo trial na Fazu A+delić B kao dokaz stila? **← OTVORENO, blokira sve**
+2. ~~**Canvas**~~ — ✅ **rešeno 2026-08-12: lik 96×144, ikonica 64×64, pozadina 216×384.** Zaključano u [`art-brief.md`](art-brief.md) §2.
+3. **UI paneli i font** — `create_ui_asset` (20–40 gen/panel) i `create_font` (25 gen) su skupi. Ostaju postojeći `UiShapeGenerator` oblici, ili ulaze u budžet? *(predlog: ostaju — PixelLab-om samo 18 ikonica)*
 
 ---
 

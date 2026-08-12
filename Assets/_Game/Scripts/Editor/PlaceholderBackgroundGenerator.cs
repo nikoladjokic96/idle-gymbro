@@ -13,6 +13,11 @@ namespace IdleGymBro.EditorTools
         private const int Width = 1080;
         private const int Height = 1920;
 
+        // World height one background spans, in Unity units (the original 1920px / 128 PPU).
+        // PPU is DERIVED from this so a background of ANY resolution covers the same world area —
+        // the pixel-art backgrounds (216x384) must frame identically to these 1080x1920 placeholders.
+        private const float BackgroundWorldHeightUnits = 15f;
+
         private static readonly Color LabelColor = new Color(1f, 0f, 1f, 1f);
 
         private struct Bg
@@ -166,7 +171,15 @@ namespace IdleGymBro.EditorTools
             // sub-sprite rects, so replacing this PNG with painted art of another size would crop
             // a stale rectangle instead of showing the new image.
             importer.spriteImportMode = SpriteImportMode.Single;
-            importer.spritePixelsPerUnit = 128;
+
+            // Derived, not hardcoded: a 1080x1920 placeholder and a 216x384 pixel-art background
+            // both resolve to the same 15 world units tall, so swapping one for the other cannot
+            // silently rescale the scene (a fixed 128 would render the small art at 1/5 size).
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            importer.spritePixelsPerUnit = texture != null && texture.height > 0
+                ? texture.height / BackgroundWorldHeightUnits
+                : 128f;
+
             importer.filterMode = FilterMode.Point;
             importer.mipmapEnabled = false;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
