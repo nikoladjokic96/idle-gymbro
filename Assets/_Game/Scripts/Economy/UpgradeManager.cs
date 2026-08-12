@@ -80,6 +80,10 @@ namespace IdleGymBro.Economy
             RecomputeAndPublish();
         }
 
+        // The configured catalogue, for callers that need to walk it by category (the tab bar's
+        // filter and the location gate). Never null, so callers do not each guard for it.
+        public UpgradeData[] AllUpgrades => _upgrades ?? System.Array.Empty<UpgradeData>();
+
         public int GetLevel(string id)
         {
             return _levels.TryGetValue(id, out int l) ? l : 0;
@@ -198,6 +202,12 @@ namespace IdleGymBro.Economy
                 return 0;
             }
 
+            // The rest timer gates buying only; everything else in the game keeps running.
+            if (UpgradeCooldownManager.Instance != null && UpgradeCooldownManager.Instance.IsActive)
+            {
+                return 0;
+            }
+
             int levels = AffordableLevels(id, count);
 
             if (levels <= 0)
@@ -253,6 +263,7 @@ namespace IdleGymBro.Economy
         {
             double gpr = _gameConfig != null ? _gameConfig.GainsPerRep : 0d;
             double pps = _gameConfig != null ? _gameConfig.BasePassiveGainsPerSecond : 0d;
+            double maxEnergy = _gameConfig != null ? _gameConfig.MaxEnergy : 0d;
 
             if (_upgrades != null)
             {
@@ -273,13 +284,93 @@ namespace IdleGymBro.Economy
                     {
                         pps += contrib;
                     }
+                    else if (u.StatType == StatType.MaxEnergy)
+                    {
+                        maxEnergy += contrib;
+                    }
                 }
             }
 
             gpr *= _locationMultiplier * _prestigeMultiplier;
             pps *= _locationMultiplier * _prestigeMultiplier;
 
-            EventBus.Publish(new StatsChangedEvent(gpr, pps));
+            // Max energy is deliberately NOT multiplied: location and prestige scale income, and
+            // scaling the energy pool by the same factors would make late-game training bursts
+            // effectively endless instead of a pool you have to manage.
+            EventBus.Publish(new StatsChangedEvent(gpr, pps, maxEnergy));
+        }
+
+        // Total levels in one category — the Body target a location asks for, without Equipment or
+        // Macros levels quietly counting towards it.
+        public int TotalLevelsIn(UpgradeCategory category)
+        {
+            int sum = 0;
+
+            if (_upgrades == null)
+            {
+                return 0;
+            }
+
+            foreach (var u in _upgrades)
+            {
+                if (u != null && u.Category == category)
+                {
+                    sum += GetLevel(u.Id);
+                }
+            }
+
+            return sum;
+        }
+
+        // True when every piece of gear tied to this location sits at its MaxLevel.
+        public bool IsEquipmentComplete(string locationId)
+        {
+            if (_upgrades == null || string.IsNullOrEmpty(locationId))
+            {
+                return true;
+            }
+
+            bool sawAny = false;
+
+            foreach (var u in _upgrades)
+            {
+                if (u == null || u.Category != UpgradeCategory.Equipment || u.LocationId != locationId)
+                {
+                    continue;
+                }
+
+                sawAny = true;
+
+                // MaxLevel 0 means "unlimited", which can never be completed — treat such a piece
+                // as a data error rather than an unreachable gate.
+                if (u.MaxLevel <= 0 || GetLevel(u.Id) < u.MaxLevel)
+                {
+                    return false;
+                }
+            }
+
+            return sawAny;
+        }
+
+        // The lowest level across the three macros: raising only protein must not unlock anything.
+        public int LowestMacroLevel()
+        {
+            int lowest = int.MaxValue;
+
+            if (_upgrades == null)
+            {
+                return 0;
+            }
+
+            foreach (var u in _upgrades)
+            {
+                if (u != null && u.Category == UpgradeCategory.Macros)
+                {
+                    lowest = System.Math.Min(lowest, GetLevel(u.Id));
+                }
+            }
+
+            return lowest == int.MaxValue ? 0 : lowest;
         }
 
         public void CaptureState(SaveData data)

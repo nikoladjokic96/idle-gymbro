@@ -7,10 +7,15 @@ namespace IdleGymBro.Economy
         public double GainsPerRep { get; }
         public double PassiveGainsPerSecond { get; }
 
-        public StatsChangedEvent(double gainsPerRep, double passiveGainsPerSecond)
+        // Carbs (Macros tab) raise the energy ceiling. Defaulted so the two-argument form still
+        // compiles for callers that only care about income.
+        public double MaxEnergy { get; }
+
+        public StatsChangedEvent(double gainsPerRep, double passiveGainsPerSecond, double maxEnergy = 0d)
         {
             GainsPerRep = gainsPerRep;
             PassiveGainsPerSecond = passiveGainsPerSecond;
+            MaxEnergy = maxEnergy;
         }
     }
 

@@ -54,6 +54,30 @@ namespace IdleGymBro.EditorTools
             [' '] = new byte[] { 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000 },
             [':'] = new byte[] { 0b00000, 0b00100, 0b00000, 0b00000, 0b00100, 0b00000, 0b00000 },
             ['-'] = new byte[] { 0b00000, 0b00000, 0b00000, 0b11111, 0b00000, 0b00000, 0b00000 },
+
+            // Everything below exists because this font now also renders the live UI (see
+            // PixelFontAssetGenerator), not just baked placeholder labels. A missing glyph in a
+            // bitmap font draws nothing at all, so the set has to cover every character the HUD can
+            // produce: costs, levels, percentages, rates, countdowns and the odd bit of punctuation.
+            ['.'] = new byte[] { 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00100 },
+            [','] = new byte[] { 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00100, 0b01000 },
+            ['+'] = new byte[] { 0b00000, 0b00100, 0b00100, 0b11111, 0b00100, 0b00100, 0b00000 },
+            ['/'] = new byte[] { 0b00001, 0b00010, 0b00010, 0b00100, 0b01000, 0b01000, 0b10000 },
+            ['%'] = new byte[] { 0b11001, 0b11010, 0b00010, 0b00100, 0b01000, 0b01011, 0b10011 },
+            ['('] = new byte[] { 0b00010, 0b00100, 0b01000, 0b01000, 0b01000, 0b00100, 0b00010 },
+            [')'] = new byte[] { 0b01000, 0b00100, 0b00010, 0b00010, 0b00010, 0b00100, 0b01000 },
+            ['!'] = new byte[] { 0b00100, 0b00100, 0b00100, 0b00100, 0b00100, 0b00000, 0b00100 },
+            ['?'] = new byte[] { 0b01110, 0b10001, 0b00001, 0b00010, 0b00100, 0b00000, 0b00100 },
+            ['\''] = new byte[] { 0b00100, 0b00100, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000 },
+            ['"'] = new byte[] { 0b01010, 0b01010, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000 },
+            ['$'] = new byte[] { 0b00100, 0b01111, 0b10100, 0b01110, 0b00101, 0b11110, 0b00100 },
+            ['='] = new byte[] { 0b00000, 0b00000, 0b11111, 0b00000, 0b11111, 0b00000, 0b00000 },
+            ['*'] = new byte[] { 0b00000, 0b10101, 0b01110, 0b11111, 0b01110, 0b10101, 0b00000 },
+            ['#'] = new byte[] { 0b01010, 0b11111, 0b01010, 0b01010, 0b01010, 0b11111, 0b01010 },
+            ['<'] = new byte[] { 0b00010, 0b00100, 0b01000, 0b10000, 0b01000, 0b00100, 0b00010 },
+            ['>'] = new byte[] { 0b01000, 0b00100, 0b00010, 0b00001, 0b00010, 0b00100, 0b01000 },
+            ['['] = new byte[] { 0b00110, 0b00100, 0b00100, 0b00100, 0b00100, 0b00100, 0b00110 },
+            [']'] = new byte[] { 0b01100, 0b00100, 0b00100, 0b00100, 0b00100, 0b00100, 0b01100 },
         };
 
         // originX/originY = bottom-left of the whole string, in pixel coords with y up.

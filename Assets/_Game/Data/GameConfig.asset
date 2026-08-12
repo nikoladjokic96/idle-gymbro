@@ -30,6 +30,9 @@ MonoBehaviour:
   _idleTrainingWindowSeconds: 1.2
   _idleTiredRateMultiplier: 0.55
   _idleCycleVariation: 0.18
+  _upgradeCooldownEveryLevels: 10
+  _upgradeCooldownBaseSeconds: 300
+  _upgradeCooldownAdCutSeconds: 120
   _workoutCyclesPerSecond: 0.75
   _blinkDurationSeconds: 0.11
   _blinkIntervalMinSeconds: 2.5

@@ -2,6 +2,7 @@ using UnityEngine;
 using IdleGymBro.Core;
 using IdleGymBro.Data;
 using IdleGymBro.Progression;
+using IdleGymBro.Economy;
 
 namespace IdleGymBro.Gameplay
 {
@@ -27,8 +28,16 @@ namespace IdleGymBro.Gameplay
         private float _currentEnergy;
         private bool _missingConfigLogged;
 
+        // Effective ceiling, raised by Carbs (Macros tab) on top of the config base. Cached from
+        // StatsChangedEvent per the house pattern: the config value stands in until UpgradeManager
+        // publishes for the first time, so a cold boot never reads zero.
+        private float _maxEnergyOverride = -1f;
+
         public float CurrentEnergy => _currentEnergy;
-        public float MaxEnergy => _gameConfig != null ? _gameConfig.MaxEnergy : 0f;
+
+        public float MaxEnergy => _maxEnergyOverride > 0f
+            ? _maxEnergyOverride
+            : (_gameConfig != null ? _gameConfig.MaxEnergy : 0f);
 
         private void Awake()
         {
@@ -45,6 +54,7 @@ namespace IdleGymBro.Gameplay
             EventBus.Subscribe<TapEvent>(HandleTap);
             EventBus.Subscribe<TickEvent>(HandleTick);
             EventBus.Subscribe<PrestigeEvent>(HandlePrestige);
+            EventBus.Subscribe<StatsChangedEvent>(HandleStatsChanged);
         }
 
         private void OnDisable()
@@ -52,6 +62,21 @@ namespace IdleGymBro.Gameplay
             EventBus.Unsubscribe<TapEvent>(HandleTap);
             EventBus.Unsubscribe<TickEvent>(HandleTick);
             EventBus.Unsubscribe<PrestigeEvent>(HandlePrestige);
+            EventBus.Unsubscribe<StatsChangedEvent>(HandleStatsChanged);
+        }
+
+        private void HandleStatsChanged(StatsChangedEvent e)
+        {
+            if (e.MaxEnergy <= 0d)
+            {
+                return;
+            }
+
+            _maxEnergyOverride = (float)e.MaxEnergy;
+
+            // Buying carbs should FEEL like more room, not silently raise a number the player only
+            // notices later; the bar redraws immediately at the new ceiling.
+            EventBus.Publish(new EnergyChangedEvent(_currentEnergy, MaxEnergy));
         }
 
         private void HandlePrestige(PrestigeEvent e)

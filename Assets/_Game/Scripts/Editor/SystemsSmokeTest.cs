@@ -70,6 +70,8 @@ namespace IdleGymBro.EditorTools
             Run("T12 idle clip per tier", TestEveryTierHasAnIdleClip);
             Run("T13 head anchors per frame", TestHeadAnchorsMatchFrames);
             Run("T14 shorts cut per tier", TestShortsAreCutPerTier);
+            Run("T15 pixel font resolves", TestPixelFontResolvesCharacters);
+            Run("T16 upgrade rest timer", TestUpgradeCooldownGatesPurchases);
 
             EventBus.Clear();
 
@@ -157,15 +159,46 @@ namespace IdleGymBro.EditorTools
             }
 
             Grant(1e15);
-            BuyLevels(rig, "chest", home.TotalLevelsToComplete);
 
-            Check(rig.Upgrades.TotalLevels >= home.TotalLevelsToComplete, "T3 reached location-1 level threshold");
+            // A location is now cleared by three separate conditions, not one running total. Each
+            // step below asserts that the OTHER two still hold it shut — that is the whole point of
+            // the tabs, and a regression to "any levels count" would otherwise pass silently.
+            BuyLevels(rig, "chest", home.BodyLevelTarget);
+            Check(rig.Upgrades.TotalLevelsIn(UpgradeCategory.Body) >= home.BodyLevelTarget, "T3 body target reached");
+            Check(!probe.CanAdvanceLocation, "T3 body alone does NOT unlock the next location");
+
+            foreach (UpgradeData gear in rig.Upgrades.AllUpgrades)
+            {
+                if (gear != null && gear.Category == UpgradeCategory.Equipment && gear.LocationId == home.Id)
+                {
+                    BuyLevels(rig, gear.Id, gear.MaxLevel);
+                }
+            }
+
+            Check(rig.Upgrades.IsEquipmentComplete(home.Id), "T3 all home equipment maxed");
+            Check(!probe.CanAdvanceLocation, "T3 body + gear still does NOT unlock without macros");
+
+            foreach (string macro in new[] { "protein", "carbs", "fats" })
+            {
+                BuyLevels(rig, macro, home.MacroLevelTarget);
+            }
+
+            Check(rig.Upgrades.LowestMacroLevel() >= home.MacroLevelTarget, "T3 macro target reached on all three");
             Check(probe.CanAdvanceLocation, "T3 progress reports advance available");
             Check(rig.Locations.TryAdvance(), "T3 TryAdvance succeeds at 100%");
             Check(rig.Locations.CurrentIndex == 1, "T3 moved to location 2");
 
-            double expectedGpr = (rig.Config.GainsPerRep + rig.Upgrades.GetUpgrade("chest").EffectPerLevel * rig.Upgrades.GetLevel("chest"))
-                * next.GlobalMultiplier;
+            double flatGpr = rig.Config.GainsPerRep;
+
+            foreach (UpgradeData u in rig.Upgrades.AllUpgrades)
+            {
+                if (u != null && u.StatType == StatType.GainsPerRep)
+                {
+                    flatGpr += u.EffectPerLevel * rig.Upgrades.GetLevel(u.Id);
+                }
+            }
+
+            double expectedGpr = flatGpr * next.GlobalMultiplier;
             CheckApprox(probe.GainsPerRep, expectedGpr, Math.Abs(expectedGpr) * 1e-9 + 1e-6,
                 "T3 location multiplier applied to gains/rep");
         }
@@ -576,6 +609,114 @@ namespace IdleGymBro.EditorTools
             Check(shortsChecked > 0, "T14 at least one shorts cosmetic was checked");
         }
 
+        // A hand-built TMP font asset fails SILENTLY and totally: the tables can be full while the
+        // lookup dictionaries (built by ReadFontAssetDefinition) are empty, or the atlas dimensions
+        // can be zero so every glyph samples the wrong region — either way the game boots with an
+        // entirely blank HUD and not one warning in the log. These are the checks that would have
+        // caught each of those.
+        private static void TestPixelFontResolvesCharacters()
+        {
+            var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Game/Art/UI/Font/PixelFont.asset");
+
+            if (!Check(font != null, "T15 pixel font asset exists"))
+            {
+                return;
+            }
+
+            Check(font.characterTable.Count > 30, "T15 font has a full character table", $"{font.characterTable.Count} characters");
+            Check(font.glyphTable.Count == font.characterTable.Count, "T15 one glyph per character");
+            Check(font.atlasWidth > 0 && font.atlasHeight > 0, "T15 atlas dimensions are set", $"{font.atlasWidth}x{font.atlasHeight}");
+            Check(font.atlasTextures != null && font.atlasTextures.Length > 0 && font.atlasTextures[0] != null, "T15 atlas texture is assigned");
+            Check(font.material != null, "T15 font has a material");
+            Check(font.material != null && font.material.shader != null && font.material.shader.name.Contains("Bitmap"),
+                "T15 material uses the TMP bitmap shader",
+                font.material != null && font.material.shader != null ? font.material.shader.name : "none");
+
+            // The lookup table is what TMP actually reads while laying text out.
+            foreach (char c in new[] { 'A', 'Z', '0', '9', '%', '+', '.', ' ' })
+            {
+                Check(font.characterLookupTable != null && font.characterLookupTable.ContainsKey(c),
+                    $"T15 '{c}' resolves through the lookup table");
+            }
+
+            // Every glyph must land inside the atlas, or it samples neighbouring glyphs.
+            bool allInside = true;
+
+            foreach (UnityEngine.TextCore.Glyph g in font.glyphTable)
+            {
+                if (g.glyphRect.x < 0 || g.glyphRect.y < 0 ||
+                    g.glyphRect.x + g.glyphRect.width > font.atlasWidth ||
+                    g.glyphRect.y + g.glyphRect.height > font.atlasHeight)
+                {
+                    allInside = false;
+                    break;
+                }
+            }
+
+            Check(allInside, "T15 every glyph rect lies inside the atlas");
+        }
+
+        // The rest timer is the one mechanic here that can BLOCK the player, so it gets checked from
+        // both sides: that it actually arms and stops purchases, and — more importantly — that it
+        // cannot get stuck. A timer that never clears would soft-lock the whole economy.
+        private static void TestUpgradeCooldownGatesPurchases()
+        {
+            using var rig = Rig.Build();
+            rig.Boot();
+
+            if (!Check(rig.Cooldown != null, "T16 cooldown manager present"))
+            {
+                return;
+            }
+
+            Grant(1e12);
+            int every = rig.Config.UpgradeCooldownEveryLevels;
+
+            Check(!rig.Cooldown.IsActive, "T16 no rest timer on a fresh run");
+
+            // Buying up to the milestone must NOT arm it; crossing it must.
+            for (int i = 0; i < every - 1; i++)
+            {
+                rig.Upgrades.TryBuy("chest");
+            }
+
+            Check(!rig.Cooldown.IsActive, $"T16 still free after {every - 1} levels");
+
+            rig.Upgrades.TryBuy("chest");
+            Check(rig.Cooldown.IsActive, $"T16 rest timer arms on level {every}");
+
+            int levelAtBlock = rig.Upgrades.GetLevel("chest");
+            Check(rig.Upgrades.TryBuy("chest", 1) == 0, "T16 purchases are blocked while resting");
+            Check(rig.Upgrades.GetLevel("chest") == levelAtBlock, "T16 a blocked purchase changes nothing");
+
+            // Tapping and passive income are deliberately NOT gated (§10 rule 3) — only buying is.
+            double gainsBefore = rig.Currency.TotalGains;
+            Grant(1000d);
+            Check(rig.Currency.TotalGains > gainsBefore, "T16 earning still works while resting");
+
+            // The escalation the design asks for: each wait longer than the last.
+            Check(rig.Cooldown.DurationFor(2) > rig.Cooldown.DurationFor(1), "T16 the second rest is longer than the first");
+            Check(rig.Cooldown.DurationFor(3) > rig.Cooldown.DurationFor(2), "T16 the third is longer again");
+
+            // The ad shortens rather than clears — it must not become a free skip.
+            double before = rig.Cooldown.RemainingSeconds;
+            rig.Cooldown.ShortenByAd();
+            double after = rig.Cooldown.RemainingSeconds;
+            Check(after < before, "T16 the rewarded ad cuts the remaining wait");
+            Check(after > 0d || before <= rig.Config.UpgradeCooldownAdCutSeconds,
+                "T16 one ad does not clear a full-length wait");
+
+            // Survives a save round-trip as an absolute deadline: storing seconds-remaining would
+            // make force-quitting a free skip.
+            var data = new SaveData();
+            rig.Cooldown.CaptureState(data);
+            Check(data.UpgradeCooldownEndTicks > 0L, "T16 the deadline is captured into the save");
+
+            ClearCooldown(rig);
+            Check(!rig.Cooldown.IsActive, "T16 clears once the deadline passes");
+            Check(rig.Upgrades.TryBuy("chest", 1) == 1, "T16 buying resumes after the rest");
+        }
+
         // ---------------------------------------------------------------- helpers
 
         private static void Grant(double amount)
@@ -583,16 +724,35 @@ namespace IdleGymBro.EditorTools
             EventBus.Publish(new GainsEarnedEvent(amount));
         }
 
+        // Buys straight through the rest timer. Scenarios that are testing something else (location
+        // gating, prestige, achievements) need a hundred levels without sitting out five minutes of
+        // real time per ten; the timer itself is exercised in T16 instead.
         private static void BuyLevels(Rig rig, string upgradeId, int count)
         {
             for (int i = 0; i < count; i++)
             {
+                ClearCooldown(rig);
+
                 if (!rig.Upgrades.TryBuy(upgradeId))
                 {
                     _failures.Add($"helper BuyLevels: '{upgradeId}' purchase {i + 1}/{count} failed (insufficient gains or missing asset)");
                     return;
                 }
             }
+        }
+
+        // Reaches the private deadline rather than adding a Clear() to the production class: a
+        // reset-the-timer method that only tests use is exactly the kind of API that later gets
+        // called by accident from the game.
+        private static void ClearCooldown(Rig rig)
+        {
+            if (rig.Cooldown == null)
+            {
+                return;
+            }
+
+            FieldInfo field = typeof(UpgradeCooldownManager).GetField("_endTicks", BindingFlags.Instance | BindingFlags.NonPublic);
+            field?.SetValue(rig.Cooldown, 0L);
         }
 
         private static SaveData RoundTrip(SaveData data)
@@ -710,6 +870,7 @@ namespace IdleGymBro.EditorTools
             public CharacterBuilder Character;
             public OfflineEarningsSystem Offline;
             public DailyRewardManager Daily;
+            public UpgradeCooldownManager Cooldown;
 
             private GameObject _root;
             private GameObject _characterRoot;
@@ -746,6 +907,10 @@ namespace IdleGymBro.EditorTools
                 rig.Wardrobe = rig.Add<WardrobeManager>();
                 rig.Offline = rig.Add<OfflineEarningsSystem>();
                 rig.Daily = rig.Add<DailyRewardManager>();
+
+                // Present in the rig because it GATES purchases: leave it out and every buy in the
+                // suite runs through an ungated path that does not exist in the real game.
+                rig.Cooldown = rig.Add<UpgradeCooldownManager>();
 
                 // The character lives on its own object so its runtime-built Layer_* children
                 // do not get mixed into the systems object.

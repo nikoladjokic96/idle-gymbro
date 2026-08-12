@@ -30,6 +30,15 @@ namespace IdleGymBro.Data
         [SerializeField]
         private Sprite _icon;
 
+        [SerializeField]
+        private UpgradeCategory _category;
+
+        // Equipment only: the location this gear belongs to. Empty means "always available", which
+        // is what Body and Macros use. Gear from a location you have not reached yet is hidden
+        // rather than shown greyed out — a list of things you cannot buy is not information.
+        [SerializeField]
+        private string _locationId;
+
         public string Id => _id;
         public Sprite Icon => _icon;
         public string DisplayName => _displayName;
@@ -38,5 +47,7 @@ namespace IdleGymBro.Data
         public double BaseCost => _baseCost;
         public float GrowthRate => _growthRate;
         public int MaxLevel => _maxLevel;
+        public UpgradeCategory Category => _category;
+        public string LocationId => _locationId;
     }
 }

@@ -30,6 +30,7 @@ namespace IdleGymBro.UI
 
         private LocationManager _manager;
         private readonly List<TMP_Text> _rows = new List<TMP_Text>();
+        private readonly List<Button> _rowButtons = new List<Button>();
 
         private float _lastProgress;
         private bool _lastCanAdvance;
@@ -72,14 +73,35 @@ namespace IdleGymBro.UI
 
             for (int i = 0; i < _manager.Count; i++)
             {
-                var rowGo = new GameObject("Row_" + i, typeof(RectTransform));
+                // Each row is a BUTTON now. It used to be a bare label with raycastTarget off, so
+                // tapping a location did nothing at all — which reads as a broken button rather than
+                // as "this line is only a label". Tapping an already-visited location travels back
+                // to it; the current one and anything not yet unlocked simply do not respond.
+                var rowGo = new GameObject("Row_" + i, typeof(RectTransform), typeof(Image));
                 rowGo.transform.SetParent(_rowsContainer, false);
 
-                var rowText = rowGo.AddComponent<TextMeshProUGUI>();
+                var rowImage = rowGo.GetComponent<Image>();
+                rowImage.color = new Color(1f, 1f, 1f, 0.06f); // a target to hit, not a visible box
+
+                var rowButton = rowGo.AddComponent<Button>();
+                rowButton.targetGraphic = rowImage;
+                int index = i; // capture per iteration, or every row selects the last location
+                rowButton.onClick.AddListener(() => OnRowClicked(index));
+
+                var textGo = new GameObject("Label", typeof(RectTransform));
+                textGo.transform.SetParent(rowGo.transform, false);
+
+                var rowText = textGo.AddComponent<TextMeshProUGUI>();
                 rowText.fontSize = _rowFontSize;
                 rowText.alignment = TextAlignmentOptions.Center;
                 rowText.color = Color.white;
-                rowText.raycastTarget = false;
+                rowText.raycastTarget = false; // the button underneath must receive the tap
+
+                var textRect = textGo.GetComponent<RectTransform>();
+                textRect.anchorMin = Vector2.zero;
+                textRect.anchorMax = Vector2.one;
+                textRect.offsetMin = Vector2.zero;
+                textRect.offsetMax = Vector2.zero;
 
                 var rect = rowGo.GetComponent<RectTransform>();
                 rect.anchorMin = new Vector2(0.5f, 1f);
@@ -89,6 +111,15 @@ namespace IdleGymBro.UI
                 rect.sizeDelta = new Vector2(600f, _rowHeight - 10f);
 
                 _rows.Add(rowText);
+                _rowButtons.Add(rowButton);
+            }
+        }
+
+        private void OnRowClicked(int index)
+        {
+            if (_manager != null && _manager.TrySelect(index))
+            {
+                Refresh();
             }
         }
 
@@ -124,6 +155,17 @@ namespace IdleGymBro.UI
                 string percent = i < _manager.CurrentIndex ? "100%" : i == _manager.CurrentIndex ? $"{Mathf.FloorToInt(_lastProgress * 100f)}%" : string.Empty;
 
                 _rows[i].text = $"{prefix}{loc.DisplayName}  {percent}";
+
+                // Only already-visited rows respond, so a tap that does nothing is never a mystery:
+                // the row that cannot be pressed is also the row that is dimmed.
+                if (i < _rowButtons.Count && _rowButtons[i] != null)
+                {
+                    bool travellable = i < _manager.CurrentIndex;
+                    _rowButtons[i].interactable = travellable;
+                    _rows[i].color = travellable ? Color.white
+                        : i == _manager.CurrentIndex ? new Color(1f, 0.86f, 0.45f, 1f)
+                        : new Color(0.55f, 0.58f, 0.65f, 1f);
+                }
             }
 
             if (_moveUpButton != null)
@@ -133,7 +175,8 @@ namespace IdleGymBro.UI
 
             if (_moveUpLabel != null)
             {
-                _moveUpLabel.text = "MOVE UP ▲";
+                // The pixel font has no arrow glyph; a missing glyph in a bitmap font draws nothing.
+                _moveUpLabel.text = "MOVE UP";
             }
         }
 

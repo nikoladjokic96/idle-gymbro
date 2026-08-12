@@ -589,3 +589,56 @@ different sprites [1 distinct]".
 **Verifikacija:** 0 `error CS` · `18 shorts sprites ready` · `18 icons ready` ·
 `frame anchors baked on 6 tier(s)` · `wired 13/13` · `Scene built and saved` ·
 `SystemsSmokeTest PASS — 356 checks, 0 failures`.
+
+**NALOG #038** — pixel font, tabovi Body/Equipment/Macros, nova ekonomija, rest timer, klikabilne lokacije.
+
+**Pixel font iz sopstvenih glifova.** `PixelFont` (5×7, do sada samo za zapecene placeholder labele)
+prosiren sa interpunkcijom i pretvoren u pravi TMP font asset (`Editor/PixelFontAssetGenerator`):
+atlas 1×, `GlyphRenderMode.RASTER`, TMP Bitmap shader, Point filter. Bez TTF-a — TTF bi TMP
+rasterizovao u SDF i vratio omeksan, sto je bas ono sto se menja.
+- `CreateText` **snap-uje velicinu na ceo umnozak visine glifa** (7 px). Na 34pt bi 7px glif padao na
+  frakcione ekranske piksele: kolone izlaze sire jedna od druge i tekst “pliva” dok se broj menja.
+- Font nema mala slova (5×7 nema mesta za descendere) → `FontStyles.UpperCase` na svemu.
+- ⚠️ **`new SerializedObject(font)` snima snapshot SVIH serijalizovanih polja pri kreiranju**, pa je
+  `ApplyModifiedProperties` vracao prazne tabele preko glifova upisanih oko njega. Asset se sacuvao sa
+  **1 znakom i atlasom 0×0** — sto se renderuje kao potpuno prazan HUD, bez ijednog upozorenja.
+  Popravka: `m_AtlasWidth/Height/Padding/RenderMode` se pisu **refleksijom** u istom prolazu, plus
+  provera „ucitaj sa diska i uporedi" odmah po snimanju.
+- Znaci ▶ i ▲ uklonjeni iz UI stringova: u bitmap fontu glif koji ne postoji ne crta **nista**.
+
+**Tabovi + nova ekonomija.** `UpgradeCategory` (Body / Equipment / Macros) + `UpgradeData._locationId`.
+- **Body** — 5 misicnih grupa + 2 pasivna izvora, bez kapa.
+- **Equipment** — 4 komada po lokaciji (24 ukupno), skupo i **konacno** (`MaxLevel` 5), jer se
+  lokacija zatvara i time sto je sva oprema kupljena; neogranicen komad bi taj uslov ucinio
+  nedostiznim. Gear iz lokacije do koje igrac nije stigao se **krije**, ne sivi — lista stvari koje
+  ne mozes da kupis nije informacija.
+- **Macros** — protein → gains/rep, carbs → **max energija** (novi `StatType.MaxEnergy`, kesira ga
+  `EnergySystem` iz `StatsChangedEvent`), fats → pasivni prihod.
+- **Otkljucavanje lokacije su sada TRI uslova** umesto jednog kumulativnog zbira: Body target, sva
+  oprema te lokacije na maksimumu, i **najnizi** od tri makroa na targetu. Jedan zbir je dozvoljavao
+  da se sledeca lokacija probije onim upgrade-om koji je slucajno najjeftiniji — a tabovi postoje
+  bas da to sprece. Max energija se namerno NE mnozi lokacijskim/prestige multiplikatorom.
+
+**Rest timer** (`Economy/UpgradeCooldownManager`, `ISaveable`) — na svakih 10 nivoa, trajanje
+`base × (2n−1)` = 5 / 15 / 25 min. Gate-uje **samo kupovinu**; tapkanje, pasivni prihod, boosteri i
+sve ostalo rade dalje (§10 pravilo 3: reklama nikad ne sme da stoji izmedju igraca i igranja).
+Rewarded reklama **skracuje** (`UpgradeCooldownAdCutSeconds`), ne brise — inace prestaje da bude
+boost i postaje prekidac koji uklanja mehaniku. Rok se cuva kao **apsolutno UTC vreme**, pa istice i
+dok je aplikacija zatvorena; „preostale sekunde" bi force-quit pretvorile u besplatan skip.
+Bulk kupovina koja preskoci vise pragova odjednom arm-uje samo najnoviji.
+
+**Locations: redovi su dugmad.** Bili su cist tekst sa `raycastTarget = false` uz jedno MOVE UP
+dugme, pa tap na lokaciju nije radio nista — sto se cita kao pokvareno dugme, ne kao „ovo je samo
+labela". `LocationManager.TrySelect(index)` vraca na vec posecenu lokaciju (unapred se i dalje ide
+samo kroz `TryAdvance` i njegove uslove); red koji se ne moze pritisnuti je ujedno i zatamnjen.
+
+**Testovi:** T15 (font razresava znakove — uhvatio bas gornji „prazan HUD" kvar), T16 (rest timer:
+arm-uje se tacno na pragu, blokira kupovinu, zarada radi dalje, svaki sledeci duzi, reklama skracuje
+ali ne brise, rok ide u save). T3 prepisan na tri uslova i sada tvrdi da Body **sam** ne otkljucava.
+Rig je dobio `UpgradeCooldownManager` — bez njega bi ceo paket kupovao kroz kapiju koja u igri
+postoji; `BuyLevels` ga svesno gasi refleksijom (reset-metoda u produkcionoj klasi bi pre ili kasnije
+bila pozvana iz igre).
+
+**Verifikacija:** 0 `error CS` · `18 icons ready` · `18 shorts sprites ready` · `pixel font: 58 glyphs` ·
+`frame anchors baked on 6 tier(s)` · `_gameConfig wired on 14/14` · `Scene built and saved` ·
+`SystemsSmokeTest PASS — 390 checks, 0 failures`.

@@ -29,6 +29,10 @@ namespace IdleGymBro.EditorTools
         private const string RootName = "CoreLoop";
         private const string CharacterArtFolder = "Assets/_Game/Art/Character/Placeholders";
         private const int MuscleTierCount = 6;
+
+        // Equipment is finite by design: a location is cleared partly by owning ALL of its gear, so
+        // an unlimited piece would make that condition unreachable.
+        private const int EquipmentMaxLevel = 5;
         private const string BackgroundArtFolder = "Assets/_Game/Art/Backgrounds/Placeholders";
 
         [MenuItem("IdleGymBro/Build Core Loop Scene")]
@@ -70,16 +74,69 @@ namespace IdleGymBro.EditorTools
 
             // Upgrades = muscle groups trained (§5 gym meme identity); consumables live as
             // boosters instead (see BoosterData below). Tune values in the .asset inspectors later.
-            var upgrades = new UpgradeData[]
+            var upgradeList = new System.Collections.Generic.List<UpgradeData>
             {
-                GetOrCreateUpgrade("chest", "Chest Day", StatType.GainsPerRep, 1d, 10d, 1.10f),
-                GetOrCreateUpgrade("arms", "Arm Blaster", StatType.GainsPerRep, 2d, 60d, 1.11f),
-                GetOrCreateUpgrade("back", "Back Attack", StatType.GainsPerRep, 5d, 350d, 1.12f),
-                GetOrCreateUpgrade("abs", "Core Crusher", StatType.GainsPerRep, 8d, 900d, 1.125f),
-                GetOrCreateUpgrade("legs", "Never Skip Leg Day", StatType.GainsPerRep, 12d, 2000d, 1.13f),
-                GetOrCreateUpgrade("training_partner", "Training Partner", StatType.PassiveGainsPerSecond, 0.5d, 50d, 1.11f),
-                GetOrCreateUpgrade("gym_membership", "Gym Membership", StatType.PassiveGainsPerSecond, 3d, 500d, 1.12f),
+                // BODY — the spine of the progression, always available, no cap.
+                GetOrCreateUpgrade("chest", "Chest Day", StatType.GainsPerRep, 1d, 10d, 1.10f, UpgradeCategory.Body),
+                GetOrCreateUpgrade("arms", "Arm Blaster", StatType.GainsPerRep, 2d, 60d, 1.11f, UpgradeCategory.Body),
+                GetOrCreateUpgrade("back", "Back Attack", StatType.GainsPerRep, 5d, 350d, 1.12f, UpgradeCategory.Body),
+                GetOrCreateUpgrade("abs", "Core Crusher", StatType.GainsPerRep, 8d, 900d, 1.125f, UpgradeCategory.Body),
+                GetOrCreateUpgrade("legs", "Never Skip Leg Day", StatType.GainsPerRep, 12d, 2000d, 1.13f, UpgradeCategory.Body),
+
+                // Passive income sources stay in Body: they are bought continuously like the muscle
+                // groups, and moving them to Equipment would make them location-gated and finite.
+                GetOrCreateUpgrade("training_partner", "Training Partner", StatType.PassiveGainsPerSecond, 0.5d, 50d, 1.11f, UpgradeCategory.Body),
+                GetOrCreateUpgrade("gym_membership", "Gym Membership", StatType.PassiveGainsPerSecond, 3d, 500d, 1.12f, UpgradeCategory.Body),
+
+                // MACROS — diet. One stat each, so the three are not interchangeable and the
+                // location gate (lowest of the three) actually forces a balanced diet.
+                GetOrCreateUpgrade("protein", "Protein", StatType.GainsPerRep, 4d, 250d, 1.16f, UpgradeCategory.Macros, "", 0, "protein_shake"),
+                GetOrCreateUpgrade("carbs", "Carbs", StatType.MaxEnergy, 15d, 200d, 1.16f, UpgradeCategory.Macros, "", 0, "preworkout"),
+                GetOrCreateUpgrade("fats", "Fats", StatType.PassiveGainsPerSecond, 1.5d, 300d, 1.16f, UpgradeCategory.Macros, "", 0, "gains"),
             };
+
+            // EQUIPMENT — four pieces per location, far pricier than body work and FINITE
+            // (MaxLevel > 0) so "buy it all" is a reachable goal and can gate the next location.
+            var equipment = new (string Location, string Id, string Name, StatType Stat, double Effect, double Cost, string Icon)[]
+            {
+                ("home", "eq_towel", "Towel", StatType.GainsPerRep, 6d, 400d, "wardrobe"),
+                ("home", "eq_bottle", "Water Bottle", StatType.MaxEnergy, 20d, 700d, "protein_shake"),
+                ("home", "eq_mat", "Yoga Mat", StatType.GainsPerRep, 10d, 1200d, "abs"),
+                ("home", "eq_bench", "Bench", StatType.GainsPerRep, 25d, 3000d, "chest"),
+
+                ("street", "eq_chalk", "Chalk", StatType.GainsPerRep, 40d, 9000d, "arms"),
+                ("street", "eq_band", "Resistance Band", StatType.GainsPerRep, 60d, 14000d, "back"),
+                ("street", "eq_rope", "Jump Rope", StatType.MaxEnergy, 45d, 20000d, "legs"),
+                ("street", "eq_grips", "Bar Grips", StatType.PassiveGainsPerSecond, 8d, 30000d, "training_partner"),
+
+                ("basic_gym", "eq_bag", "Gym Bag", StatType.PassiveGainsPerSecond, 20d, 90000d, "gym_membership"),
+                ("basic_gym", "eq_belt", "Lifting Belt", StatType.GainsPerRep, 150d, 140000d, "abs"),
+                ("basic_gym", "eq_wraps", "Wrist Wraps", StatType.GainsPerRep, 220d, 200000d, "arms"),
+                ("basic_gym", "eq_shaker", "Shaker", StatType.MaxEnergy, 120d, 300000d, "protein_shake"),
+
+                ("hardcore_gym", "eq_sleeves", "Knee Sleeves", StatType.GainsPerRep, 900d, 1200000d, "legs"),
+                ("hardcore_gym", "eq_straps", "Lifting Straps", StatType.GainsPerRep, 1400d, 1900000d, "back"),
+                ("hardcore_gym", "eq_bucket", "Chalk Bucket", StatType.MaxEnergy, 400d, 2600000d, "preworkout"),
+                ("hardcore_gym", "eq_rack", "Power Rack", StatType.PassiveGainsPerSecond, 220d, 4000000d, "gym_membership"),
+
+                ("beach", "eq_shades", "Sunglasses", StatType.GainsPerRep, 6000d, 24000000d, "wardrobe"),
+                ("beach", "eq_oil", "Tanning Oil", StatType.GainsPerRep, 9000d, 38000000d, "prestige"),
+                ("beach", "eq_boombox", "Boombox", StatType.PassiveGainsPerSecond, 1500d, 52000000d, "reward"),
+                ("beach", "eq_beachtowel", "Beach Towel", StatType.MaxEnergy, 1800d, 75000000d, "daily"),
+
+                ("olympia", "eq_trunks", "Posing Trunks", StatType.GainsPerRep, 50000d, 600000000d, "wardrobe"),
+                ("olympia", "eq_tan", "Stage Tan", StatType.GainsPerRep, 80000d, 900000000d, "prestige"),
+                ("olympia", "eq_trophy", "Trophy Case", StatType.PassiveGainsPerSecond, 12000d, 1300000000d, "achievements"),
+                ("olympia", "eq_sponsor", "Sponsor Deal", StatType.PassiveGainsPerSecond, 20000d, 2000000000d, "gains"),
+            };
+
+            foreach (var gear in equipment)
+            {
+                upgradeList.Add(GetOrCreateUpgrade(gear.Id, gear.Name, gear.Stat, gear.Effect, gear.Cost, 1.35f,
+                    UpgradeCategory.Equipment, gear.Location, EquipmentMaxLevel, gear.Icon));
+            }
+
+            var upgrades = upgradeList.ToArray();
 
             // Boosters (opt-in, rewarded-ad-flavored per §10; consumable-style temporary buffs).
             var boosters = new BoosterData[]
@@ -183,6 +240,8 @@ namespace IdleGymBro.EditorTools
             var achievementManager = gameSystems.AddComponent<AchievementManager>();
             var dailyRewardManager = gameSystems.AddComponent<DailyRewardManager>();
             var prestigeManager = gameSystems.AddComponent<PrestigeManager>();
+            // Gates PURCHASES only (00a710 rule 3): tapping and passive income keep running while it ticks.
+            var upgradeCooldown = gameSystems.AddComponent<UpgradeCooldownManager>();
             // Wardrobe: no _gameConfig field (drives off CosmeticData assets) — excluded from self-check.
             var wardrobeManager = gameSystems.AddComponent<WardrobeManager>();
 
@@ -203,6 +262,7 @@ namespace IdleGymBro.EditorTools
             AssignRef(periodicRewardManager, "_gameConfig", config);
             AssignRef(dailyRewardManager, "_gameConfig", config);
             AssignRef(prestigeManager, "_gameConfig", config);
+            AssignRef(upgradeCooldown, "_gameConfig", config);
             AssignArray(wardrobeManager, "_cosmetics", cosmetics);
             AssignArray(achievementManager, "_achievements", achievements);
 
@@ -226,6 +286,11 @@ namespace IdleGymBro.EditorTools
             eventSystemGo.transform.SetParent(root.transform, false);
             var uiInputModule = eventSystemGo.AddComponent<InputSystemUIInputModule>();
             uiInputModule.AssignDefaultActions();
+
+            // Before any CreateText call below — those bind the font, and a missing asset silently
+            // falls the whole HUD back to LiberationSans.
+            Debug.Log($"[CoreLoopSceneBootstrap] pixel font: {PixelFontAssetGenerator.Generate()} glyphs.");
+            _pixelFont = null; // drop the cached handle so the freshly written asset is picked up
 
             UiShapeGenerator.Generate();
             ConfigureUiKit();
@@ -275,7 +340,7 @@ namespace IdleGymBro.EditorTools
             // have no _gameConfig field, so they're intentionally excluded from this check.
             // Runs here rather than beside the system wiring because CharacterAnimator, which also
             // takes the config, only exists once the character has been built.
-            var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem, passiveIncome, offlineEarnings, upgradeManager, periodicRewardManager, dailyRewardManager, prestigeManager, characterAnimator };
+            var systems = new Component[] { gameManager, tickSystem, energySystem, currencyManager, tapController, saveSystem, passiveIncome, offlineEarnings, upgradeManager, periodicRewardManager, dailyRewardManager, prestigeManager, upgradeCooldown, characterAnimator };
             int wired = 0;
             foreach (var s in systems)
             {
@@ -433,12 +498,54 @@ namespace IdleGymBro.EditorTools
             AssignRef(buyToggle, "_label", buyToggleLabel);
             AssignRef(buyToggle, "_surface", buyToggleImage);
 
+            // Body / Equipment / Macros. One list of rows, filtered — see UpgradeTabBar.
+            var tabNames = new[] { "BODY", "GEAR", "MACROS" };
+            var tabButtons = new Button[tabNames.Length];
+            var tabSurfaces = new Image[tabNames.Length];
+            var tabLabels = new TMP_Text[tabNames.Length];
+
+            for (int t = 0; t < tabNames.Length; t++)
+            {
+                var tabImage = CreateImage($"Tab_{tabNames[t]}", window.transform, UiKit("tab_pixel") ?? buttonSprite, ButtonColor);
+                SetRect(tabImage.rectTransform, new Vector2(0.5f, 1f), new Vector2((t - 1) * 226f, -268f), new Vector2(216f, 84f));
+                var tabButton = tabImage.gameObject.AddComponent<Button>();
+                tabButton.targetGraphic = tabImage;
+                var tabLabel = CreateText("Label", tabImage.transform, tabNames[t], 32f, TextAlignmentOptions.Center);
+                SetRect(tabLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(200f, 80f));
+                tabLabel.raycastTarget = false;
+
+                tabButtons[t] = tabButton;
+                tabSurfaces[t] = tabImage;
+                tabLabels[t] = tabLabel;
+            }
+
+            // Rest-timer banner: replaces the list's usable state while a cooldown runs, and offers
+            // the opt-in ad that shortens it. Hidden by UpgradeCooldownBanner when nothing is running.
+            var cooldownImage = CreateImage("CooldownBanner", window.transform, buttonSprite, ButtonColor);
+            SetRect(cooldownImage.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -360f), new Vector2(680f, 96f));
+            var cooldownLabel = CreateText("Label", cooldownImage.transform, string.Empty, 30f, TextAlignmentOptions.Left);
+            SetRect(cooldownLabel.rectTransform, new Vector2(0f, 0.5f), new Vector2(240f, 0f), new Vector2(430f, 90f));
+            cooldownLabel.raycastTarget = false;
+
+            var cooldownAdImage = CreateImage("AdButton", cooldownImage.transform, buttonSprite, AccentColor);
+            SetRect(cooldownAdImage.rectTransform, new Vector2(0f, 0.5f), new Vector2(112f, 0f), new Vector2(196f, 76f));
+            var cooldownAdButton = cooldownAdImage.gameObject.AddComponent<Button>();
+            cooldownAdButton.targetGraphic = cooldownAdImage;
+            var cooldownAdLabel = CreateText("Label", cooldownAdImage.transform, "SKIP", 28f, TextAlignmentOptions.Center);
+            SetRect(cooldownAdLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(190f, 72f));
+            cooldownAdLabel.raycastTarget = false;
+
+            var cooldownBanner = cooldownImage.gameObject.AddComponent<UpgradeCooldownBanner>();
+            AssignRef(cooldownBanner, "_root", cooldownImage.gameObject);
+            AssignRef(cooldownBanner, "_label", cooldownLabel);
+            AssignRef(cooldownBanner, "_adButton", cooldownAdButton);
+
             // Scrollable upgrade list: 6 muscle-group upgrades no longer fit as fixed-position
             // buttons, so the content grows vertically and the viewport clips/scrolls it.
             var scrollAreaGo = new GameObject("ScrollArea", typeof(RectTransform), typeof(Image), typeof(RectMask2D), typeof(ScrollRect));
             scrollAreaGo.transform.SetParent(window.transform, false);
             var scrollAreaRect = scrollAreaGo.GetComponent<RectTransform>();
-            SetRect(scrollAreaRect, new Vector2(0.5f, 1f), new Vector2(0f, -600f), new Vector2(680f, 680f));
+            SetRect(scrollAreaRect, new Vector2(0.5f, 1f), new Vector2(0f, -690f), new Vector2(680f, 520f));
             var scrollAreaImage = scrollAreaGo.GetComponent<Image>();
             scrollAreaImage.sprite = uiSprite;
             scrollAreaImage.color = new Color(0.10f, 0.12f, 0.15f, 1f);
@@ -502,6 +609,14 @@ namespace IdleGymBro.EditorTools
                 AssignRef(upgradeButton, "_label", buttonLabel);
                 AssignRef(upgradeButton, "_icon", rowIcon);
             }
+
+            // Attached to the window rather than a tab, so it is enabled whenever the modal opens
+            // and can restore the filter before the player sees the list.
+            var tabBar = window.gameObject.AddComponent<UpgradeTabBar>();
+            AssignRef(tabBar, "_content", contentRect);
+            AssignArray(tabBar, "_tabButtons", tabButtons);
+            AssignArray(tabBar, "_tabSurfaces", tabSurfaces);
+            AssignArray(tabBar, "_tabLabels", tabLabels);
 
             var modalControllerGo = new GameObject("UpgradesModalController");
             modalControllerGo.transform.SetParent(root.transform, false);
@@ -626,7 +741,7 @@ namespace IdleGymBro.EditorTools
             SetRect(moveUpImage.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 110f), new Vector2(420f, 110f));
             var moveUpButton = moveUpImage.gameObject.AddComponent<Button>();
             moveUpButton.targetGraphic = moveUpImage;
-            var moveUpLabel = CreateText("Label", moveUpImage.transform, "MOVE UP ▲", 40f, TextAlignmentOptions.Center);
+            var moveUpLabel = CreateText("Label", moveUpImage.transform, "MOVE UP", 40f, TextAlignmentOptions.Center);
             StretchFull(moveUpLabel.rectTransform);
 
             var locationsPanel = locationsWindow.gameObject.AddComponent<LocationsPanel>();
@@ -843,7 +958,7 @@ namespace IdleGymBro.EditorTools
             SetRect(doubleBtnImage.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -280f), new Vector2(420f, 110f));
             var doubleButton = doubleBtnImage.gameObject.AddComponent<Button>();
             doubleButton.targetGraphic = doubleBtnImage;
-            var doubleLabel = CreateText("Label", doubleBtnImage.transform, "DOUBLE IT ▶", 40f, TextAlignmentOptions.Center);
+            var doubleLabel = CreateText("Label", doubleBtnImage.transform, "DOUBLE IT", 40f, TextAlignmentOptions.Center);
             SetRect(doubleLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(420f, 110f));
 
             AssignRef(popup, "_panel", panel.gameObject);
@@ -884,7 +999,7 @@ namespace IdleGymBro.EditorTools
             StretchFull(adOverlay.rectTransform);
             // raycastTarget stays true (Image default) so the overlay blocks input to everything beneath it.
 
-            var adOverlayText = CreateText("Label", adOverlay.transform, "▶ AD PLAYING...", 64f, TextAlignmentOptions.Center);
+            var adOverlayText = CreateText("Label", adOverlay.transform, "AD PLAYING...", 64f, TextAlignmentOptions.Center);
             SetRect(adOverlayText.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(800f, 160f));
 
             AssignRef(adManager, "_adOverlay", adOverlay.gameObject);
@@ -952,7 +1067,8 @@ namespace IdleGymBro.EditorTools
 
         private const string UpgradesFolder = "Assets/_Game/Data/Upgrades";
 
-        private static UpgradeData GetOrCreateUpgrade(string id, string displayName, StatType statType, double effectPerLevel, double baseCost, float growthRate)
+        private static UpgradeData GetOrCreateUpgrade(string id, string displayName, StatType statType, double effectPerLevel, double baseCost, float growthRate,
+            UpgradeCategory category = UpgradeCategory.Body, string locationId = "", int maxLevel = 0, string iconId = null)
         {
             if (!AssetDatabase.IsValidFolder(UpgradesFolder))
             {
@@ -974,7 +1090,12 @@ namespace IdleGymBro.EditorTools
             so.FindProperty("_effectPerLevel").doubleValue = effectPerLevel;
             so.FindProperty("_baseCost").doubleValue = baseCost;
             so.FindProperty("_growthRate").floatValue = growthRate;
-            so.FindProperty("_icon").objectReferenceValue = LoadIcon(id);
+            so.FindProperty("_maxLevel").intValue = maxLevel;
+            so.FindProperty("_category").enumValueIndex = (int)category;
+            so.FindProperty("_locationId").stringValue = locationId ?? string.Empty;
+            // Equipment and macros share a handful of icons rather than needing 27 of their own —
+            // iconId lets several upgrades point at the same art.
+            so.FindProperty("_icon").objectReferenceValue = LoadIcon(string.IsNullOrEmpty(iconId) ? id : iconId);
             so.ApplyModifiedProperties();
 
             AssetDatabase.SaveAssets();
@@ -1603,6 +1724,21 @@ namespace IdleGymBro.EditorTools
             return image;
         }
 
+        private static TMP_FontAsset _pixelFont;
+
+        private static TMP_FontAsset PixelFontAsset
+        {
+            get
+            {
+                if (_pixelFont == null)
+                {
+                    _pixelFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/_Game/Art/UI/Font/PixelFont.asset");
+                }
+
+                return _pixelFont;
+            }
+        }
+
         private static TextMeshProUGUI CreateText(string name, Transform parent, string text, float size, TextAlignmentOptions align)
         {
             var go = new GameObject(name, typeof(RectTransform));
@@ -1610,9 +1746,30 @@ namespace IdleGymBro.EditorTools
 
             var tmp = go.AddComponent<TextMeshProUGUI>();
             tmp.text = text;
-            tmp.fontSize = size;
             tmp.alignment = align;
             tmp.color = Color.white;
+
+            TMP_FontAsset pixel = PixelFontAsset;
+
+            if (pixel != null)
+            {
+                tmp.font = pixel;
+
+                // Snap to a whole multiple of the glyph height. A 7px bitmap glyph drawn at, say,
+                // 34pt lands its pixels on fractional screen pixels: columns come out one screen
+                // pixel wider than their neighbours and the text crawls as the value changes.
+                int steps = Mathf.Max(1, Mathf.RoundToInt(size / PixelFontAssetGenerator.PointSize));
+                tmp.fontSize = steps * PixelFontAssetGenerator.PointSize;
+
+                // The font has no lowercase — 5x7 has no room for descenders — so every string is
+                // rendered in caps rather than losing characters. Suits the arcade tone anyway.
+                tmp.fontStyle |= FontStyles.UpperCase;
+            }
+            else
+            {
+                Debug.LogWarning("[CoreLoopSceneBootstrap] Pixel font asset missing; falling back to the default TMP font.");
+                tmp.fontSize = size;
+            }
 
             return tmp;
         }
@@ -1651,7 +1808,7 @@ namespace IdleGymBro.EditorTools
             SetRect(nextImage.rectTransform, new Vector2(0.5f, 1f), new Vector2(190f, y), new Vector2(200f, 100f));
             var nextButton = nextImage.gameObject.AddComponent<Button>();
             nextButton.targetGraphic = nextImage;
-            var nextLabel = CreateText("Label", nextImage.transform, "NEXT ▶", 34f, TextAlignmentOptions.Center);
+            var nextLabel = CreateText("Label", nextImage.transform, "NEXT", 34f, TextAlignmentOptions.Center);
             StretchFull(nextLabel.rectTransform);
 
             return new WardrobeRow { Label = label, NextButton = nextButton };

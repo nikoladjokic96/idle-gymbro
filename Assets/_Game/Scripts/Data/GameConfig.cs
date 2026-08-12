@@ -107,6 +107,29 @@ namespace IdleGymBro.Data
         [Range(0f, 0.5f)]
         private float _idleCycleVariation = 0.18f;
 
+        [Header("Upgrade rest timer")]
+        // Every N upgrade levels the player has to rest before buying more. Gates PURCHASES ONLY —
+        // tapping and passive income keep running (§10 rule 3: an ad must never stand between the
+        // player and playing).
+        [SerializeField]
+        [Min(1)]
+        private int _upgradeCooldownEveryLevels = 10;
+
+        // 1st wait = base, 2nd = 3x, 3rd = 5x. At 300s that is 5 / 15 / 25 minutes.
+        [SerializeField]
+        [Min(1f)]
+        private float _upgradeCooldownBaseSeconds = 300f;
+
+        // How much one rewarded ad takes off the remaining wait. Deliberately a CUT, not a skip:
+        // the ad is a boost, not a switch that removes the mechanic.
+        [SerializeField]
+        [Min(1f)]
+        private float _upgradeCooldownAdCutSeconds = 120f;
+
+        public int UpgradeCooldownEveryLevels => _upgradeCooldownEveryLevels;
+        public float UpgradeCooldownBaseSeconds => _upgradeCooldownBaseSeconds;
+        public float UpgradeCooldownAdCutSeconds => _upgradeCooldownAdCutSeconds;
+
         [Header("Character Animation — workout loop")]
         // Full alternating curls per second (one cycle = right arm up and down, then left).
         // Replaces the old raise-and-hold tuning: that eased the arms into a static pose over

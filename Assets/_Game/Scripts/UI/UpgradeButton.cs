@@ -13,6 +13,9 @@ namespace IdleGymBro.UI
         [SerializeField]
         private UpgradeData _upgrade;
 
+        // Exposed so UpgradeTabBar can filter rows by category without duplicating the binding.
+        public UpgradeData Upgrade => _upgrade;
+
         [SerializeField]
         private Button _button;
 
