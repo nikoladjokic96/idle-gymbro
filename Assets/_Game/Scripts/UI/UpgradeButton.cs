@@ -44,6 +44,7 @@ namespace IdleGymBro.UI
             EventBus.Subscribe<GainsChangedEvent>(HandleGainsChanged);
             EventBus.Subscribe<UpgradePurchasedEvent>(HandleUpgradePurchased);
             EventBus.Subscribe<StatsChangedEvent>(HandleStatsChanged);
+            EventBus.Subscribe<BuyMultiplierChangedEvent>(HandleMultiplierChanged);
 
             if (_button != null)
             {
@@ -56,6 +57,7 @@ namespace IdleGymBro.UI
             EventBus.Unsubscribe<GainsChangedEvent>(HandleGainsChanged);
             EventBus.Unsubscribe<UpgradePurchasedEvent>(HandleUpgradePurchased);
             EventBus.Unsubscribe<StatsChangedEvent>(HandleStatsChanged);
+            EventBus.Unsubscribe<BuyMultiplierChangedEvent>(HandleMultiplierChanged);
 
             if (_button != null)
             {
@@ -67,7 +69,7 @@ namespace IdleGymBro.UI
         {
             if (_manager != null && _upgrade != null)
             {
-                _manager.TryBuy(_upgrade.Id);
+                _manager.TryBuy(_upgrade.Id, BuyMultiplier.Current);
             }
         }
 
@@ -79,17 +81,30 @@ namespace IdleGymBro.UI
             }
 
             int level = _manager != null ? _manager.GetLevel(_upgrade.Id) : 0;
-            double cost = _manager != null ? _manager.GetCost(_upgrade.Id) : 0d;
+            int want = BuyMultiplier.Current;
+
+            // Price what this press will ACTUALLY buy. Near a max level — or with only enough for
+            // three of the ten — quoting the full x10 run would show a price the button never
+            // charges and would sit greyed out with no explanation.
+            int available = _manager != null ? _manager.AffordableLevels(_upgrade.Id, want) : 0;
+            int quoted = Mathf.Max(1, available);
+            double cost = _manager != null ? _manager.GetCost(_upgrade.Id, quoted) : 0d;
 
             if (_label != null)
             {
-                _label.text = $"{_upgrade.DisplayName}  Lv.{level}\n{NumberFormatter.Format(cost)}";
+                string batch = want > 1 ? $" x{quoted}" : string.Empty;
+                _label.text = $"{_upgrade.DisplayName}  Lv.{level}\n{NumberFormatter.Format(cost)}{batch}";
             }
 
             if (_button != null)
             {
-                _button.interactable = _currentGains >= cost;
+                _button.interactable = available > 0;
             }
+        }
+
+        private void HandleMultiplierChanged(BuyMultiplierChangedEvent e)
+        {
+            Refresh();
         }
 
         private void HandleGainsChanged(GainsChangedEvent e)

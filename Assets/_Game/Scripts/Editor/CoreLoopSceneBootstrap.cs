@@ -28,6 +28,7 @@ namespace IdleGymBro.EditorTools
         private const string ConfigPath = "Assets/_Game/Data/GameConfig.asset";
         private const string RootName = "CoreLoop";
         private const string CharacterArtFolder = "Assets/_Game/Art/Character/Placeholders";
+        private const int MuscleTierCount = 6;
         private const string BackgroundArtFolder = "Assets/_Game/Art/Backgrounds/Placeholders";
 
         [MenuItem("IdleGymBro/Build Core Loop Scene")]
@@ -130,6 +131,10 @@ namespace IdleGymBro.EditorTools
             // wired a few lines above. Re-baking every build keeps the head offsets honest — swap an
             // animation frame for new art and the hair stops matching it until this runs again.
             Debug.Log($"[CoreLoopSceneBootstrap] frame anchors baked on {FrameAnchorBaker.Bake()} tier(s).");
+
+            // Shorts are cut from each tier's own hips, so they must be regenerated whenever the
+            // bodies change — and before the cosmetics below pick the per-tier sprites up.
+            Debug.Log($"[CoreLoopSceneBootstrap] {ShortsGenerator.Generate()} shorts sprites ready.");
 
             // Default cosmetics (free, unlocked from the start; wardrobe/shop is post-MVP).
             var cosmetics = new CosmeticData[]
@@ -415,12 +420,25 @@ namespace IdleGymBro.EditorTools
             StyleModal(window, modalTitle, closeBtnImage, closeLabel);
             SetRect(closeLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(90f, 90f));
 
+            // x1 / x10 switch. Sits above the list because it re-prices every row at once — putting
+            // it on the rows would mean seven copies of the same state.
+            var buyToggleImage = CreateImage("BuyMultiplier", window.transform, buttonSprite, ButtonColor);
+            SetRect(buyToggleImage.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -178f), new Vector2(260f, 84f));
+            var buyToggleButton = buyToggleImage.gameObject.AddComponent<Button>();
+            buyToggleButton.targetGraphic = buyToggleImage;
+            var buyToggleLabel = CreateText("Label", buyToggleImage.transform, "BUY x1", 40f, TextAlignmentOptions.Center);
+            SetRect(buyToggleLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(240f, 80f));
+            var buyToggle = buyToggleImage.gameObject.AddComponent<BuyMultiplierToggle>();
+            AssignRef(buyToggle, "_button", buyToggleButton);
+            AssignRef(buyToggle, "_label", buyToggleLabel);
+            AssignRef(buyToggle, "_surface", buyToggleImage);
+
             // Scrollable upgrade list: 6 muscle-group upgrades no longer fit as fixed-position
             // buttons, so the content grows vertically and the viewport clips/scrolls it.
             var scrollAreaGo = new GameObject("ScrollArea", typeof(RectTransform), typeof(Image), typeof(RectMask2D), typeof(ScrollRect));
             scrollAreaGo.transform.SetParent(window.transform, false);
             var scrollAreaRect = scrollAreaGo.GetComponent<RectTransform>();
-            SetRect(scrollAreaRect, new Vector2(0.5f, 1f), new Vector2(0f, -560f), new Vector2(680f, 760f));
+            SetRect(scrollAreaRect, new Vector2(0.5f, 1f), new Vector2(0f, -600f), new Vector2(680f, 680f));
             var scrollAreaImage = scrollAreaGo.GetComponent<Image>();
             scrollAreaImage.sprite = uiSprite;
             scrollAreaImage.color = new Color(0.10f, 0.12f, 0.15f, 1f);
@@ -981,14 +999,21 @@ namespace IdleGymBro.EditorTools
         // Dark and flat. Surfaces are nearly black so the painted character and background carry
         // the colour; only the accent is saturated, and it marks the ONE primary action on screen.
         // No gradients and no shadows anywhere — depth is communicated by contrast, not by fake 3D.
-        private static readonly Color PanelColor = new Color(0.07f, 0.08f, 0.11f, 0.97f);
-        private static readonly Color ButtonColor = new Color(0.14f, 0.16f, 0.21f, 0.97f);
+        // The surfaces now CARRY their colour in the art (generated pixel-art chrome), so they are
+        // tinted white — multiplying dark slate pixels by a dark tint would crush them to black.
+        // The named colours below are still used for things that are drawn, not textured: fills,
+        // dimmers and state accents.
+        private static readonly Color PanelColor = Color.white;
+        private static readonly Color ButtonColor = Color.white;
         private static readonly Color AccentColor = new Color(0.16f, 0.51f, 0.96f, 1f);
         private static readonly Color PositiveColor = new Color(0.14f, 0.72f, 0.44f, 1f);
         private static readonly Color DangerColor = new Color(0.86f, 0.28f, 0.24f, 1f);
         private static readonly Color IconTint = new Color(0.98f, 0.99f, 1f, 0.97f);
 
-        private static Sprite CircleSprite => UiShape("circle") ?? AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+        // Was a circle. The round discs were the last piece of untouched default-Unity look in a
+        // game that is otherwise entirely pixel art, so the icon buttons now sit on the generated
+        // pixel plate (square, 2px outline, warm accent corners) instead.
+        private static Sprite CircleSprite => UiKit("plate_pixel") ?? UiShape("circle") ?? AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
 
         // Turns a HUD button into a round button whose ICON IS THE BUTTON: circular surface, big
         // centred glyph, no text. Text-in-a-rectangle is what made the old HUD look like a debug
@@ -998,7 +1023,7 @@ namespace IdleGymBro.EditorTools
         {
             buttonImage.sprite = CircleSprite;
             buttonImage.color = tint;
-            buttonImage.type = Image.Type.Simple;
+            ApplySlicing(buttonImage);
 
             RectTransform rt = buttonImage.rectTransform;
             rt.sizeDelta = new Vector2(diameter, diameter);
@@ -1021,7 +1046,7 @@ namespace IdleGymBro.EditorTools
         {
             buttonImage.sprite = CircleSprite;
             buttonImage.color = tint;
-            buttonImage.type = Image.Type.Simple;
+            ApplySlicing(buttonImage);
             buttonImage.rectTransform.sizeDelta = new Vector2(diameter, diameter);
 
             LayOutIconButton(icon, label, diameter, keepLabel);
@@ -1059,6 +1084,7 @@ namespace IdleGymBro.EditorTools
         private static void StyleModal(Image window, TMP_Text title, Image closeButton, TMP_Text closeLabel)
         {
             window.sprite = UiShape("panel") ?? window.sprite;
+            ApplySlicing(window);
             window.type = Image.Type.Sliced;
             window.color = PanelColor;
 
@@ -1081,6 +1107,7 @@ namespace IdleGymBro.EditorTools
             }
 
             closeButton.sprite = CircleSprite;
+            ApplySlicing(closeButton);
             closeButton.type = Image.Type.Simple;
             closeButton.color = new Color(1f, 1f, 1f, 0.10f);
             closeButton.rectTransform.sizeDelta = new Vector2(76f, 76f);
@@ -1105,6 +1132,7 @@ namespace IdleGymBro.EditorTools
         private static void StyleActionButton(Image buttonImage, Color tint)
         {
             buttonImage.sprite = UiShape("panel_soft") ?? buttonImage.sprite;
+            ApplySlicing(buttonImage);
             buttonImage.type = Image.Type.Sliced;
             buttonImage.color = tint;
         }
@@ -1120,6 +1148,38 @@ namespace IdleGymBro.EditorTools
         private static void ConfigureUiKit()
         {
             SetSpriteBorder($"{UiKitFolder}/icon_cross.png", Vector4.zero);
+
+            // Generated pixel-art chrome (PixelLab create_ui_asset, styled from the character art).
+            // The border is what makes it survive being stretched: 9-slicing keeps the outline and
+            // the accent corners at their drawn size and repeats only the flat middle. Without it a
+            // 232x168 panel blown up to a 760x980 modal would smear its 2px outline into a 10px
+            // gradient — which is exactly how baked-pixel UI usually goes wrong.
+            SetPixelUi("panel_pixel", new Vector4(18f, 18f, 18f, 18f));
+            SetPixelUi("button_pixel", new Vector4(16f, 16f, 16f, 16f));
+            SetPixelUi("plate_pixel", new Vector4(14f, 14f, 14f, 14f));
+            SetPixelUi("tab_pixel", new Vector4(12f, 12f, 12f, 12f));
+            SetPixelUi("bar_pixel", new Vector4(14f, 14f, 14f, 14f));
+        }
+
+        private static void SetPixelUi(string name, Vector4 border)
+        {
+            string path = $"{UiKitFolder}/{name}.png";
+            var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+
+            if (importer == null)
+            {
+                Debug.LogWarning($"[CoreLoopSceneBootstrap] Pixel UI sprite missing: {path}");
+                return;
+            }
+
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.spriteBorder = border;
+            importer.filterMode = FilterMode.Point; // pixel art: never smooth it
+            importer.mipmapEnabled = false;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.alphaIsTransparency = true;
+            importer.SaveAndReimport();
         }
 
         // Re-imports every icon with the settings the art depends on, because a .meta outlives the
@@ -1185,7 +1245,24 @@ namespace IdleGymBro.EditorTools
             importer.SaveAndReimport();
         }
 
+        // Maps the old flat-shape names onto the generated pixel-art kit, so every call site that
+        // asked for "panel"/"panel_soft" gets pixel chrome without being rewritten. The generated
+        // shapes stay as the fallback (and are still what fills and dimmers use, since a 9-sliced
+        // rounded sprite stretched as a progress bar would draw its own corners mid-bar).
         private static Sprite UiShape(string name)
+        {
+            switch (name)
+            {
+                case "panel":
+                    return UiKit("panel_pixel") ?? RawShape(name);
+                case "panel_soft":
+                    return UiKit("button_pixel") ?? RawShape(name);
+                default:
+                    return RawShape(name);
+            }
+        }
+
+        private static Sprite RawShape(string name)
         {
             return AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/_Game/Art/UI/Shapes/{name}.png");
         }
@@ -1400,6 +1477,29 @@ namespace IdleGymBro.EditorTools
             so.FindProperty("_sprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
             so.FindProperty("_cost").doubleValue = cost;
             so.FindProperty("_unlockedByDefault").boolValue = true;
+
+            // Per-tier cuts, if ShortsGenerator produced any for this id. Hair and beard have none:
+            // the skull is near enough the same size at every tier, while the hips are not.
+            SerializedProperty tierSprites = so.FindProperty("_tierSprites");
+
+            if (tierSprites != null)
+            {
+                var found = new System.Collections.Generic.List<Sprite>();
+
+                for (int tier = 1; tier <= MuscleTierCount; tier++)
+                {
+                    found.Add(AssetDatabase.LoadAssetAtPath<Sprite>($"{CharacterArtFolder}/{id}_tier{tier}.png"));
+                }
+
+                bool any = found.Exists(s => s != null);
+                tierSprites.arraySize = any ? found.Count : 0;
+
+                for (int i = 0; any && i < found.Count; i++)
+                {
+                    tierSprites.GetArrayElementAtIndex(i).objectReferenceValue = found[i];
+                }
+            }
+
             so.ApplyModifiedProperties();
 
             AssetDatabase.SaveAssets();
@@ -1463,6 +1563,24 @@ namespace IdleGymBro.EditorTools
             so.ApplyModifiedProperties();
         }
 
+        // Sprites assigned after CreateImage need the same treatment it applies: a bordered sprite
+        // is 9-slice chrome and has to be drawn Sliced, or the outline stretches.
+        private static void ApplySlicing(Image image)
+        {
+            if (image == null || image.sprite == null)
+            {
+                return;
+            }
+
+            bool sliced = image.sprite.border.sqrMagnitude > 0f;
+            image.type = sliced ? Image.Type.Sliced : Image.Type.Simple;
+
+            if (sliced)
+            {
+                image.pixelsPerUnitMultiplier = 1f;
+            }
+        }
+
         private static Image CreateImage(string name, Transform parent, Sprite sprite, Color color)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
@@ -1471,6 +1589,16 @@ namespace IdleGymBro.EditorTools
             var image = go.GetComponent<Image>();
             image.sprite = sprite;
             image.color = color;
+
+            // A sprite that declares a 9-slice border is pixel-art chrome and MUST be drawn Sliced;
+            // left on Simple the border is ignored and Unity stretches the whole bitmap, smearing a
+            // 2px outline into a soft gradient at modal size. Sprites without a border (fills,
+            // dimmers, icons) keep Simple, which is what they need.
+            if (sprite != null && sprite.border.sqrMagnitude > 0f)
+            {
+                image.type = Image.Type.Sliced;
+                image.pixelsPerUnitMultiplier = 1f;
+            }
 
             return image;
         }

@@ -537,3 +537,55 @@ ijednog upozorenja — kosa bi se samo opet odlepila. Negativna kontrola: nulira
 
 **Gotcha:** `animate_image` naplacuje po `ceil(w*h*frames/65536)` — 96×144×8 = 2 generacije, a 4 frejma
 1. Ali **frejmovi preko cetvrtog ne stizu inline** — ko ih ne preuzme po indeksu, tiho dobije krnji klip.
+
+**NALOG #037** — drugi playtest: sorc nije pratio telo, UI je i dalje bio Unity-default, x10 nije postojao.
+
+**Sorc siri od lika — jedan sprite, sest sirina kukova.** Kozmetika je do sada bila JEDAN sprite po
+komadu. To je prolazilo dok su tela bila fal.ai varijante iste kompozicije; PixelLab je tierovima
+promenio siluetu, pa je isti par sorca visio sa strane mrsavog lika i sekao masivnog.
+
+Resenje: **`Editor/ShortsGenerator` krojii sorc iz siluete SAMOG tiera.** Dva merenja to nose:
+- *Pojas se ne pogadja frakcijom canvasa nego se nalazi iz gacica na telu.* Izmerena paleta:
+  fill `62,68,93`, nijanse `38,41,63` i `26,28,42`, highlight `82,87,109`.
+  ⚠️ Prva verzija je uzimala „plavkasto i tamno" i **obukla ceo lik od temena do stopala** — jer je
+  najtamnija nijansa gacica ujedno boja obrisa oko celog tela. Popravka: strozi prag (`B−R > 0.09`)
+  **plus zahtev da postoji NIZ od bar 5 susednih takvih piksela** — odeca je popunjena povrsina,
+  obris od 1 px nije.
+- *Kukovi su, po redu, onaj neprozirni niz koji SADRZI centralnu kolonu.* Na visini kukova silueta je
+  `ruka | praznina | kukovi | praznina | ruka`, pa bi uzimanje celog raspona reda razvuklo sorc preko
+  obe ruke.
+
+Posledica na podatke: `CosmeticData` dobija `_tierSprites` + `SpriteForTier(tier)` (fallback na
+zajednicki sprite), `CosmeticEquippedEvent` nosi i `CosmeticData` (ne samo Sprite), a
+`CharacterBuilder` pamti sta je obuceno po sloju i **ponovo razresava sloj na promenu tiera** — inace
+bi rast tiera ostavio stari kroj na novom telu. Kosa i brada nemaju per-tier varijante: lobanja se
+kroz tierove menja zanemarljivo.
+
+**UI: generisan pixel art umesto Unity default-a.** `create_ui_asset` (40 gen) sa `pieces` — panel,
+dugme, plocica, tab i traka na jednom 512×512 platnu, uz **telo tier3 kao `style_image_base64`**, pa
+je paleta/outline/pixel scale isti kao kod lika. Komadi se seku lokalno (isti postupak kao icon grid).
+- Okrugli diskovi su izbaceni: `CircleSprite` sada vraca `plate_pixel` (kvadratna plocica sa toplim
+  uglovima). To je bio poslednji Unity-default element u igri koja je inace cela pixel art.
+- **9-slice je obavezan**, inace se 2px ram razmaze u gradijent kad se panel od 232×168 razvuce na
+  modal od 760×980. Zato `SetPixelUi` upisuje `spriteBorder`, a `CreateImage`/`ApplySlicing`
+  automatski prebacuju svaki sprite sa ramom na `Image.Type.Sliced`.
+- `PanelColor`/`ButtonColor` su sada beli: povrsine nose boju u artu, pa bi mnozenje tamnim tintom
+  spljostilo slate u crno.
+
+**x10 toggle.** `Economy/BuyMultiplier` (staticno stanje + event) — dugme stoji jednom na vrhu modala,
+a svaki red se sam preracunava; drzanje multiplikatora po redu bi znacilo sedam kopija istog stanja.
+Namerno se NE cuva u save-u: to je pogled na panel, ne progres, i igrac koji se vrati posle nedelju
+dana ne treba da zatekne x10 naoruzan nad manjim budzetom.
+- `UpgradeManager.GetCost(id, count)` sabira **geometrijski niz**, ne `count × trenutna cena` —
+  kvotirati jeftinu cenu pa naplatiti pravu je nacin na koji bulk-buy dugmad lazu igraca.
+- `AffordableLevels(id, count)` vraca koliko se stvarno moze kupiti, pa dugme kvotira **ono sto ce
+  zaista kupiti** (x7 kad ima za 7 od 10) umesto da stoji sivo bez objasnjenja.
+
+**Novi test T14** — sorc mora imati 6 razlicitih krojeva. Bitno jer `SpriteForTier` namerno pada na
+zajednicki sprite kad varijanta fali, pa bi pokvaren generator tiho vratio jedan par na svih sest tela.
+Negativna kontrola: uperiti svih 6 referenci u isti sprite → pada tacno „the six cuts are six
+different sprites [1 distinct]".
+
+**Verifikacija:** 0 `error CS` · `18 shorts sprites ready` · `18 icons ready` ·
+`frame anchors baked on 6 tier(s)` · `wired 13/13` · `Scene built and saved` ·
+`SystemsSmokeTest PASS — 356 checks, 0 failures`.

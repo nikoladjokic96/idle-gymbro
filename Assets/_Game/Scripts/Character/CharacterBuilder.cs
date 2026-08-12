@@ -22,6 +22,9 @@ namespace IdleGymBro.Character
 
         private readonly Dictionary<CharacterLayer, SpriteRenderer> _renderers = new Dictionary<CharacterLayer, SpriteRenderer>();
 
+        // What is currently worn on each layer, so a tier change can re-cut the garment.
+        private readonly Dictionary<CharacterLayer, CosmeticData> _equipped = new Dictionary<CharacterLayer, CosmeticData>();
+
         private int _currentTierIndex = -1;
         private bool _missingTiersLogged;
 
@@ -92,12 +95,33 @@ namespace IdleGymBro.Character
             HandleGainsChanged(new GainsChangedEvent(0d, 0d));
         }
 
-        // Sets the sprite for one layer whenever the wardrobe equips a cosmetic there.
+        // Sets the sprite for one layer whenever the wardrobe equips a cosmetic there, and remembers
+        // WHICH cosmetic it was so the layer can be re-cut when the muscle tier changes.
         private void HandleCosmeticEquipped(CosmeticEquippedEvent e)
         {
+            if (e.Cosmetic != null)
+            {
+                _equipped[e.Layer] = e.Cosmetic;
+            }
+
             if (_renderers.TryGetValue(e.Layer, out SpriteRenderer renderer))
             {
-                renderer.sprite = e.Sprite;
+                renderer.sprite = e.Cosmetic != null ? e.Cosmetic.SpriteForTier(CurrentTier) : e.Sprite;
+            }
+        }
+
+        // Re-resolves every equipped layer against the new tier. Shorts are cut to fit each tier's
+        // hips, so growing a tier while wearing them would otherwise leave the old, narrower (or
+        // wider) pair on the new body — which is exactly how they ended up floating off the skinny
+        // character.
+        private void ReapplyCosmeticsForTier()
+        {
+            foreach (KeyValuePair<CharacterLayer, CosmeticData> pair in _equipped)
+            {
+                if (pair.Value != null && _renderers.TryGetValue(pair.Key, out SpriteRenderer renderer))
+                {
+                    renderer.sprite = pair.Value.SpriteForTier(CurrentTier);
+                }
             }
         }
 
@@ -146,6 +170,8 @@ namespace IdleGymBro.Character
             {
                 headRenderer.sprite = tier.HeadSprite;
             }
+
+            ReapplyCosmeticsForTier();
 
             EventBus.Publish(new MuscleTierChangedEvent(tier.Tier, tier.DisplayName));
         }

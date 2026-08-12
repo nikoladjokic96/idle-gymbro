@@ -102,6 +102,73 @@ namespace IdleGymBro.Economy
             return u.BaseCost * System.Math.Pow(u.GrowthRate, GetLevel(id));
         }
 
+        // Cost of buying `count` levels back to back. Each level costs more than the last, so this
+        // is the sum of the geometric run, NOT count x the current price — quoting the cheap price
+        // and then charging the real one is how bulk-buy buttons lie to players.
+        public double GetCost(string id, int count)
+        {
+            var u = GetUpgrade(id);
+
+            if (u == null || count <= 0)
+            {
+                return double.PositiveInfinity;
+            }
+
+            int level = GetLevel(id);
+            int affordableSteps = u.MaxLevel > 0 ? System.Math.Min(count, u.MaxLevel - level) : count;
+
+            if (affordableSteps <= 0)
+            {
+                return double.PositiveInfinity;
+            }
+
+            double total = 0d;
+
+            for (int i = 0; i < affordableSteps; i++)
+            {
+                total += u.BaseCost * System.Math.Pow(u.GrowthRate, level + i);
+            }
+
+            return total;
+        }
+
+        // How many of the requested levels the player can actually afford right now (0..count).
+        // Bulk buy is all-or-nothing per press would be worse: at x10 a player one coin short would
+        // get nothing, with no hint why.
+        public int AffordableLevels(string id, int count)
+        {
+            var u = GetUpgrade(id);
+
+            if (u == null || _currency == null || count <= 0)
+            {
+                return 0;
+            }
+
+            int level = GetLevel(id);
+            double budget = _currency.TotalGains;
+            int bought = 0;
+
+            for (int i = 0; i < count; i++)
+            {
+                if (u.MaxLevel > 0 && level + i >= u.MaxLevel)
+                {
+                    break;
+                }
+
+                double price = u.BaseCost * System.Math.Pow(u.GrowthRate, level + i);
+
+                if (budget < price)
+                {
+                    break;
+                }
+
+                budget -= price;
+                bought++;
+            }
+
+            return bought;
+        }
+
         // Read-only affordability check; does not spend.
         public bool CanBuy(string id)
         {
@@ -118,6 +185,39 @@ namespace IdleGymBro.Economy
             }
 
             return _currency != null && _currency.TotalGains >= GetCost(id);
+        }
+
+        // Buys up to `count` levels, spending once for the whole run and publishing one event.
+        // Returns how many levels were actually bought.
+        public int TryBuy(string id, int count)
+        {
+            var u = GetUpgrade(id);
+
+            if (u == null || _currency == null || count <= 0)
+            {
+                return 0;
+            }
+
+            int levels = AffordableLevels(id, count);
+
+            if (levels <= 0)
+            {
+                return 0;
+            }
+
+            double cost = GetCost(id, levels);
+
+            if (!_currency.TrySpend(cost))
+            {
+                return 0;
+            }
+
+            int newLevel = GetLevel(id) + levels;
+            _levels[id] = newLevel;
+
+            RecomputeAndPublish();
+            EventBus.Publish(new UpgradePurchasedEvent(id, newLevel));
+            return levels;
         }
 
         public bool TryBuy(string id)

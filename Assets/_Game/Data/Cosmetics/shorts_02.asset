@@ -16,5 +16,12 @@ MonoBehaviour:
   _displayName: Shorts 2
   _layer: 10
   _sprite: {fileID: 21300000, guid: 015e8f7c6b1540c40be49caab7c4516c, type: 3}
+  _tierSprites:
+  - {fileID: 21300000, guid: 69a4f1dc6f3e92348a8fa00f3c00880a, type: 3}
+  - {fileID: 21300000, guid: 3c6f1d34589795844aba957b28079c4f, type: 3}
+  - {fileID: 21300000, guid: 913b01e0401281142a7124d3515d40f1, type: 3}
+  - {fileID: 21300000, guid: 62684b56fd00f9643ac32782c6d6c6d6, type: 3}
+  - {fileID: 21300000, guid: 4382f9ec6ea22f04bb5acbe1f3e89642, type: 3}
+  - {fileID: 21300000, guid: a79c568c83ef007458468928e8f1c28c, type: 3}
   _cost: 0
   _unlockedByDefault: 1

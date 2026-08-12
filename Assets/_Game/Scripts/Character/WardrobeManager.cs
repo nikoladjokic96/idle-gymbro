@@ -54,7 +54,7 @@ namespace IdleGymBro.Character
             }
 
             _equipped[cosmetic.Layer] = cosmetic.Id;
-            EventBus.Publish(new CosmeticEquippedEvent(cosmetic.Layer, cosmetic.Sprite));
+            EventBus.Publish(new CosmeticEquippedEvent(cosmetic.Layer, cosmetic.Sprite, cosmetic));
         }
 
         // Cycles to the next cosmetic in a layer (wraps) — drives the wardrobe UI's NEXT button.
@@ -101,7 +101,7 @@ namespace IdleGymBro.Character
                 CosmeticData cosmetic = FindById(pair.Value);
                 if (cosmetic != null)
                 {
-                    EventBus.Publish(new CosmeticEquippedEvent(cosmetic.Layer, cosmetic.Sprite));
+                    EventBus.Publish(new CosmeticEquippedEvent(cosmetic.Layer, cosmetic.Sprite, cosmetic));
                 }
             }
         }

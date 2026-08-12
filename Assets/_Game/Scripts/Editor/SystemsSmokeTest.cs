@@ -69,6 +69,7 @@ namespace IdleGymBro.EditorTools
             Run("T11 achievements vs prestige", TestAchievementProgressSurvivesPrestige);
             Run("T12 idle clip per tier", TestEveryTierHasAnIdleClip);
             Run("T13 head anchors per frame", TestHeadAnchorsMatchFrames);
+            Run("T14 shorts cut per tier", TestShortsAreCutPerTier);
 
             EventBus.Clear();
 
@@ -516,6 +517,63 @@ namespace IdleGymBro.EditorTools
                 Check(workFrames == 0 || anyMovement,
                     $"T13 {tier.name}: workout head actually moves (offsets not all zero)");
             }
+        }
+
+        // Shorts wrap the hips, and the hips differ enormously between tier 1 and tier 6, so each
+        // pair is cut from its own tier's silhouette. CosmeticData.SpriteForTier falls back to the
+        // shared sprite when a tier variant is missing — deliberately, so a half-filled array still
+        // renders — which means a broken generator would show ONE pair on every body again with no
+        // error anywhere. This is what notices.
+        private static void TestShortsAreCutPerTier()
+        {
+            CosmeticData[] cosmetics = LoadAll<CosmeticData>("Assets/_Game/Data/Cosmetics");
+
+            if (!Check(cosmetics.Length > 0, "T14 cosmetics exist"))
+            {
+                return;
+            }
+
+            int shortsChecked = 0;
+
+            foreach (CosmeticData cosmetic in cosmetics)
+            {
+                if (cosmetic == null || cosmetic.Layer != CharacterLayer.Shorts)
+                {
+                    continue;
+                }
+
+                shortsChecked++;
+                Sprite[] tierSprites = cosmetic.TierSprites;
+
+                if (!Check(tierSprites != null && tierSprites.Length == 6,
+                        $"T14 {cosmetic.name}: has a cut for all 6 tiers",
+                        $"got {(tierSprites == null ? 0 : tierSprites.Length)}"))
+                {
+                    continue;
+                }
+
+                var distinct = new HashSet<Sprite>();
+
+                for (int i = 0; i < tierSprites.Length; i++)
+                {
+                    Check(tierSprites[i] != null, $"T14 {cosmetic.name}: tier {i + 1} cut is assigned");
+                    Check(cosmetic.SpriteForTier(i + 1) == tierSprites[i],
+                        $"T14 {cosmetic.name}: SpriteForTier({i + 1}) returns that tier's cut");
+
+                    if (tierSprites[i] != null)
+                    {
+                        distinct.Add(tierSprites[i]);
+                    }
+                }
+
+                // Six references to the same asset would satisfy every check above while still being
+                // the bug this replaced.
+                Check(distinct.Count == 6,
+                    $"T14 {cosmetic.name}: the six cuts are six different sprites",
+                    $"{distinct.Count} distinct");
+            }
+
+            Check(shortsChecked > 0, "T14 at least one shorts cosmetic was checked");
         }
 
         // ---------------------------------------------------------------- helpers
