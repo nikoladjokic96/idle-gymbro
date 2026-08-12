@@ -1,87 +1,38 @@
-# Idle GymBro — Asset Checklist (šta treba nacrtati)
+# Idle GymBro — Asset Checklist
 
-> Radna lista za pixel art. Tehnički standard (canvas, PPU, pivot, folderi, Unity import):
-> [`art-brief.md`](art-brief.md) — **pročitaj njega prvo**. Ovde je samo ŠTA treba i kojim redom.
+> ✅ **ZATVORENO (NALOG #035).** Ova lista je postojala dok se čekalo da neko nacrta art.
+> Više se ne čeka: sav art koji igra učitava je generisan i instaliran —
+> **6 muscle tierova · 12 animacionih klipova · 8 kozmetika + blink · 6 pozadina · 18 UI ikonica**.
 >
-> Svaki fajl ovde 1:1 zamenjuje generisani placeholder — ubaciš PNG preko postojećeg
-> fajla u `Assets/_Game/Art/Character/Placeholders/` (ili novi u svoj folder + javi da preožičim slot).
->
-> ⚠️ **AŽURIRANO (#022):** do #022 je ovaj savet bio OPASAN — generatori su na svaki rebuild scene
-> bezuslovno prepisivali te fajlove, pa bi pravi art nestao pri prvom `BuildCoreLoopScene`.
-> Sada generatori **preskaču postojeće fajlove** (log: `0 generated, 15 kept`), pa je ubacivanje
-> preko placeholder-a bezbedno. Namerno vraćanje placeholder-a ide kroz `IdleGymBro → DANGER — Regenerate…`.
->
-> ⚠️ **Stil je promenjen u #022**: lik više NIJE pixel art nego **hand-painted cartoon**, canvas
-> **848×1264 (2:3)**, PPU se izvodi automatski iz visine (`height/1.5`) — vidi `art-brief.md`.
-> Donja lista (128×192, stopala na y=8) važi samo ako se svesno vraćaš na pixel art.
-
-**Format za sve:** PNG, providna pozadina, **128×192 px po frejmu**, lik centriran po X,
-**stopala na y=8 od dna**, bez anti-aliasa. Paleta ~24–32 boje, ista svuda.
+> - Šta je koji fajl i gde stoji → [`asset-catalog.md`](asset-catalog.md)
+> - Canvas, pivot, PPU, Unity import → [`art-brief.md`](art-brief.md)
+> - Kako je nastao i šta je koštao → [`pixellab-migration.md`](pixellab-migration.md)
 
 ---
 
-## A. SLIKE (statični sprite-ovi, jedan PNG po fajlu)
+## Jedino što još NIJE pravi asset
 
-### Prioritet 1 — prvi playable art pass (zamenjuje placeholder siluete)
-| # | Fajl | Šta je | Napomena |
+| Šta | Gde | Napomena |
+|---|---|---|
+| **SFX** (4 zvuka) | `Assets/_Game/Audio/Placeholders/` | `tap.wav`, `buy.wav`, `tier_up.wav`, `booster.wav` — deterministički generisani tonovi. Zamena je 1:1 po imenu, bez koda. |
+
+---
+
+## Ako budeš crtao ručno (npr. u Aseprite-u)
+
+Zameni PNG **istim imenom i istom veličinom**; Unity sam reimportuje, kod se ne dira.
+
+| Tip | Canvas | Pivot | Registracija |
 |---|---|---|---|
-| 1 | `body_tier3.png` | telo „Fit" | prvo telo koje igrač duže gleda — počni od njega |
-| 2 | `head_01.png` | glava (bez kose/brade) | zaseban sloj od tela |
-| 3 | `hair_01.png` | kosa | crna, kao na referenci |
-| 4 | `beard_01.png` | brada | puna brada, kao na referenci |
-| 5 | `shorts_01.png` | šorc | crni |
-| 6 | `background_home.png` | pozadina lokacije 1 (soba/kuća) | **1080×1920** (ceo ekran), mračnija da HUD bude čitljiv |
+| Lik i svi kozmetički slojevi | **96 × 144** | bottom-center | centriran po X, stopala na istoj baznoj liniji |
+| Animacioni frejm | **96 × 144** | isto kao statična poza | `body_tier<N>_idle1..4.png` / `_work1..4.png` |
+| UI ikonica | **64 × 64** | — | transparentna pozadina, motiv centriran |
+| Pozadina lokacije | **216 × 384** | center | pod u donjoj trećini; **vidi se samo centralnih 144×256** |
 
-### Prioritet 2 — muscle tiers (glavni vizuelni feedback igre)
-| # | Fajl | Šta je |
-|---|---|---|
-| 7 | `body_tier1.png` | mršav (start) |
-| 8 | `body_tier2.png` | slim-fit |
-| 9 | `body_tier4.png` | jacked |
-| 10 | `body_tier5.png` | mass monster |
-| 11 | `body_tier6.png` | enhanced/Gear (vene, glow — premium fantazija) |
+**Dva pravila koja se ne smeju prekršiti:**
 
-> Ista visina/pivot za sve tierove — silueta se širi, stopala ostaju na istoj liniji.
-> Tier 3 ti je referenca; 1–2 su mršaviji, 4–6 masivniji.
-
-### Prioritet 3 — prva kustomizacija (po 2–3 varijante)
-| # | Fajlovi | Šta je |
-|---|---|---|
-| 12 | `hair_02.png`, `hair_03.png` | još frizura (plava, ćelav+kapa...) |
-| 13 | `beard_02.png` | brkovi ili kozja bradica |
-| 14 | `shorts_02.png`, `shorts_03.png` | varijante (crveni, camo...) |
-| 15 | `shirt_01.png` | majica/tank top (sloj preko torza; „bez majice" = prazan slot) |
-| 16 | `shoes_01.png` | patike |
-| 17 | `accessory_headphones_01.png`, `accessory_chain_01.png` | dodaci |
-
----
-
-## B. ANIMACIJE (sprite sheet — horizontalna traka, svaka ćelija 128×192)
-
-> Sheet = svi frejmovi jedan do drugog u JEDNOM PNG-u (npr. 4 frejma → 512×192).
-> Konstantan broj frejmova po animaciji; lik na istom mestu u svakoj ćeliji.
-
-### Prioritet 1 — MVP
-| # | Fajl | Animacija | Frejmovi | Napomena |
-|---|---|---|---|---|
-| A1 | `idle_tier3_sheet.png` | disanje/stajanje | **2–4** | loop; suptilno (ramena gore-dole 1–2 px) |
-| A2 | `curl_tier3_sheet.png` | bicep curl sa bučicom | **4–6** | „rep" animacija — pušta se na svaki rep; poslednji frejm = vrh pokreta |
-
-### Prioritet 2 — po jedan sheet za ostale tierove koje nacrtaš
-| # | Fajl | Napomena |
-|---|---|---|
-| A3 | `idle_tier1_sheet.png`, `curl_tier1_sheet.png` | isti keyframe-ovi kao tier3, mršavija silueta |
-| A4 | ... isto za tier 2/4/5/6 kad stignu tela | kustom slojevi (kosa/šorc) prate iste keyframe-ove |
-
-### Post-MVP (NE crtati sad)
-- Nove vežbe po lokaciji: sklek, čučanj, bench, deadlift... (svaka = novi sheet po tieru)
-- Flex/pobednička poza, umoran (energija = 0)
-
----
-
-## Kako da isporučiš
-1. Crtaj u Aseprite-u (ili Piskel/Krita) na 128×192 canvasu, stopala na y=8.
-2. Export: **File → Export Sprite Sheet** (horizontal strip) za animacije; običan PNG za statične.
-3. Fajlove mi pošalji ili ubaci u `Assets/_Game/Art/Character/` po folderima iz art-brief-a §6 — ja ih uvezujem u slotove, podešavam Unity import i ožičavam.
-
-**Minimalni skup da igra prestane da liči na placeholder:** stavke **1–6 + A1 + A2** (8 fajlova).
+1. **Ne pokreći `IdleGymBro → DANGER — Regenerate Placeholder Character Art`** — to je jedini put
+   koji briše pravi art. Obični `Generate…` preskače postojeće fajlove
+   (log: `15 sprites ready (0 generated, 15 kept)`).
+2. **Animacioni frejm mora deliti canvas i PPU sa statičnom pozom** — `SystemsSmokeTest` T12 to
+   proverava, a u igri bi lik inače poskakivao između frejmova i kozmetika bi se odlepila.

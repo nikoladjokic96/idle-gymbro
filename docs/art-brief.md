@@ -112,22 +112,50 @@ Assets/_Game/Art/Character/
   Animations/  <exercise>_<tier>_sheet.png (sprite sheets)
 ```
 
-## 7. Animacije (§7)
+## 7. Animacije (§7) — ✅ implementirano (NALOG #035)
 
-- **Frame-by-frame** sprite sheet, horizontalna traka; svaka ćelija = **128×192** (isti canvas), konzistentan broj frejmova.
-- Import: Sprite Mode = **Multiple**, sliceuj po ćeliji (128×192).
-- **MVP (Faza 3):**
-  - `idle` — disanje, **2–4 frejma**, loop.
-  - **1 vežba** (npr. bicep curl ili sklek) — **4–6 frejmova**.
-- Kustom slojevi (kosa, brada…) prate iste keyframe-ove. Napredno (skeletal/bone) je post-MVP.
+**NE sprite sheet.** Svaki frejm je **zaseban PNG** od 96×144, jer `CoreLoopSceneBootstrap.AssignFrames`
+skenira fajlove po imenu dok ne naiđe na rupu:
+
+```
+body_tier<N>_idle1.png … _idle4.png    →  MuscleTierData._idleFrames    (disanje, loop)
+body_tier<N>_work1.png … _work4.png    →  MuscleTierData._workoutFrames (bicep curl, dok se drži ekran)
+```
+
+Sprite Mode ostaje **Single** za svaki frejm (Multiple pamti isečene pod-rect-ove, pa bi zamena
+arta druge veličine kropovala ustajali pravougaonik).
+
+- **Nedostajući frejm se tiho preskače** — tier bez klipa drži svoju statičnu pozu. Ali
+  `SystemsSmokeTest` T12 **traži da svaki tier ima bar 1 idle i 1 workout frejm**, pa se klipovi
+  ne smeju samo obrisati.
+- Frejm mora deliti **isti canvas i isti PPU** kao statična poza (T12 to proverava) — inače lik
+  poskoči između frejmova i kozmetički slojevi prestanu da se poklapaju.
+- Kozmetika se **ne animira** — hair/beard/shorts su statični slojevi preko animiranog tela.
+  Na 96×144 sa suptilnim disanjem to se ne primećuje; za veće amplitude bi trebalo po-frejm slojeve.
+
+**Kako se prave (PixelLab):** `animate_image` prima „loose" PNG (ne traži PixelLab rig).
+`96 × 144 × 4 frejma = 55.296 px ≤ 65.536` → **1 generacija po klipu**.
+
+## 7b. Kozmetika (hair / beard / shorts)
+
+Kozmetički slojevi **nisu generisani PixelLab-om.** Pokušaj kroz `create_image_pixflux` img2img je
+pao: na `init_strength` 300 model ne doda kosu uopšte (ostane ćelav), a na 150 precrta celo telo —
+u oba slučaja „razlika varijante i baze" (trik iz #022) daje šum umesto sloja. `inpaint_image`, koji
+bi to rešio čisto, košta **20–40 generacija po pozivu**.
+
+Umesto toga: **fal.ai slojevi iz #022 su smanjeni sa 848×1264 na 96×144** i propušteni kroz tvrdu
+alfu + kvantizaciju boje. Poklapaju se **po konstrukciji** — i pixel tela i ti slojevi potiču iz
+iste 848×1264 kompozicije, pa kosa sleće na teme a šorc na kukove na svakom tieru.
 
 ## 8. Kako da napraviš (tooling)
 
 - **Preporuka: [Aseprite](https://www.aseprite.org/)** — standard za pixel art (slojevi, animacija, paleta, export sheet-ova). Alternativa: Piskel (besplatan, browser), Krita, Photoshop.
 - Zaključaj **jednu paletu** (izvuci iz reference ili definiši ~24 boje) i koristi je svuda.
-- Radi svaki sloj na istom 128×192 canvasu, stopala na baznoj liniji.
-- Export: svaki sloj/frejm kao PNG (ili sheet) u odgovarajući folder iznad.
-- **Opcije za izvor arta:** (a) ti crtaš u Aseprite-u; (b) pixel-art umetnik dobije ovaj brief; (c) AI-generisanje — moguće za koncept, ali čist modularni pixel art sa fiksnom registracijom je AI-ju težak; realnije je Aseprite.
+- Radi svaki sloj na istom **96×144** canvasu, stopala na baznoj liniji.
+- Export: svaki sloj/frejm kao zaseban PNG u odgovarajući folder iznad.
+- **Izvor arta danas: PixelLab** (vidi [`pixellab-migration.md`](pixellab-migration.md)).
+  Registracija se ne prepušta modelu — svaki tier je `img2img` iz **svog** fal.ai originala
+  smanjenog na 96×144, pa poza, visina glave i linija stopala ostaju identične po konstrukciji.
 
 ## 9. Šta ja (Claude) gradim uz ovo
 
@@ -138,9 +166,11 @@ Kad slotovi/PNG-ovi postoje, ja pišem runtime sistem (Faza 3, §7):
 - animacioni state (idle/vežba po lokaciji).
 Art se kači u imenovane slotove — **zamena arta = zamena PNG-a, bez diranja koda** (§4 pravilo 2).
 
-## 10. Za potvrdu (pre Faze 3)
+## 10. Odlučeno (bilo „za potvrdu")
 
-- [ ] View = **front** (potvrđeno referencom)?
-- [ ] Canvas **128×192** i PPU **128** ok, ili želiš krupnije (npr. 160×224)?
-- [ ] Ko crta: ti (Aseprite) / umetnik / AI?
-- [ ] Prvi MVP asset set: **tier 4 telo + kosa + brada + šorc + gloves + 1 idle + 1 vežba** — dovoljno da sistem proradi vizuelno.
+- [x] View = **front** (potvrđeno referencom).
+- [x] Canvas: **lik 96×144 · ikonica 64×64 · pozadina 216×384**, PPU izveden (§2).
+- [x] Ko crta: **PixelLab generisanje** + lokalna obrada (sečenje gridova, tvrda alfa, kvantizacija).
+- [x] Asset set: svih 6 tierova + 8 kozmetika + blink + 6 pozadina + 18 ikonica + idle/workout klipovi.
+
+**Preostalo:** SFX su i dalje placeholderi ([`asset-catalog.md`](asset-catalog.md) §4).

@@ -19,4 +19,4 @@ MonoBehaviour:
   _durationSeconds: 60
   _cooldownSeconds: 180
   _requiresAd: 1
-  _icon: {fileID: -2719568897475901436, guid: 80679d3890d6b8245a24189899d19dc9, type: 3}
+  _icon: {fileID: 21300000, guid: 80679d3890d6b8245a24189899d19dc9, type: 3}

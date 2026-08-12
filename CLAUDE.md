@@ -30,7 +30,7 @@ Jak, deljiv identitet = besplatni viralni marketing.
 |---|---|
 | Engine | **Unity 6 (LTS)**, 2D URP |
 | Jezik | **C#** |
-| Art | ⚠️ **U MIGRACIJI na pixel art / PixelLab** (odluka korisnika 2026-08-12, poništava #022) — plan i blocker: [`docs/pixellab-migration.md`](docs/pixellab-migration.md). **Canvas ZAKLJUČAN:** lik **96×144**, ikonica **64×64**, pozadina **216×384**, pivot bottom-center, front-view ([`docs/art-brief.md`](docs/art-brief.md) §2). **PPU se IZVODI iz visine teksture** (lik `height / 1.5`, pozadina `height / 15`) pa svetska veličina ne zavisi od rezolucije arta — zato stari 848×1264 fal.ai art na disku i novi 96×144 renderuju identično i mogu da koegzistiraju tokom migracije. Kroz obe varijante: **sve swappable** kroz imenovane slotove |
+| Art | **Pixel art, generisan PixelLab-om** (odluka korisnika 2026-08-12, poništava #022; migracija izvedena u #035 — izveštaj: [`docs/pixellab-migration.md`](docs/pixellab-migration.md)). **Canvas ZAKLJUČAN:** lik **96×144**, ikonica **64×64**, pozadina **216×384**, pivot bottom-center, front-view ([`docs/art-brief.md`](docs/art-brief.md) §2). **PPU se IZVODI iz visine teksture** (lik `height / 1.5`, pozadina `height / 15`) pa svetska veličina ne zavisi od rezolucije arta. **Sve swappable** kroz imenovane slotove |
 | Platforma | **Android prvo** (min API 24, IL2CPP, ARM64) |
 | Data | **ScriptableObjects** (data-driven, balans bez koda) |
 | Monetizacija | **Soft "Medieval Idle Prayer" model** — duga progresija, opt-in reklame, soft wall, zarada nenametljiva (vidi [sekciju 10](#10-monetizacija)) |
@@ -338,32 +338,34 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 
 - [x] #022 **Pravi art za lika (fal.ai pipeline)** — `game-assets-enhancement` skill + fal.ai `nano-banana-pro`. Style anchor (tier3) → svih 5 ostalih tierova i svih 8 kozmetika generisano kao **editi anchor-a** (edit čuva kompoziciju → registracija tačna po konstrukciji: identičan canvas 848×1264, ista visina glave, ista linija stopala). `Editor/CosmeticLayerExtractor` izoluje sloj kao razliku „varijanta − baza" u zadatom pojasu. **14 naslikanih asseta** (6 tierova, 3 kose, 2 brade, 3 šorca). Usput popravljeno: (a) **generatori placeholder-a su prepisivali pravi art na SVAKI rebuild scene** — sad `File.Exists` guard + zaseban „DANGER" menu za forsiranje; (b) PPU se izvodi iz visine teksture pa art bilo koje rezolucije zadržava svetsku veličinu; (c) `_headSprite` očišćen (naslikana tela sadrže glavu → inače dvostruko lice). Ostalo: 6 pozadina i dalje placeholderi.
 
-> **STANJE: cela igra izgrađena (Faze 0–7 + prestige + wardrobe), RUNTIME-verifikovana, lik na pravom artu.** 6 modala, 12 sistema na `GameSystems`. Ostaje: realan LevelPlay/IAP (na kraju), pravi art/animacije (čeka assete), **playtest + balans** (prioritet — sada bezbedan, jer su tunable-i stvarno u assetu i postoji regresiona mreža).
-> **Za novi čet:** čitaj ovu sekciju + „Smernice za nastavak" ispod + [`docs/dev-log.md`](docs/dev-log.md). Verifikacija: obe batchmode komande ispod — očekuj `15 sprites ready (0 generated, 15 kept)` · `6 backgrounds` · `4 clips` · `_gameConfig wired on 13/13` · `Scene built and saved`, pa `[SystemsSmokeTest] PASS — 167 checks, 0 failures`.
+> **STANJE: cela igra izgrađena (Faze 0–7 + prestige + wardrobe), RUNTIME-verifikovana, kompletna na pixel artu sa animacijama.** 6 modala, 12 sistema na `GameSystems`. Ostaje: realan LevelPlay/IAP (na kraju), **playtest + balans** (prioritet — sada bezbedan, jer su tunable-i stvarno u assetu i postoji regresiona mreža), zvuk (SFX su i dalje placeholderi).
+> **Za novi čet:** čitaj ovu sekciju + „Smernice za nastavak" ispod + [`docs/dev-log.md`](docs/dev-log.md). Verifikacija: obe batchmode komande ispod — očekuj `15 sprites ready (0 generated, 15 kept)` · `64 png import settings applied` · `6 backgrounds` · `4 clips` · `18 icons ready` · `_gameConfig wired on 13/13` · `Scene built and saved`, pa `[SystemsSmokeTest] PASS — 221 checks, 0 failures`.
 
-**MVP status: faze 0–4 funkcionalno kompletne sa placeholderima; monetizacioni TOKOVI mockovani (§10 poštovan — sve opt-in)** — sledeće: pravi art (čeka assete), balans tuning kroz playtest, animacije; realan LevelPlay/IAP na samom kraju.
-- [ ] Faza 3 nastavak: animacije (idle + rep po tieru), pravi pixel art (čeka assete — [`docs/asset-checklist.md`](docs/asset-checklist.md))
+**MVP status: faze 0–4 funkcionalno kompletne, art i animacije gotovi; monetizacioni TOKOVI mockovani (§10 poštovan — sve opt-in)** — sledeće: balans tuning kroz playtest; realan LevelPlay/IAP na samom kraju.
 - [ ] Balans tuning (krive cena/prihoda kroz playtest — §6/§10) — **odblokirano #021-om:** svih 17 tunable-a je sada u `GameConfig.asset`, a `SystemsSmokeTest` hvata regresije
 - [ ] Više stat tipova (maxEnergy/regen), još upgrade-ova
 
-- [ ] **#033 PixelLab migracija — U TOKU, BLOKIRANA BUDŽETOM.** Korisnik je odlučio (2026-08-12) da se **sav art zameni PixelLab pixel-art stilom, uključujući UI ikonice**. MCP server `pixellab` dodat i povezan (local scope, token van repoa). **Nijedna generacija nije potrošena.** Blocker: nalog je `trial` sa **40 generacija ukupno**, a najjeftiniji pun replace traži 38 gen bez ijednog re-roll-a i bez animacija → nije izvodljivo. Pun kontekst, cenovnik po alatu, inventar 98 PNG-ova i plan po fazama: **[`docs/pixellab-migration.md`](docs/pixellab-migration.md)**.
+- [x] **#033 PixelLab MCP povezan** — server `pixellab` u `~/.claude.json` (local scope, **token van repoa**). Native `mcp__pixellab__*` alati se ne učitavaju ni posle restarta sesije → sve ide kroz direktan JSON-RPC preko HTTP-a (skripte u scratchpad-u, [`docs/pixellab-migration.md`](docs/pixellab-migration.md) §6).
 
 - [x] **#034 Canvas standard zaključan (PixelLab).** Lik **96×144**, ikonica **64×64**, pozadina **216×384** — izvedeno iz PixelLab limita, ne proizvoljno: 96×144 je najveći portret na kome `animate_image` košta **1 generaciju** za 4 frejma (`ceil(w·h·frames/65536)`). Nalaz koji je odredio pipeline: **`create_character` se NE koristi** (canvas mu je kvadratni, `size` 16–256 +40%), nego **`create_image_pixflux` → `animate_image`** — `animate_image` animira bilo koji „loose" PNG bez PixelLab rig-a. Kod: `PlaceholderBackgroundGenerator` sad **izvodi PPU** (`height / 15`) umesto hardkodovanih 128, inače bi se pozadina 216×384 renderovala na 1/5 veličine. Detalji: [`docs/art-brief.md`](docs/art-brief.md) §2.
 
-> **Sledeći korak:** **odluka o PixelLab budžetu** ([`docs/pixellab-migration.md`](docs/pixellab-migration.md) §6 — pretplata vs. trošenje trijala na style anchor). Canvas je rešen, generisanje čeka SAMO tu odluku · potom balans tuning kroz playtest (menjaj SAMO `.asset` vrednosti).
-> ⚠️ **Playtest nije zamenjen testovima** — `SystemsSmokeTest` dokazuje logiku (58 provera), ali NE dokazuje *feel*: tap odziv, čitljivost HUD-a, da li se dugmad preklapaju, da li je kriva zabavna. To i dalje traži telefon i ruke.
+- [x] **#035 PixelLab migracija ZAVRŠENA + animacije (kraj Faze 3).** Sav art koji igra učitava je pixel art: **6 tierova · 6 pozadina · 18 UI ikonica · 8 kozmetika + blink · 12 animacionih klipova** (idle + workout po tieru, po 4 frejma). Potrošeno **35 od 40** trial generacija — stalo je zahvaljujući trima nalazima: (a) **grid trik** — 9 ikonica u JEDNOJ generaciji pa lokalno sečenje → 18 ikonica za 5 gen; (b) **kozmetika za 0 gen** — img2img ne ume da doda kosu (na strength 300 lik ostane ćelav, na 150 precrta celo telo → diff je šum), a `inpaint_image` košta 20–40 gen/poziv, pa su fal.ai slojevi iz #022 samo smanjeni na 96×144 + tvrda alfa (poklapaju se **po konstrukciji**, ista izvorna kompozicija); (c) **`animate_image` = 1 gen po klipu** na 96×144×4 — tačno zbog toga je canvas zaključan u #034. Registracija: svaki tier je img2img iz **svog** originala, ne iz anchor-a. ⚠️ `init_image_strength` je **obrnut** (veći = više čuva ulaz) — na 150 je model naduvao tier1/tier2 i pojeo progresiju mišića; sada 260, a tier1 („ultra mršav i tužan", zahtev korisnika) ide iz init slike **suzene po X na 68%**. Arhivirano u `_originals/fal_ai_848x1264/`: 48 starih 848×1264 frejmova — inače bi lik pri disanju treperio između pixel arta i naslikanog. Pun izveštaj: [`docs/pixellab-migration.md`](docs/pixellab-migration.md).
+
+> **Sledeći korak:** **balans tuning kroz playtest** (menjaj SAMO `.asset` vrednosti — GameConfig, Upgrades/, Boosters/, MuscleTiers/). Art više ne blokira ništa.
+> ⚠️ **Playtest nije zamenjen testovima** — `SystemsSmokeTest` dokazuje logiku (221 provere), ali NE dokazuje *feel*: tap odziv, čitljivost HUD-a, da li se dugmad preklapaju, da li je kriva zabavna. To i dalje traži telefon i ruke.
 > Setup na novom PC-u: `scripts/setup-dev-env.ps1` (vidi `SETUP.md`).
 
 ### Smernice za nastavak (čitaj OVO ako nastavljaš projekat u novoj sesiji)
 
 **Redosled prioriteta (dogovoren sa korisnikom):**
-1. **Balans tuning** — kroz playtest sa korisnikom; menjaj SAMO `.asset` vrednosti (GameConfig, Upgrades/, Boosters/, MuscleTiers/), nikad kod.
-2. **Faza 6: Story progress + lokacije** — dugme GORE LEVO po [`docs/ui-layout.md`](docs/ui-layout.md): % progresa lokacije (udeo kupljenih upgrade-ova), klik → modal sa lokacijama (§9); `LocationData` SO. Poslednji veliki HUD slot.
-3. **Animacioni sistem** (Faza 3 ostatak) — frame-by-frame idle + rep po tieru; gradi se sa placeholder sheet-ovima ILI čeka korisnikove (format u [`docs/asset-checklist.md`](docs/asset-checklist.md)).
-4. **Faza 7: Meta** — quests/achievements (dole levo) + periodic claim (dole desno) po layout-u.
-5. **NA SAMOM KRAJU:** realan LevelPlay/Unity IAP — mock `Monetization/AdManager.ShowRewarded(placement, onReward)` je API ugovor; menja se SAMO unutrašnjost te klase.
+1. **Balans tuning** — kroz playtest sa korisnikom; menjaj SAMO `.asset` vrednosti (GameConfig, Upgrades/, Boosters/, MuscleTiers/), nikad kod. ← **jedino što je sad na redu**
+2. **Zvuk** — SFX su i dalje generisani placeholderi (`Audio/Placeholders/`, 4 WAV-a); zamena je 1:1 po imenu, bez koda ([`docs/asset-catalog.md`](docs/asset-catalog.md) §4).
+3. **NA SAMOM KRAJU:** realan LevelPlay/Unity IAP — mock `Monetization/AdManager.ShowRewarded(placement, onReward)` je API ugovor; menja se SAMO unutrašnjost te klase.
 
-**Čeka korisnika (ne blokira razvoj):** pixel art asseti po [`docs/asset-checklist.md`](docs/asset-checklist.md) — menjaju placeholder fajlove 1:1, bez koda.
+~~Faza 6 (lokacije)~~ gotova u #014 · ~~animacije~~ gotove u #035 · ~~Faza 7 (meta)~~ gotova u #016–#018.
+
+**Art više ne čeka nikoga** — sve je generisano i instalirano (#035). Ako budeš menjao art ručno,
+poštuj canvas iz [`docs/art-brief.md`](docs/art-brief.md) §2 i **ne pokreći `DANGER — Regenerate…`**.
 
 **Kako se dodaje (ustaljeni putevi):**
 - Novi upgrade/booster/tier/kozmetika = novi `.asset` (kroz `GetOrCreate*` u bootstrap-u) — logika je generička, UI se generiše iz nizova.
@@ -375,14 +377,15 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 ```
 & "$env:USERPROFILE\Unity\Hub\Editor\6000.0.79f1\Editor\Unity.exe" -batchmode -quit -nographics -projectPath "F:\idle-gymbro" -executeMethod IdleGymBro.EditorTools.CoreLoopSceneBootstrap.BuildCoreLoopScene -logFile "$env:TEMP\igb.log"
 ```
-Log mora imati: 0× `error CS` · `15 sprites ready` · `6 backgrounds ready` · `4 clips ready` · `_gameConfig wired on 13/13` · `Scene built and saved`.
+Log mora imati: 0× `error CS` · `15 sprites ready` · `64 png import settings applied` · `6 backgrounds ready` · `4 clips ready` · `18 icons ready` · `_gameConfig wired on 13/13` · `Scene built and saved`.
+> `64 png import settings applied` pokriva 16 baznih sprite-ova + 48 animacionih frejmova; `18 icons ready` je zaseban prolaz jer **.meta nadživi PNG** — ikonice su ranije bile 512×512 u `Multiple` modu sa zapečenim rect-om, pa bi 64×64 art bio kropovan van teksture i **nevidljiv**.
 > ⚠️ Od #022 generatori **ne prepisuju postojeće fajlove** — normalno je `(0 generated, 15 kept)`. Ako vidiš `15 generated`, znači da je pravi art nestao sa diska i generator ga je zamenio placeholderima. Editor i batchmode ne mogu istovremeno; prvi run posle novih skripti ume samo da kompajlira → ponovi (Unity se lansira kao detached child — čekaj PID, ne veruj povratku komande).
 
 **Runtime verifikacija (OBAVEZNA za svaku izmenu logike):**
 ```
 & "$env:USERPROFILE\Unity\Hub\Editor\6000.0.79f1\Editor\Unity.exe" -batchmode -quit -nographics -projectPath "F:\idle-gymbro" -executeMethod IdleGymBro.EditorTools.SystemsSmokeTest.RunAll -logFile "$env:TEMP\igb_smoke.log"
 ```
-Očekuj `[SystemsSmokeTest] PASS — 167 checks, 0 failures`. Save round-trip: `-executeMethod IdleGymBro.EditorTools.SaveSystemSmokeTest.RunSaveRoundTrip`.
+Očekuj `[SystemsSmokeTest] PASS — 221 checks, 0 failures`. Save round-trip: `-executeMethod IdleGymBro.EditorTools.SaveSystemSmokeTest.RunSaveRoundTrip`.
 > Kad dodaješ test u `SystemsSmokeTest`, **proveri ga negativnom kontrolom** (`git stash` popravke → test MORA pasti). Test koji prolazi i pre i posle ne meri ništa.
 
 ### Radni model (arhitekta + pod-agenti)

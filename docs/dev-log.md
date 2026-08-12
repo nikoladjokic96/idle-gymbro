@@ -382,3 +382,91 @@ napravila regresiju), `tier3_fit.asset _headSprite: {fileID: 0}`.
   kroz svoj `try/catch` (`Run(name, test)`), sa `EventBus.Clear()` u `finally`.
 - Rebuild scene daje ~14k linija diff-a bez semantičke promene (Unity randomizuje lokalne fileID-jeve);
   scenu treba verifikovati markerima iz loga, ne git diff-om.
+
+---
+
+## Faza 3 (kraj) — PixelLab migracija: sav art u pixel artu + animacije
+
+**NALOG #035** — zamena celog arta pixel artom sa PixelLab-a i zatvaranje poslednje stavke Faze 3
+(animacije). Radjeno na **trial nalogu od 40 generacija**; potroseno **35**.
+
+Pun izvestaj (cenovnik po alatu, prompt strategija, sve zamke): [`pixellab-migration.md`](pixellab-migration.md).
+Sazetak onoga sto je bitno za dalji rad:
+
+**Sta je zamenjeno:** 6 muscle tierova, 6 pozadina lokacija, 18 UI ikonica, 8 kozmetickih slojeva
++ blink, i **12 animacionih klipova** (idle + workout po tieru, 4 frejma svaki = 48 novih frejmova).
+
+**Tri odluke koje su ucinile da 38+ asseta stane u 40 generacija:**
+
+1. **Grid trik za ikonice — 18 ikonica za 5 generacija.** `create_image_pixflux` uredno nacrta
+   3x3 mrezu razdvojenih ikonica na transparentnoj pozadini ako se to eksplicitno trazi. Slika se
+   lokalno isece po celijama, svaka celija se trimuje na svoj opaque bbox i re-centrira u 64x64
+   (relativne velicine se cuvaju — noga ostaje manja od torza umesto da se obe rastegnu na dugme).
+   Semantika ume da odluta (trazena „noga", dobijen torzo), pa je jeftinije traziti 9 pojmova
+   odjednom i doraditi promasaje sledecim gridom nego crtati 1 po 1.
+
+2. **Kozmetika bez ijedne generacije.** Trik iz #022 („generisi varijantu sa kosom, oduzmi bazu")
+   se NE prenosi na PixelLab: na `init_strength` 300 model uopste ne doda kosu (lik ostane celav),
+   na 150 precrta celo telo — u oba slucaja razlika je sum, ne sloj. `inpaint_image` bi to resio
+   cisto ali kosta **20–40 generacija po pozivu**. Umesto toga: fal.ai slojevi iz #022 su smanjeni
+   na 96x144 i propusteni kroz tvrdu alfu (alpha < 110 -> 0) + kvantizaciju boje (korak 28).
+   Poklapaju se **po konstrukciji**, jer i pixel tela i ti slojevi poticu iz iste 848x1264
+   kompozicije.
+
+3. **Animacija po 1 generaciju.** `animate_image` radi na „loose" PNG-u (ne trazi PixelLab rig,
+   za razliku od `animate_character`). `96 x 144 x 4 = 55.296 <= 65.536` -> 1 gen po klipu.
+   Ovo je bio ceo razlog zasto je canvas u #034 zakljucan bas na 96x144.
+
+**Registracija se ne prepusta modelu.** Svaki tier je img2img iz **svog** fal.ai originala
+smanjenog na 96x144: model prevodi stil, ali pozu/visinu glave/liniju stopala nasledjuje iz init
+slike. Isti princip kao #022, drugi alat.
+
+**`init_image_strength` je obrnut** od uobicajenog img2img — veci broj znaci da se ulaz VISE cuva
+(150 = pravi edit, 300 = suptilno, 500 = jedva menja). Na 150 je model „naduvao" tier1 i tier2 pa
+je progresija misica nestala (tier2 je izgledao krupnije od tier3); presli su na **260**.
+Za tier1 (zahtev korisnika: „ultra mrsav i tuzan") ni to nije bilo dovoljno jer izvorna slika nije
+dovoljno mrsava — reseno tako sto je init slika prvo **suzena po X na 68%**, pa je model dobio
+stvarno mrsavu siluetu da prevede.
+
+**Arhivirano, ne obrisano:** `Art/Character/_originals/fal_ai_848x1264/` — 48 fajlova (stari
+`_idle*`/`_work*` frejmovi + napusteni forearm-rig: `_armless`, `_forearm_l/r`, `_noforearm`,
+`flex_tier1–6`). Morali su da odu jer se PPU izvodi iz visine teksture: frejm od 1264 px i telo od
+144 px zauzimaju **istih 1.5 world jedinica**, pa bi velicina bila tacna ali bi lik pri disanju
+treperio izmedju pixel arta i naslikanog arta. `flex_*` i forearm fajlove ionako niko ne ucitava.
+
+**Popravljeno usput — 🔴 ikonice bi bile NEVIDLJIVE.** `.meta` nadzivi PNG koji opisuje. Stare
+ikonice (game-icons.net, #030) bile su **512×512 u `spriteMode: Multiple`** sa zapecenim sub-rect-om
+`(x:17, y:19, w:478, h:476)`. Kad se preko njih ubaci 64×64 pixel art, Unity i dalje kropuje taj
+pravougaonik — koji lezi **potpuno van nove teksture** — pa ne nastane nijedan sprite. Isti kvar koji
+je vec jednom uhvacen na telu lika („nevidljiv lik sa ispravnim ozicenjem"), samo u drugom folderu.
+Character/ i Backgrounds/ su bili zasticeni (`ConfigureAllInFolder` / `ConfigureImporter` na svakom
+run-u), Icons/ nije bio — niko ga nikad nije konfigurisao iz koda.
+
+Dodato: `CoreLoopSceneBootstrap.ConfigureIconImporters()` (Sprite · **Single** · **Point** filter ·
+bez mipmap-a · uncompressed · `alphaIsTransparency`), log marker `18 icons ready`.
+
+> **Poziv MORA biti pre `GetOrCreate*` blokova.** Prvi put je stavljen dole, uz `ConfigureUiKit()`,
+> i tada se video pravi efekat kvara: `GetOrCreateUpgrade` zici `_icon` kroz `LoadIcon(id)`, sto je
+> u tom trenutku vracalo **null**, pa je u `.asset` upisano `_icon: {fileID: 0}` na svih 7 upgrade-a
+> i 2 boostera. Uhvaceno u `git diff` pre commit-a; posle premestanja sve reference su
+> `{fileID: 21300000}` sa svojim GUID-om. Point filter je jednako bitan: 64×64 art se u UI-ju
+> naduvava na ~72–96 px, pa bi bilinear vratio bas onu mutnoc zbog koje se i islo u pixel art.
+
+**Gotchas:**
+- `get_image` **ne vraca `.png` URL** — PNG dolazi inline kao base64 `{"type":"image","data":"…"}`,
+  a `download:` link je bez ekstenzije. Regex koji trazi `\.png` nikad ne pogodi i posao „istekne"
+  iako je odavno gotov. Generacija se ne gubi: job id ostaje validan (`-JobId` pokupi rezultat).
+- **PowerShell:** `param([string]$Bg)` i `$bg = [Drawing.Image]::FromFile(...)` su ISTA promenljiva
+  (imena su case-insensitive), a tip iz `param` bloka ostaje zakucan — slika se tiho pretvori u
+  string `"System.Drawing.Bitmap"`, `$bg.Width` postane `$null`, i `New-Object Drawing.Bitmap 0,0`
+  padne sa „Parameter is not valid".
+- `create_image_pixflux` prima najvise **400 px po strani**; `animate_image` trazi frejm <= 256x256
+  i `w*h*frames <= 524288`.
+- Generator ikonica ume da utisne sitan watermark u donji desni ugao slike — udje u bbox celije i
+  pomeri centriranje. Ocistiti pre sečenja.
+
+**Verifikacija:** batchmode 0 `error CS`, `15 sprites ready (0 generated, 15 kept)` (= novi art je
+prezhiveo rebuild), `6 backgrounds ready`, `_gameConfig wired on 13/13`, `Scene built and saved`,
+`SystemsSmokeTest PASS — 221 checks, 0 failures`. T12 (svaki tier ima idle i workout frejmove istog
+canvasa i PPU-a kao staticna poza) je bio taj koji je sprecio da se animacije samo obrisu — bez
+njega bi lik tiho ostao bez klipova.

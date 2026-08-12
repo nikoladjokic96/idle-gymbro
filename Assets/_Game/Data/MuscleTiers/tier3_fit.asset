@@ -18,9 +18,12 @@ MonoBehaviour:
   _bodySprite: {fileID: 21300000, guid: 0cd3cd4ce3a56c442a49df0186c4facd, type: 3}
   _headSprite: {fileID: 0}
   _idleFrames:
-  - {fileID: 21300000, guid: fd5bcd21eabd0fa4fbd075a3bf470c86, type: 3}
-  - {fileID: 21300000, guid: a960bf12c29879a44909009408d721ef, type: 3}
+  - {fileID: 21300000, guid: 874bebbbdcf1c3c4b9abda1de42be185, type: 3}
+  - {fileID: 21300000, guid: bbbf93e06b1fcde4486fee50aa1ef045, type: 3}
+  - {fileID: 21300000, guid: 04531d3bebb652343b64a656f05bee05, type: 3}
+  - {fileID: 21300000, guid: 924c82ac59853b24f839d4f154c9cbd5, type: 3}
   _workoutFrames:
-  - {fileID: 21300000, guid: dbdf46dc7babea147b71626177cb792c, type: 3}
-  - {fileID: 21300000, guid: 6daaf2c6186e03a4aaacd785f3db8897, type: 3}
-  - {fileID: 21300000, guid: 7f14596d5ac59bd45923ec25e4fb9b92, type: 3}
+  - {fileID: 21300000, guid: f1b896ffdec58df4385c2b499c29a3ef, type: 3}
+  - {fileID: 21300000, guid: 5a75ec35acf67d14f882a95383d31d46, type: 3}
+  - {fileID: 21300000, guid: a50c734a30393cc4d852db0ea3fe2fb6, type: 3}
+  - {fileID: 21300000, guid: 646095bd1fe844a4d99c61f9cbd1a693, type: 3}

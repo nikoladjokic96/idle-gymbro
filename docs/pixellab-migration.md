@@ -1,145 +1,141 @@
-# PixelLab migracija — handoff
+# PixelLab migracija — izveštaj
 
-> **Status: PRIPREMA ZAVRŠENA, GENERISANJE NIJE POČELO.** Nijedna generacija nije potrošena (`generations_used: 0`).
-> Ovaj fajl je tačka nastavka. Čitaj ga zajedno sa `CLAUDE.md` §2 i §17.
-> Odluka korisnika (2026-08-12): *„sve zameni novim generisanim assetima i stilom sa pixellaba… takođe koristi pixellab i za generisanje ikonica za UI"*.
-
----
-
-## 1. Šta je urađeno
-
-- **MCP server dodat i povezan:**
-  ```
-  pixellab · http · https://api.pixellab.ai/mcp · Scope: Local (private to this project)
-  ```
-  Zapisan u `~/.claude.json` pod projektom `F:\idle-gymbro`.
-  **Token NIJE u repou** — nema `.mcp.json`, ništa se ne commit-uje. Ne premeštati u project scope (procurio bi kroz auto-push na `origin/main`).
-  Uklanjanje: `claude mcp remove pixellab -s local`.
-
-- **CLI nije na PATH-u.** Bandlovan je uz VSCode ekstenziju:
-  ```
-  C:\Users\nikol\.vscode\extensions\anthropic.claude-code-2.1.228-win32-x64\resources\native-binary\claude.exe
-  ```
-
-- **Tool set izlistan:** 68 alata (`PixelLab MCP Server v0.2.0`).
+> **Status: ZAVRŠENA na trial nalogu (NALOG #035).** Sav art koji igra učitava je sada pixel art.
+> Odluka korisnika (2026-08-12): *„sve zameni novim generisanim assetima i stilom sa pixellaba…
+> takođe koristi pixellab i za generisanje ikonica za UI"*, pa *„potroši trial verziju, generiši
+> osnovno šta možeš"*.
+>
+> Čitaj zajedno sa `CLAUDE.md` §2/§17 i [`art-brief.md`](art-brief.md).
 
 ---
 
-## 2. ⛔ BLOCKER — trial nalog, 40 generacija
+## 1. Šta je zamenjeno (i po kojoj ceni)
 
-```
-credits: $0.00
-generations_remaining: 40
-generations_used: 0
-generations_total: 40
-subscription: trial
-```
+Trial nalog ima **40 generacija ukupno**. Prvobitna procena je bila da najjeftiniji pun replace
+traži 38 gen *bez ijednog re-roll-a i bez animacija* — dakle neizvodljivo. Ispalo je izvodljivo,
+zato što dve stavke uopšte nisu koštale ono što je cenovnik sugerisao:
 
-**Ovo ne pokriva „sve zameni".** Cene po alatu (iz tool opisa):
+| Grupa | Komada | Naivna cena | **Stvarno** | Kako |
+|---|---|---|---|---|
+| Muscle tierovi | 6 | 6 | **9** | `create_image_pixflux` img2img + 3 re-roll-a (tier1 ×2, tier2) |
+| Pozadine lokacija | 6 | 6 | **6** | `create_image_pixflux`, 216×384 |
+| UI ikonice | 18 | 18 | **5** | **grid trik** — 9 ikonica u jednoj slici, pa lokalno sečenje |
+| Kozmetika (3 kose, 2 brade, 3 šorca) | 8 | 8 | **0** | smanjeni fal.ai slojevi iz #022 (vidi §3) |
+| *— propali pokušaji kozmetike* | — | — | *2* | *img2img nije hteo da doda kosu (§3)* |
+| Animacije (idle + workout × 6 tierova) | 12 klipova / 48 frejmova | ~24+ | **12** | `animate_image`, 4 frejma po 1 gen |
+| **Ukupno** | | **38+** | **35 / 40** | ostalo **5** rezerve |
 
-| Alat | Cena | Upotrebljivo sad? |
-|---|---|---|
-| `create_image_pixflux` (freeform slika, img2img) | **1 gen** | ✅ radni konj |
-| `create_character` mode=`standard` | **1 gen** (4/8 pravaca) | ✅ |
-| `create_character` mode=`v3` | 2–9 gen | ⚠️ ograničeno |
-| `animate_character` mode=`v3` | ~1 gen/pravac ≤96px · 2/dir @128px · 4/dir @160px | ⚠️ zavisi od canvasa |
-| `create_character` mode=`pro` | 20–40 gen | ❌ |
-| `create_character_state` (kozmetika kao varijanta) | **20–40 gen po komadu** | ❌ |
-| `create_ui_asset` (panel) | **20–40 gen po panelu** | ❌ jedan panel pojede ceo trial |
-| `create_font` | **25 gen** | ❌ |
-
-### Računica za pun replace (najjeftinija varijanta, 1 gen po assetu)
-
-| Grupa | Komada | Gen |
-|---|---|---|
-| UI ikonice | 18 | 18 |
-| Muscle tierovi (tela) | 6 | 6 |
-| Kozmetika (3 kose, 2 brade, 3 šorca) | 8 | 8 |
-| Pozadine lokacija | 6 | 6 |
-| **Zbir bez ijednog re-roll-a i bez animacija** | **38** | **38 / 40** |
-
-Ostaje **2 generacije rezerve**. Pixel-art generisanje realno traži 2–4 pokušaja po assetu dok se stil ne uhvati, plus style anchor unapred. **Pun replace nije izvodljiv na trialu** — ni blizu. Animacije (30 postojećih frame-ova) i UI paneli/font uopšte ne staju.
-
-### Preporuka
-
-1. **Kupiti PixelLab pretplatu** pre punog replace-a. Realan budžet za ovaj obim: **150–250 generacija** (38 assetа × ~3 pokušaja + style anchor + animacije).
-2. **Ili** potrošiti trial na *style anchor + vertikalni presek* (vidi §5) — dokaz da stil valja, pa tek onda kupovina.
+> Brojka je očitana sa `get_balance` posle svega: `generations_used: 35, generations_remaining: 5`.
 
 ---
 
-## 3. Inventar — šta se menja (98 PNG ukupno)
+## 2. Tri nalaza koja su odlučila pipeline
 
-| Folder | Kom. | Sadržaj | Sudbina |
-|---|---|---|---|
-| `Art/Character/Placeholders/` | 64 | `body_tier1–6` + `_idle1/2`, `_work1/2/3`, `_armless`, `_forearm_l/r`, `_noforearm`, `flex_tier1–6`, `hair_01–03`, `beard_01–02`, `shorts_01–03`, `head_01`, `blink_01` | replace |
-| `Art/Character/_originals/` | 6 | fal.ai originali tierova (backup) | arhivirati, ne brisati |
-| `Art/Backgrounds/Placeholders/` | 6 | `bg_home`, `bg_street`, `bg_basic_gym`, `bg_hardcore_gym`, `bg_beach`, `bg_olympia` | replace (i dalje placeholderi) |
-| `Art/UI/Icons/` | 18 | `icon_abs/arms/back/chest/legs`, `icon_achievements/daily/gains/locations/prestige/reward/settings/upgrades/wardrobe`, `icon_gym_membership/preworkout/protein_shake/training_partner` | replace (sad game-icons.net, CC BY 3.0) |
-| `Art/UI/Kit/`, `Art/UI/Shapes/` | 4 | `icon_cross`, `circle`, `panel`, `panel_soft` | kandidati za `create_ui_asset` (skupo) |
+### (a) `create_character` je neupotrebljiv — canvas mu je kvadratni
+`size` je jedan integer (16–256), a stvarni canvas je još ~40% veći „to make room for animations".
+Kvadrat ne može da nosi portret lika, a 8 pravaca nam ne treba (igra je front-view).
+**Zamena:** `create_image_pixflux` (slobodan 96×144) → `animate_image` (radi na „loose" PNG-u,
+ne traži PixelLab rig, za razliku od `animate_character`/`animate_object`).
 
-Mapa svakog asseta: [`asset-catalog.md`](asset-catalog.md).
+### (b) Registracija se NE prepušta modelu
+Svaki tier je `img2img` iz **svog** fal.ai originala (#022) smanjenog na 96×144.
+Model prevodi stil u pixel art, ali pozu, visinu glave i liniju stopala nasleđuje iz init slike →
+**svih 6 tierova se poklapa po konstrukciji**, isto kao što je #022 radio kroz edite anchor-a.
 
----
+> `init_image_strength` je **obrnut** od uobičajenog img2img: veći broj = **više se čuva** ulaz.
+> 150 = pravi edit, 300 = suptilno, 500 = jedva menja.
+> Na 150 model je „naduvao" tier1/tier2 pa je progresija mišića nestala → oni idu na **260**.
+> Za tier1 („ultra mršav i tužan", zahtev korisnika) ni to nije bilo dovoljno, jer izvorna slika
+> nije dovoljno mršava: rešeno tako što je **init slika prvo suzena po X na 68%**
+> (`png-squash.ps1`), pa je model dobio stvarno mršavu siluetu da prevede.
 
-## 4. Arhitektonske posledice (VAŽNO — ovo nije samo zamena fajlova)
+### (c) Grid trik — N ikonica za 1 generaciju
+`create_image_pixflux` bez problema nacrta **3×3 mrežu razdvojenih ikonica na transparentnoj
+pozadini** ako se to eksplicitno traži. Slika se onda lokalno iseče po ćelijama, svaka ćelija se
+trimuje na svoj opaque bounding box i re-centrira u 64×64 (relativne veličine se čuvaju, pa noga
+ostaje manja od torza umesto da se obe rastegnu na dugme).
 
-1. **§2 „Zaključane odluke" se menja.** Trenutno: *hand-painted cartoon, 848×1264, fal.ai `nano-banana-pro`* (odluka #022). Novo: *pixel art, PixelLab*. Ovo poništava #022 i vraća nas na pixel art iz originalnog [`art-brief.md`](art-brief.md).
-
-2. **Canvas/PPU — ✅ ZAKLJUČANO 2026-08-12.** Standard je u [`art-brief.md`](art-brief.md) §2:
-   **lik 96×144 · ikonica 64×64 · pozadina 216×384**, PPU se svuda **izvodi iz visine teksture**
-   (lik `height / 1.5`, pozadina `height / 15`) pa svetska veličina ne zavisi od rezolucije arta.
-   Obrazloženje: 96×144 je najveći portret canvas na kome `animate_image` košta **1 generaciju** za 4 frejma.
-
-3. **⚠️ `create_character` se NE koristi — canvas mu je kvadratni.** `size` je jedan integer (16–256),
-   a stvarni canvas je još ~40% veći „to make room for animations". Kvadrat ne može da nosi portret lika,
-   a 8 pravaca nam ne treba jer je igra front-view (§2).
-   **Pipeline je umesto toga:**
-   ```
-   create_image_pixflux (1 gen, slobodan 96×144)  →  animate_image (1 gen, radi na "loose sprite")
-   ```
-   `animate_image` je ključan nalaz: animira **bilo koji** PNG, ne traži PixelLab-ov rig
-   (za razliku od `animate_character` / `animate_object`). Time zaobilazimo i kvadratni canvas
-   i cenu `create_character_state`-a.
-
-4. **Kozmetika kao slojevi — PixelLab nema direktan ekvivalent.** `create_character_state` daje varijantu lika (isti identitet, druga odeća) ali košta 20–40 gen po komadu. Jeftina alternativa: generisati varijantu preko `create_image_pixflux` img2img (1 gen) pa izolovati sloj postojećim `Editor/CosmeticLayerExtractor`-om (razlika „varijanta − baza"). **Taj tool već postoji i radi** — pisan je za fal.ai, ali je logika generička (razlika u zadatom pojasu).
-
-5. **Pozadine više nisu 1080×1920.** `create_image_pixflux` prima najviše 400 px po strani, pa pozadine idu na **216×384** (isti 9:16, tačno 1/5). `PlaceholderBackgroundGenerator` je zato prepravljen da **izvodi PPU** (`height / 15`) umesto hardkodovanih `128` — bez toga bi se pozadina od 216×384 renderovala na 1/5 veličine.
-
-6. **Generatori placeholder-a imaju `File.Exists` guard** (od #022) — neće pregaziti novi art. Ako se u logu pojavi `15 generated` umesto `(0 generated, 15 kept)`, znači da je pravi art nestao s diska.
+**Cena: 18 ikonica za 5 generacija.** Semantika ume da odluta (traženo „noga", dobijen torzo), pa
+je jeftinije tražiti 9 pojmova odjednom i doraditi promašaje sledećim gridom nego crtati 1 po 1.
 
 ---
 
-## 5. Predlog plana (kad se odblokira budžet)
+## 3. Kozmetika — jedini deo koji PixelLab NIJE nacrtao
 
-**Faza A — style anchor (~4–6 gen).** Jedan `create_character` (standard, humanoid, gymbro tier 3) kao referentni stil. Iz njega izvlačimo paletu/outline/shading za sve ostalo. `create_image_pixflux` prima `init_image_url`, a `create_ui_asset` prima `style_image_base64` — **anchor se prosleđuje svemu ostalom da stil bude jedinstven.**
+Trik iz #022 („generiši varijantu sa kosom, oduzmi bazu, dobiješ sloj") **ne prenosi se na PixelLab**:
 
-**Faza B — 6 muscle tierova (~6–18 gen).** img2img iz anchor-a, `init_image_strength` ~150, opis menja samo masu mišića. Ista poza/kadar → registracija tačna po konstrukciji (isti trik kao #022).
+- `init_strength` 300 → model uopšte ne doda kosu (lik ostane ćelav), a telo suptilno precrta.
+- `init_strength` 150 → doda malo ili ništa, ali precrta **celo** telo → razlika je šum, ne sloj.
+- `inpaint_image` bi to rešio čisto (maskira se samo teme, ostatak je zamrznut), ali košta
+  **20–40 generacija po pozivu** — pola trijala za jednu frizuru.
 
-**Faza C — 18 UI ikonica (~18–36 gen).** `create_image_pixflux`, 64×64, `no_background=true`, uz anchor kao `init_image_url` za stilsku doslednost.
-
-**Faza D — 6 pozadina (~6–18 gen).** `create_image_pixflux`, `no_background=false`, širok canvas (do 400×400 po osi).
-
-**Faza E — kozmetika (~8–24 gen).** img2img varijante + `CosmeticLayerExtractor`.
-
-**Faza F — animacije (~12–48 gen).** `animate_character` v3, `action_description` = „push-up"/„squat". Ovo bi konačno zatvorilo poslednju stavku Faze 3 iz roadmapa.
-
----
-
-## 6. Otvorene odluke za korisnika
-
-1. **Budžet** — kupuje se pretplata, ili trošimo trial na Fazu A+delić B kao dokaz stila? **← OTVORENO, blokira sve**
-2. ~~**Canvas**~~ — ✅ **rešeno 2026-08-12: lik 96×144, ikonica 64×64, pozadina 216×384.** Zaključano u [`art-brief.md`](art-brief.md) §2.
-3. **UI paneli i font** — `create_ui_asset` (20–40 gen/panel) i `create_font` (25 gen) su skupi. Ostaju postojeći `UiShapeGenerator` oblici, ili ulaze u budžet? *(predlog: ostaju — PixelLab-om samo 18 ikonica)*
+**Rešenje bez ijedne generacije:** fal.ai kozmetički slojevi iz #022 su već izvučeni iz *iste*
+848×1264 kompozicije iz koje su nastala i nova pixel tela. Smanjeni na 96×144 poklapaju se
+**po konstrukciji** — kosa sleće na teme, brada na vilicu, šorc na kukove, na svakom tieru.
+Da prestanu da izgledaju kao glatke slike na pixel telu, propušteni su kroz **tvrdu alfu**
+(alpha < 110 → 0; meki halo je glavni znak da sprite nije pixel art) i **kvantizaciju boje**
+(korak 28 po kanalu). Isto je urađeno sa `blink_01.png`.
 
 ---
 
-## 7. Pomoćni alat
+## 4. Kadar pozadina (216×384)
 
-Direktan HTTP poziv PixelLab MCP-a bez restarta sesije (JSON-RPC), za slučaj da native alati nisu učitani:
+Pozadina je 15 world jedinica visoka, kamera je ortho size 5 → **na 9:16 telefonu vidi se samo
+centralnih 144×256 px**. Lik stoji centriran, stopala na **redu ~253 od 384** (66% visine).
+Zato svaki prompt traži „pod u donjoj trećini, prazna sredina, bez ljudi".
 
-```
-scratchpad/pxl.ps1 -Tool <ime_alata> -ArgsJson '<json>'
-```
+`PlaceholderBackgroundGenerator` **izvodi PPU** (`height / 15`) umesto hardkodovanih 128 — bez toga
+bi se pozadina od 216×384 renderovala na 1/5 veličine (popravljeno u #034).
 
-Endpoint je stateless (ne vraća `Mcp-Session-Id`), pa je svaki poziv samostalan: `initialize` → `tools/call`.
-Posle restarta sesije native `mcp__pixellab__*` alati su dostupni i ovaj skript više nije potreban.
+---
+
+## 5. Šta je arhivirano
+
+`Assets/_Game/Art/Character/_originals/fal_ai_848x1264/` — 48 fajlova:
+stari animacioni frejmovi (`_idle1/2`, `_work1/2/3` × 6 tierova) i napušteni forearm-rig delovi
+(`_armless`, `_forearm_l/r`, `_noforearm`, `flex_tier1–6`).
+
+Zašto su morali da odu: PPU se izvodi iz visine teksture, pa bi frejm od 1264 px i telo od 144 px
+zauzimali **istih 1.5 world jedinica** — veličina bi bila tačna, ali bi lik pri disanju treperio
+između pixel arta i naslikanog arta. Forearm/flex fajlove ionako niko ne učitava
+(`CoreLoopSceneBootstrap` referencira samo `_idle*`, `_work*` i `blink_01`).
+
+---
+
+## 6. Alat (u scratchpad-u, nije u repou)
+
+MCP server `pixellab` je registrovan u `~/.claude.json` pod projektom (local scope, **token nije u
+repou**). Native `mcp__pixellab__*` alati se nisu učitali ni posle restarta sesije, pa ceo posao ide
+kroz direktan JSON-RPC preko HTTP-a:
+
+| Skript | Uloga |
+|---|---|
+| `pxl-list.ps1` | `tools/list`, `-Name X` ispisuje pun JSON schema alata |
+| `pxl-gen.ps1` | create → poll → snimi PNG; **svaki sirov odgovor se čuva na disk** da plaćena generacija ne propadne ako parsiranje pukne |
+| `mk-args.ps1` | sastavlja `create_image_pixflux` argumente (inline-uje base64 iz fajla) |
+| `png-resize.ps1` · `png-squash.ps1` · `png-zoom.ps1` · `png-sheet.ps1` | skaliranje, sužavanje siluete, nearest-neighbour pregled, kontakt-traka |
+| `slice-grid.ps1` | seče icon-sheet grid na ćelije, trimuje i re-centrira svaku |
+| `pixelize.ps1` | tvrda alfa + kvantizacija boje |
+| `compose.ps1` | prikazuje pozadinu tačno onako kako je Unity kadrira, sa likom na mestu |
+
+> **Zamka koja je pojela jednu generaciju:** rezultat `get_image` **ne** vraća `.png` URL — nosi PNG
+> inline kao base64 `{"type":"image","data":"…"}`, a `download:` link je bez ekstenzije.
+> Regex koji traži `\.png` nikad ne pogodi i posao „istekne" iako je odavno gotov.
+> Generacija nije izgubljena: job id ostaje validan, pa se rezultat pokupi sa `-JobId`.
+>
+> **Zamka u PowerShell-u:** `param([string]$Bg)` i `$bg = [Drawing.Image]::FromFile(...)` su **ista
+> promenljiva** (imena su case-insensitive) — tip iz `param` bloka ostaje zakucan, pa se slika tiho
+> pretvori u string `"System.Drawing.Bitmap"`, a `$bg.Width` postane `$null`.
+
+---
+
+## 7. Otvoreno
+
+1. **Zvuk** — SFX su i dalje generisani placeholderi ([`asset-catalog.md`](asset-catalog.md) §4).
+2. **UI paneli i font** — ostaju generisani oblici iz `UiShapeGenerator`. `create_ui_asset`
+   (20–40 gen/panel) i `create_font` (25 gen) se ne isplate, a 9-slice panel sa zapečenim
+   pikselima ionako izgleda loše rastegnut.
+3. **Lice na tier1** — telo je tačno (koščato, uska ramena, upali grudni koš), ali je na ~12 px
+   izraz više „gaunt" nego jasno tužan. Traži ciljan re-roll ako smeta.
+4. **Kozmetika nije animirana** — statični slojevi preko animiranog tela; na suptilnom disanju se
+   ne primećuje.

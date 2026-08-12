@@ -1,3 +1,4 @@
+using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -60,6 +61,11 @@ namespace IdleGymBro.EditorTools
                 Debug.LogError("[CoreLoopSceneBootstrap] Aborting: GameConfig asset could not be created/loaded.");
                 return;
             }
+
+            // MUST run before any GetOrCreate* below: those wire _icon via LoadIcon(), and an icon
+            // whose .meta still describes the previous PNG yields NO sprite at all — the reference
+            // would be written as null and the icon would just vanish from the UI.
+            Debug.Log($"[CoreLoopSceneBootstrap] {ConfigureIconImporters()} icons ready.");
 
             // Upgrades = muscle groups trained (§5 gym meme identity); consumables live as
             // boosters instead (see BoosterData below). Tune values in the .asset inspectors later.
@@ -1106,6 +1112,49 @@ namespace IdleGymBro.EditorTools
         private static void ConfigureUiKit()
         {
             SetSpriteBorder($"{UiKitFolder}/icon_cross.png", Vector4.zero);
+        }
+
+        // Re-imports every icon with the settings the art depends on, because a .meta outlives the
+        // PNG it describes. The icons this replaced were 512x512 in Multiple mode with a baked
+        // sub-rect of (17,19,478,476); dropping a 64x64 pixel-art PNG into that slot leaves Unity
+        // cropping a rectangle that lies entirely outside the new texture — every icon silently
+        // renders as nothing while the wiring still looks correct.
+        // Point filtering matters just as much: these are pixel art drawn at 64x64 and blown up to
+        // ~72-96 px buttons, so bilinear would smear them into the mush the migration was undoing.
+        private static int ConfigureIconImporters()
+        {
+            string absoluteFolder = Path.Combine(Application.dataPath, IconFolder.Substring("Assets/".Length));
+
+            if (!Directory.Exists(absoluteFolder))
+            {
+                Debug.LogWarning($"[CoreLoopSceneBootstrap] Icon folder missing: {IconFolder}");
+                return 0;
+            }
+
+            int configured = 0;
+
+            foreach (string file in Directory.GetFiles(absoluteFolder, "*.png", SearchOption.TopDirectoryOnly))
+            {
+                string assetPath = $"{IconFolder}/{Path.GetFileName(file)}";
+                var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+
+                if (importer == null)
+                {
+                    Debug.LogWarning($"[CoreLoopSceneBootstrap] Could not get TextureImporter for {assetPath}.");
+                    continue;
+                }
+
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.filterMode = FilterMode.Point;
+                importer.mipmapEnabled = false;
+                importer.textureCompression = TextureImporterCompression.Uncompressed;
+                importer.alphaIsTransparency = true;
+                importer.SaveAndReimport();
+                configured++;
+            }
+
+            return configured;
         }
 
         private static void SetSpriteBorder(string path, Vector4 border)
