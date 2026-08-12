@@ -30,7 +30,7 @@ Jak, deljiv identitet = besplatni viralni marketing.
 |---|---|
 | Engine | **Unity 6 (LTS)**, 2D URP |
 | Jezik | **C#** |
-| Art | **Hand-painted cartoon, front-view** (promenjeno iz pixel-arta u #022 — odluka korisnika). Canvas **848×1264 (2:3)**, pivot bottom-center, **PPU se IZVODI iz visine teksture** (`height / 1.5`) pa svetska veličina lika ne zavisi od rezolucije arta. Izvor: fal.ai `nano-banana-pro` (style anchor + editi) → **sve i dalje swappable** kroz imenovane slotove |
+| Art | ⚠️ **U MIGRACIJI na pixel art / PixelLab** (odluka korisnika 2026-08-12, poništava #022) — plan i blocker: [`docs/pixellab-migration.md`](docs/pixellab-migration.md). **Na disku je i dalje staro stanje:** hand-painted cartoon, front-view, canvas **848×1264 (2:3)**, pivot bottom-center, **PPU se IZVODI iz visine teksture** (`height / 1.5`) pa svetska veličina lika ne zavisi od rezolucije arta, izvor fal.ai `nano-banana-pro`. Kroz obe varijante: **sve swappable** kroz imenovane slotove |
 | Platforma | **Android prvo** (min API 24, IL2CPP, ARM64) |
 | Data | **ScriptableObjects** (data-driven, balans bez koda) |
 | Monetizacija | **Soft "Medieval Idle Prayer" model** — duga progresija, opt-in reklame, soft wall, zarada nenametljiva (vidi [sekciju 10](#10-monetizacija)) |
@@ -346,7 +346,9 @@ Form/combo ritam mehanika · Flex/Photo mode za deljenje · Rival/leaderboard ·
 - [ ] Balans tuning (krive cena/prihoda kroz playtest — §6/§10) — **odblokirano #021-om:** svih 17 tunable-a je sada u `GameConfig.asset`, a `SystemsSmokeTest` hvata regresije
 - [ ] Više stat tipova (maxEnergy/regen), još upgrade-ova
 
-> **Sledeći korak:** **balans tuning kroz playtest** (prioritet #1 iz smernica; menjaj SAMO `.asset` vrednosti) · ILI animacioni sistem (poslednja stavka Faze 3).
+- [ ] **#033 PixelLab migracija — U TOKU, BLOKIRANA BUDŽETOM.** Korisnik je odlučio (2026-08-12) da se **sav art zameni PixelLab pixel-art stilom, uključujući UI ikonice**. MCP server `pixellab` dodat i povezan (local scope, token van repoa). **Nijedna generacija nije potrošena.** Blocker: nalog je `trial` sa **40 generacija ukupno**, a najjeftiniji pun replace traži 38 gen bez ijednog re-roll-a i bez animacija → nije izvodljivo. Pun kontekst, cenovnik po alatu, inventar 98 PNG-ova i plan po fazama: **[`docs/pixellab-migration.md`](docs/pixellab-migration.md)**.
+
+> **Sledeći korak:** **odluka o PixelLab budžetu** ([`docs/pixellab-migration.md`](docs/pixellab-migration.md) §6 — pretplata vs. trial za style anchor; canvas 96×144 vs 128×192) · potom balans tuning kroz playtest (menjaj SAMO `.asset` vrednosti) · ILI animacioni sistem (poslednja stavka Faze 3, sad kandidat za PixelLab `animate_character`).
 > ⚠️ **Playtest nije zamenjen testovima** — `SystemsSmokeTest` dokazuje logiku (58 provera), ali NE dokazuje *feel*: tap odziv, čitljivost HUD-a, da li se dugmad preklapaju, da li je kriva zabavna. To i dalje traži telefon i ruke.
 > Setup na novom PC-u: `scripts/setup-dev-env.ps1` (vidi `SETUP.md`).
 
