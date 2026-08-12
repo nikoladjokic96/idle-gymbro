@@ -642,3 +642,31 @@ bila pozvana iz igre).
 **Verifikacija:** 0 `error CS` · `18 icons ready` · `18 shorts sprites ready` · `pixel font: 58 glyphs` ·
 `frame anchors baked on 6 tier(s)` · `_gameConfig wired on 14/14` · `Scene built and saved` ·
 `SystemsSmokeTest PASS — 390 checks, 0 failures`.
+
+**NALOG #039** — tri nalaza iz drugog playtesta + UI po referenci (Medieval Idle Prayer).
+
+**1. Sorc je imao jednu duzu nogavicu.** Ispod medjunozja centralna kolona je providna, pa je
+`TryHipSpan` padao na „najblizi niz centru" i oblacio **jednu** nogu — druga je ostajala gola.
+Popravka: po redu se uzimaju **svi** neprozirni nizovi i crtaju se oni koji se preklapaju sa rasponom
+pojasa (jedan iznad medjunozja, dva kad se noge razdvoje). Ruke su iskljucene po konstrukciji, jer
+ne dodiruju raspon pojasa.
+
+**2. Bucice su „prolazile iza nogu".** Nisu — u artu su uredno ispred nogu u svim frejmovima
+(provereno na celom curl klipu). Pokrivao ih je **sloj sorca**: bucice su naslikane U telo, a sorc
+je sloj iznad tela (`sortingOrder` 10), pa je crtao preko njih. Sada `HemLimitFromWorkoutFrames`
+meri, po tieru, najvisi tamni ne-kozni piksel **u kolonama u kojima se sorc uopste crta**, i porub
+staje iznad njega.
+> ⚠️ Prva verzija je merila i ±12 px van kukova; posto bucice vise **van** kukova, svaki tier je
+> prijavio sudar i sorc je bio skracen na gacice bez razloga.
+>
+> **Kompromis koji ostaje:** na ovom artu duzi sorc se stvarno sudara sa bucicom u donjem polozaju,
+> pa su sorcevi kratki (poza-gacice). Prava alternativa je izvuci bucice u zaseban sloj iznad sorca —
+> to je nov po-frejmu sloj i nije radjeno.
+
+**3. UI po referenci** (korisnik poslao snimke iz Medieval Idle Prayer): ikonice znatno vece
+(dugmad 0.56/0.72 -> 0.64/0.88 precnika, redovi 120 -> 148 px, booster 84 -> 104, gains 96 -> 112),
+tabovi 216×84 -> 220×100, a **x1/x10 prekidac je premesten u zaglavlje modala** nasuprot „X" —
+isto mesto gde referenca drzi svoj MAX, pa se cita kao svojstvo celog panela a ne reda iznad kog stoji.
+
+**Verifikacija:** 0 `error CS` · `18 shorts sprites ready` · `pixel font: 58 glyphs` ·
+`_gameConfig wired on 14/14` · `Scene built and saved` · `SystemsSmokeTest PASS — 390 checks, 0 failures`.

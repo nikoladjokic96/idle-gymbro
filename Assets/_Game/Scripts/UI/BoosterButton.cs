@@ -40,7 +40,7 @@ namespace IdleGymBro.UI
             // would run, and that richer label must not be stomped afterwards.
             if (_label != null && _booster != null)
             {
-                _label.text = (_booster.RequiresAd ? "▶ " : string.Empty) + _booster.DisplayName;
+                _label.text = (_booster.RequiresAd ? "AD " : string.Empty) + _booster.DisplayName;
             }
         }
 
@@ -125,7 +125,9 @@ namespace IdleGymBro.UI
             {
                 if (_label != null)
                 {
-                    string prefix = _booster.RequiresAd ? "▶ " : string.Empty;
+                    // Spelled out, not an arrow glyph: the pixel font has no ▶, and a bitmap font draws
+                    // a missing glyph as nothing at all.
+                    string prefix = _booster.RequiresAd ? "AD " : string.Empty;
                     _label.text = $"{prefix}{_booster.DisplayName}\n{_booster.Multiplier}x";
                 }
 

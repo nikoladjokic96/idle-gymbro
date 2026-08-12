@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -72,9 +73,30 @@ namespace IdleGymBro.EditorTools
                     continue;
                 }
 
+                int hem = Mathf.Max(0, briefsBottom - Mathf.RoundToInt(body.height * HemDropFraction));
+
+                // Never reach the dumbbells: they live in the body sprite, so the shorts layer would
+                // simply cover them.
+                Color[] waistRow = body.GetPixels();
+
+                if (TryRuns(waistRow, body.width, waistTop, out List<(int L, int R)> waistRuns) && waistRuns.Count > 0)
+                {
+                    (int L, int R) hips = Widest(waistRuns);
+                    int limit = HemLimitFromWorkoutFrames(tier, body.width, body.height, briefsBottom, hips.L, hips.R);
+
+                    if (limit > 0)
+                    {
+                        hem = Mathf.Max(hem, limit + 2);
+                    }
+                }
+
+                // A garment that ends level with the briefs is not a pair of shorts; if the weights
+                // sit that high, keep a minimum length and accept a pixel of overlap.
+                hem = Mathf.Min(hem, briefsBottom - 4);
+
                 foreach (Style style in Styles)
                 {
-                    Color[] pixels = Paint(body, waistTop, briefsBottom, style);
+                    Color[] pixels = Paint(body, waistTop, briefsBottom, hem, style);
                     string path = $"{ArtFolder}/{style.Id}_tier{tier}.png";
                     Write(path, pixels, body.width, body.height);
                     written++;
@@ -149,98 +171,156 @@ namespace IdleGymBro.EditorTools
             return true;
         }
 
-        private static Color[] Paint(Texture2D body, int waistTop, int briefsBottom, Style style)
+        private static Color[] Paint(Texture2D body, int waistTop, int briefsBottom, int hem, Style style)
         {
             int w = body.width;
             int h = body.height;
             Color[] src = body.GetPixels();
             var outPixels = new Color[w * h];
-
-            int hem = Mathf.Max(0, briefsBottom - Mathf.RoundToInt(h * HemDropFraction));
             int bandRows = 3;
-            int centre = w / 2;
+
+            // The waistband's own span defines what counts as "the body" further down. Runs that do
+            // not overlap it are arms, which at hip height sit right beside the hips.
+            if (!TryRuns(src, w, waistTop, out List<(int L, int R)> waistRuns) || waistRuns.Count == 0)
+            {
+                return outPixels;
+            }
+
+            (int L, int R) hips = Widest(waistRuns);
 
             for (int y = hem; y <= waistTop; y++)
             {
-                if (!TryHipSpan(src, w, y, centre, out int xL, out int xR))
+                if (!TryRuns(src, w, y, out List<(int L, int R)> runs))
                 {
                     continue;
                 }
 
-                // Legs separate over the lower half of the garment; above that it is one piece.
-                int splitTop = hem + Mathf.RoundToInt((waistTop - hem) * 0.45f);
-                bool split = y < splitTop;
-                int gapHalf = split ? Mathf.Max(1, (xR - xL) / 14) : 0;
-
-                for (int x = xL; x <= xR; x++)
+                // Every run overlapping the hips is painted — ONE above the crotch, TWO once the
+                // legs separate. The previous version took the single run nearest the centre, so
+                // below the crotch it clothed whichever leg it happened to find first and left the
+                // other one bare: the "one trouser leg longer than the other" bug.
+                foreach ((int L, int R) run in runs)
                 {
-                    if (split && Mathf.Abs(x - centre) <= gapHalf)
+                    if (run.R < hips.L || run.L > hips.R || run.R - run.L < 3)
                     {
                         continue;
                     }
 
-                    Color c = style.Base;
+                    int xL = Mathf.Max(run.L, hips.L - 1);
+                    int xR = Mathf.Min(run.R, hips.R + 1);
 
-                    if (y > waistTop - bandRows)
+                    for (int x = xL; x <= xR; x++)
                     {
-                        c = style.Band;                       // waistband
-                    }
-                    else if (x == xL || x == xR)
-                    {
-                        c = style.Shade;                      // outline hugging the silhouette
-                    }
-                    else if (y == hem || (split && Mathf.Abs(x - centre) <= gapHalf + 1))
-                    {
-                        c = style.Shade;                      // hem and inner leg edge
-                    }
-                    else if (x == xL + 2 && y < waistTop - bandRows - 1)
-                    {
-                        c = style.Stripe;                     // side stripe, left leg only
-                    }
-                    else if (x == xR - 2 && y < waistTop - bandRows - 1)
-                    {
-                        c = style.Stripe;
-                    }
+                        Color c = style.Base;
 
-                    outPixels[y * w + x] = c;
+                        if (y > waistTop - bandRows)
+                        {
+                            c = style.Band;                   // waistband
+                        }
+                        else if (x == xL || x == xR || y == hem)
+                        {
+                            c = style.Shade;                  // outline hugging the silhouette
+                        }
+                        else if ((x == xL + 2 || x == xR - 2) && y < waistTop - bandRows - 1)
+                        {
+                            c = style.Stripe;                 // side stripe
+                        }
+
+                        outPixels[y * w + x] = c;
+                    }
                 }
             }
 
             return outPixels;
         }
 
-        // The opaque run that contains the centre column — i.e. the torso/hips, never the arms.
-        private static bool TryHipSpan(Color[] pixels, int w, int y, int centre, out int xL, out int xR)
+        // All opaque horizontal runs in a row.
+        private static bool TryRuns(Color[] pixels, int w, int y, out List<(int L, int R)> runs)
         {
-            xL = 0;
-            xR = 0;
+            runs = new List<(int L, int R)>();
+            int start = -1;
 
-            if (pixels[y * w + centre].a <= 0.5f)
+            for (int x = 0; x < w; x++)
             {
-                // Centre is transparent (the legs have already split): fall back to the run nearest
-                // the centre so the hem still lands on the thighs.
-                int probe = -1;
-                for (int d = 1; d < w / 2; d++)
-                {
-                    if (centre - d >= 0 && pixels[y * w + centre - d].a > 0.5f) { probe = centre - d; break; }
-                    if (centre + d < w && pixels[y * w + centre + d].a > 0.5f) { probe = centre + d; break; }
-                }
+                bool opaque = pixels[y * w + x].a > 0.5f;
 
-                if (probe < 0)
+                if (opaque && start < 0)
                 {
-                    return false;
+                    start = x;
                 }
-
-                centre = probe;
+                else if (!opaque && start >= 0)
+                {
+                    runs.Add((start, x - 1));
+                    start = -1;
+                }
             }
 
-            xL = centre;
-            while (xL - 1 >= 0 && pixels[y * w + xL - 1].a > 0.5f) { xL--; }
+            if (start >= 0)
+            {
+                runs.Add((start, w - 1));
+            }
 
-            xR = centre;
-            while (xR + 1 < w && pixels[y * w + xR + 1].a > 0.5f) { xR++; }
+            return runs.Count > 0;
+        }
 
-            return xR - xL >= 4;
+        private static (int L, int R) Widest(List<(int L, int R)> runs)
+        {
+            (int L, int R) best = runs[0];
+
+            foreach ((int L, int R) run in runs)
+            {
+                if (run.R - run.L > best.R - best.L)
+                {
+                    best = run;
+                }
+            }
+
+            return best;
+        }
+
+        // How low the shorts may reach before they start covering a dumbbell.
+        //
+        // The dumbbells are painted INTO the workout frames, so they are part of the body sprite and
+        // the shorts layer (sortingOrder 10) draws straight over them — the weights appeared to pass
+        // behind the legs. Rather than guess a shorter hem, measure it: find the highest dark,
+        // non-skin pixel that appears beside the legs in any workout frame and stop above it.
+        private static int HemLimitFromWorkoutFrames(int tier, int w, int h, int briefsBottom, int hipL, int hipR)
+        {
+            int limit = 0;
+
+            for (int f = 1; f <= 8; f++)
+            {
+                Texture2D frame = Load($"{ArtFolder}/body_tier{tier}_work{f}.png");
+
+                if (frame == null || frame.width != w || frame.height != h)
+                {
+                    if (frame != null) { Object.DestroyImmediate(frame); }
+                    continue;
+                }
+
+                Color[] px = frame.GetPixels();
+
+                // Only the columns the shorts are actually drawn in. Widening the search to the
+                // whole thigh made every tier report a collision — the dumbbells hang OUTSIDE the
+                // hips — and the shorts were shortened to trunks for no reason.
+                for (int y = 0; y < briefsBottom; y++)      // below the briefs only
+                {
+                    for (int x = Mathf.Max(0, hipL - 1); x <= Mathf.Min(w - 1, hipR + 1); x++)
+                    {
+                        Color c = px[y * w + x];
+
+                        // Dark and not skin-toned: the iron of a dumbbell, never a thigh.
+                        if (c.a > 0.5f && c.r < 0.45f && c.b >= c.r - 0.02f && y > limit)
+                        {
+                            limit = y;
+                        }
+                    }
+                }
+
+                Object.DestroyImmediate(frame);
+            }
+
+            return limit;
         }
 
         private static void Write(string path, Color[] pixels, int w, int h)

@@ -361,7 +361,7 @@ namespace IdleGymBro.EditorTools
             topBar.raycastTarget = false;
 
             var gainsIcon = CreateImage("GainsIcon", topBar.transform, LoadIcon("gains"), IconTint);
-            SetRect(gainsIcon.rectTransform, new Vector2(0.5f, 1f), new Vector2(-196f, -80f), new Vector2(96f, 96f));
+            SetRect(gainsIcon.rectTransform, new Vector2(0.5f, 1f), new Vector2(-200f, -80f), new Vector2(112f, 112f));
             gainsIcon.preserveAspect = true;
             gainsIcon.raycastTarget = false;
 
@@ -485,10 +485,11 @@ namespace IdleGymBro.EditorTools
             StyleModal(window, modalTitle, closeBtnImage, closeLabel);
             SetRect(closeLabel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(90f, 90f));
 
-            // x1 / x10 switch. Sits above the list because it re-prices every row at once — putting
-            // it on the rows would mean seven copies of the same state.
+            // x1 / x10 switch, in the header opposite the close button — the same place the
+            // reference game puts its MAX pill, so the buy mode reads as a property of the whole
+            // panel rather than of whatever row it happens to sit above.
             var buyToggleImage = CreateImage("BuyMultiplier", window.transform, buttonSprite, ButtonColor);
-            SetRect(buyToggleImage.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -178f), new Vector2(260f, 84f));
+            SetRect(buyToggleImage.rectTransform, new Vector2(0f, 1f), new Vector2(160f, -65f), new Vector2(240f, 84f));
             var buyToggleButton = buyToggleImage.gameObject.AddComponent<Button>();
             buyToggleButton.targetGraphic = buyToggleImage;
             var buyToggleLabel = CreateText("Label", buyToggleImage.transform, "BUY x1", 40f, TextAlignmentOptions.Center);
@@ -507,7 +508,7 @@ namespace IdleGymBro.EditorTools
             for (int t = 0; t < tabNames.Length; t++)
             {
                 var tabImage = CreateImage($"Tab_{tabNames[t]}", window.transform, UiKit("tab_pixel") ?? buttonSprite, ButtonColor);
-                SetRect(tabImage.rectTransform, new Vector2(0.5f, 1f), new Vector2((t - 1) * 226f, -268f), new Vector2(216f, 84f));
+                SetRect(tabImage.rectTransform, new Vector2(0.5f, 1f), new Vector2((t - 1) * 228f, -190f), new Vector2(220f, 100f));
                 var tabButton = tabImage.gameObject.AddComponent<Button>();
                 tabButton.targetGraphic = tabImage;
                 var tabLabel = CreateText("Label", tabImage.transform, tabNames[t], 32f, TextAlignmentOptions.Center);
@@ -522,7 +523,7 @@ namespace IdleGymBro.EditorTools
             // Rest-timer banner: replaces the list's usable state while a cooldown runs, and offers
             // the opt-in ad that shortens it. Hidden by UpgradeCooldownBanner when nothing is running.
             var cooldownImage = CreateImage("CooldownBanner", window.transform, buttonSprite, ButtonColor);
-            SetRect(cooldownImage.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -360f), new Vector2(680f, 96f));
+            SetRect(cooldownImage.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -296f), new Vector2(680f, 96f));
             var cooldownLabel = CreateText("Label", cooldownImage.transform, string.Empty, 30f, TextAlignmentOptions.Left);
             SetRect(cooldownLabel.rectTransform, new Vector2(0f, 0.5f), new Vector2(240f, 0f), new Vector2(430f, 90f));
             cooldownLabel.raycastTarget = false;
@@ -545,7 +546,7 @@ namespace IdleGymBro.EditorTools
             var scrollAreaGo = new GameObject("ScrollArea", typeof(RectTransform), typeof(Image), typeof(RectMask2D), typeof(ScrollRect));
             scrollAreaGo.transform.SetParent(window.transform, false);
             var scrollAreaRect = scrollAreaGo.GetComponent<RectTransform>();
-            SetRect(scrollAreaRect, new Vector2(0.5f, 1f), new Vector2(0f, -690f), new Vector2(680f, 520f));
+            SetRect(scrollAreaRect, new Vector2(0.5f, 1f), new Vector2(0f, -640f), new Vector2(680f, 600f));
             var scrollAreaImage = scrollAreaGo.GetComponent<Image>();
             scrollAreaImage.sprite = uiSprite;
             scrollAreaImage.color = new Color(0.10f, 0.12f, 0.15f, 1f);
@@ -597,7 +598,7 @@ namespace IdleGymBro.EditorTools
                 // Icon on the left, text in the remaining space — the row reads at a glance
                 // instead of being one more block of prose.
                 var rowIcon = CreateImage("Icon", btnGo.transform, null, new Color(1f, 1f, 1f, 0.92f));
-                SetRect(rowIcon.rectTransform, new Vector2(0f, 0.5f), new Vector2(86f, 0f), new Vector2(120f, 120f));
+                SetRect(rowIcon.rectTransform, new Vector2(0f, 0.5f), new Vector2(92f, 0f), new Vector2(148f, 148f));
                 rowIcon.preserveAspect = true;
 
                 var buttonLabel = CreateText("Label", btnGo.transform, string.Empty, 34f, TextAlignmentOptions.Left);
@@ -1108,7 +1109,7 @@ namespace IdleGymBro.EditorTools
         private static Image CreateBoosterIcon(Transform parent)
         {
             var icon = CreateImage("Icon", parent, null, new Color(1f, 1f, 1f, 0.92f));
-            SetRect(icon.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -46f), new Vector2(84f, 84f));
+            SetRect(icon.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -48f), new Vector2(104f, 104f));
             icon.preserveAspect = true;
             return icon;
         }
@@ -1178,7 +1179,7 @@ namespace IdleGymBro.EditorTools
             // Bumped from 0.42/0.56: at the old fractions the pixel-art icons were a small mark
             // floating in a large disc and the motif was unreadable on a phone. The icons carry the
             // meaning here — the label under them is a caption, not the primary cue.
-            float glyph = diameter * (keepLabel ? 0.56f : 0.72f);
+            float glyph = diameter * (keepLabel ? 0.64f : 0.88f);
             SetRect(icon.rectTransform, new Vector2(0.5f, keepLabel ? 0.68f : 0.5f), Vector2.zero, new Vector2(glyph, glyph));
             icon.color = IconTint;
             icon.preserveAspect = true;
