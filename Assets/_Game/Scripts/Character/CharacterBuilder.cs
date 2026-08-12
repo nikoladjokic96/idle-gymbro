@@ -30,20 +30,32 @@ namespace IdleGymBro.Character
         // tier's static BodySprite, so a tier with no clip authored simply never animates.
         public SpriteRenderer BodyRenderer => _renderers.TryGetValue(CharacterLayer.Body, out SpriteRenderer r) ? r : null;
 
-        // Second body renderer sitting one sorting step above the first (still under Shorts at 10).
-        // The animator fades the NEXT frame in over the current one, so a 3-frame clip reads as
-        // continuous motion instead of three discrete pops.
-        public SpriteRenderer BodyBlendRenderer { get; private set; }
-
         // The Head layer carries the blink patch: above the body, below beard and hair, and
         // otherwise unused now that the tier art includes the head.
         public SpriteRenderer BlinkRenderer => _renderers.TryGetValue(CharacterLayer.Head, out SpriteRenderer r) ? r : null;
 
+        // Layers that sit ON the skull. The animator slides these by the current frame's head
+        // offset so they ride along with a head that bobs and turns; Shorts and the body itself
+        // deliberately stay put.
+        public SpriteRenderer HairRenderer => _renderers.TryGetValue(CharacterLayer.Hair, out SpriteRenderer r) ? r : null;
+
+        public SpriteRenderer BeardRenderer => _renderers.TryGetValue(CharacterLayer.Beard, out SpriteRenderer r) ? r : null;
+
         public Sprite BlinkSprite => _blinkSprite;
+
+        // The active tier's static pose, so the animator can fall back to it instead of leaving the
+        // body stuck on whatever frame it stopped on.
+        public Sprite CurrentBodySprite { get; private set; }
 
         public Sprite[] CurrentIdleFrames { get; private set; }
 
         public Sprite[] CurrentWorkoutFrames { get; private set; }
+
+        // Head offsets in WORLD UNITS, index-aligned with the clips above (entry 0 is the static
+        // pose, hence always zero). Null when the tier has no baked anchors.
+        public Vector2[] CurrentIdleHeadOffsets { get; private set; }
+
+        public Vector2[] CurrentWorkoutHeadOffsets { get; private set; }
 
         private void Awake()
         {
@@ -57,19 +69,6 @@ namespace IdleGymBro.Character
 
                 _renderers[layer] = renderer;
             }
-
-            var blendGo = new GameObject("Layer_BodyBlend");
-            blendGo.transform.SetParent(transform, false);
-            BodyBlendRenderer = blendGo.AddComponent<SpriteRenderer>();
-            BodyBlendRenderer.sortingOrder = (int)CharacterLayer.Body + 1;
-            SetAlpha(BodyBlendRenderer, 0f);
-        }
-
-        private static void SetAlpha(SpriteRenderer renderer, float alpha)
-        {
-            Color c = renderer.color;
-            c.a = alpha;
-            renderer.color = c;
         }
 
         private void OnEnable()
@@ -132,8 +131,11 @@ namespace IdleGymBro.Character
 
             // Frame 0 is the static pose; any authored frames follow it, so the clip always starts
             // from exactly what a non-animating tier would show.
+            CurrentBodySprite = tier.BodySprite;
             CurrentIdleFrames = BuildClip(tier, tier.IdleFrames);
             CurrentWorkoutFrames = BuildClip(tier, tier.WorkoutFrames);
+            CurrentIdleHeadOffsets = BuildOffsets(tier, tier.IdleFrames, tier.IdleHeadOffsets);
+            CurrentWorkoutHeadOffsets = BuildOffsets(tier, tier.WorkoutFrames, tier.WorkoutHeadOffsets);
 
             if (_renderers.TryGetValue(CharacterLayer.Body, out SpriteRenderer bodyRenderer))
             {
@@ -174,6 +176,45 @@ namespace IdleGymBro.Character
             }
 
             return clip.Count > 1 ? clip.ToArray() : null;
+        }
+
+        // Mirrors BuildClip so the offsets line up index-for-index with the clip it describes:
+        // a leading zero for the static pose, then one entry per surviving frame. Nulls are skipped
+        // in BuildClip, so they must be skipped here too or every later frame reads a stale offset.
+        // Pixels become world units via the sprite's own PPU, which is derived from texture height
+        // (art-brief §2) — so this stays correct if the art is ever redrawn at another resolution.
+        private static Vector2[] BuildOffsets(MuscleTierData tier, Sprite[] frames, Vector2[] pixelOffsets)
+        {
+            if (tier == null || tier.BodySprite == null || frames == null || pixelOffsets == null)
+            {
+                return null;
+            }
+
+            // A mismatch means the bake is stale (art changed, anchors not re-baked). Compensating
+            // with wrong numbers is worse than not compensating: skip rather than guess.
+            if (pixelOffsets.Length != frames.Length)
+            {
+                return null;
+            }
+
+            float ppu = tier.BodySprite.pixelsPerUnit;
+
+            if (ppu <= 0f)
+            {
+                return null;
+            }
+
+            var offsets = new List<Vector2> { Vector2.zero };
+
+            for (int i = 0; i < frames.Length; i++)
+            {
+                if (frames[i] != null)
+                {
+                    offsets.Add(pixelOffsets[i] / ppu);
+                }
+            }
+
+            return offsets.Count > 1 ? offsets.ToArray() : null;
         }
 
         private bool ValidateTiers()

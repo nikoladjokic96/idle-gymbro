@@ -126,6 +126,11 @@ namespace IdleGymBro.EditorTools
                 GetOrCreateTier("tier6_enhanced", 6, "Enhanced", 500000000d, $"{CharacterArtFolder}/body_tier6.png", null),
             };
 
+            // Must follow GetOrCreateTier: the bake reads each tier's frame arrays, which are only
+            // wired a few lines above. Re-baking every build keeps the head offsets honest — swap an
+            // animation frame for new art and the hair stops matching it until this runs again.
+            Debug.Log($"[CoreLoopSceneBootstrap] frame anchors baked on {FrameAnchorBaker.Bake()} tier(s).");
+
             // Default cosmetics (free, unlocked from the start; wardrobe/shop is post-MVP).
             var cosmetics = new CosmeticData[]
             {
@@ -286,7 +291,7 @@ namespace IdleGymBro.EditorTools
             topBar.raycastTarget = false;
 
             var gainsIcon = CreateImage("GainsIcon", topBar.transform, LoadIcon("gains"), IconTint);
-            SetRect(gainsIcon.rectTransform, new Vector2(0.5f, 1f), new Vector2(-190f, -80f), new Vector2(72f, 72f));
+            SetRect(gainsIcon.rectTransform, new Vector2(0.5f, 1f), new Vector2(-196f, -80f), new Vector2(96f, 96f));
             gainsIcon.preserveAspect = true;
             gainsIcon.raycastTarget = false;
 
@@ -467,7 +472,7 @@ namespace IdleGymBro.EditorTools
                 // Icon on the left, text in the remaining space — the row reads at a glance
                 // instead of being one more block of prose.
                 var rowIcon = CreateImage("Icon", btnGo.transform, null, new Color(1f, 1f, 1f, 0.92f));
-                SetRect(rowIcon.rectTransform, new Vector2(0f, 0.5f), new Vector2(80f, 0f), new Vector2(96f, 96f));
+                SetRect(rowIcon.rectTransform, new Vector2(0f, 0.5f), new Vector2(86f, 0f), new Vector2(120f, 120f));
                 rowIcon.preserveAspect = true;
 
                 var buttonLabel = CreateText("Label", btnGo.transform, string.Empty, 34f, TextAlignmentOptions.Left);
@@ -964,7 +969,7 @@ namespace IdleGymBro.EditorTools
         private static Image CreateBoosterIcon(Transform parent)
         {
             var icon = CreateImage("Icon", parent, null, new Color(1f, 1f, 1f, 0.92f));
-            SetRect(icon.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -42f), new Vector2(62f, 62f));
+            SetRect(icon.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -46f), new Vector2(84f, 84f));
             icon.preserveAspect = true;
             return icon;
         }
@@ -1024,7 +1029,10 @@ namespace IdleGymBro.EditorTools
 
         private static void LayOutIconButton(Image icon, TMP_Text label, float diameter, bool keepLabel)
         {
-            float glyph = diameter * (keepLabel ? 0.42f : 0.56f);
+            // Bumped from 0.42/0.56: at the old fractions the pixel-art icons were a small mark
+            // floating in a large disc and the motif was unreadable on a phone. The icons carry the
+            // meaning here — the label under them is a caption, not the primary cue.
+            float glyph = diameter * (keepLabel ? 0.56f : 0.72f);
             SetRect(icon.rectTransform, new Vector2(0.5f, keepLabel ? 0.68f : 0.5f), Vector2.zero, new Vector2(glyph, glyph));
             icon.color = IconTint;
             icon.preserveAspect = true;

@@ -470,3 +470,70 @@ prezhiveo rebuild), `6 backgrounds ready`, `_gameConfig wired on 13/13`, `Scene 
 `SystemsSmokeTest PASS — 221 checks, 0 failures`. T12 (svaki tier ima idle i workout frejmove istog
 canvasa i PPU-a kao staticna poza) je bio taj koji je sprecio da se animacije samo obrisu — bez
 njega bi lik tiho ostao bez klipova.
+
+---
+
+## Faza 3 (popravke posle prvog playtesta)
+
+**NALOG #036** — playtest je otkrio tri stvari na animaciji; sve tri su imale isti koren:
+klipovi vise nisu rucno autorizovani nego generisani, a sistem oko njih je jos uvek pretpostavljao
+rucno autorizovane.
+
+**1. „Ghosting" — cross-fade na pixel artu.** `CharacterAnimator` je crtao donji frejm u punoj
+neprozirnosti i pretapao sledeci preko njega, kroz drugi `SpriteRenderer` (`BodyBlendRenderer`).
+U kodu je stajao komentar da je to bezbedno **samo** dok se susedni frejmovi razlikuju za tanak pojas
+obrisa trupa — sto je vazilo za naslikani 848×1264 art. `animate_image` precrta senčenje po celom telu,
+pa je pretapanje crtalo **dva tela odjednom**. Pixel art se ne pretapa — snap-uje.
+Blend renderer je uklonjen u celosti (i iz `CharacterBuilder`-a).
+
+**2. „Delayed" — dva uzroka.**
+- *Klip je bio potkracen.* `animate_image` vraca `frame_count + 1` frejmova (indeks 0 = ulazna slika
+  nepromenjena), ali MCP odgovor **inline-uje samo prve 4 slike** bez obzira koliko ih ima; ostatak
+  postoji iskljucivo iza `.../images/<job>/download?index=N`. U #035 su snimljene te 4 (indeksi 0–3),
+  pa je u igru usao klip `[staticna, KOPIJA staticne, m1, m2]` — duplirani prvi frejm (vidljiv kao
+  zastoj na pocetku svakog udisaja) i izgubljen poslednji. Sada se svi frejmovi preuzimaju po indeksu
+  (`pxl-frames.ps1`), a idle koristi indekse 1..4.
+- *Curl je bio „hold", ne rep.* Stara logika je rampom dizala ruke u zadrzanu pozu za
+  `WorkoutRaiseSeconds` i isto toliko ih spustala, pa je lik uvek kaskao za inputom. Sada se workout
+  klip **vrti u petlji** (`WorkoutCyclesPerSecond`), pocinje od prvog repa i ocigledno „radi serije".
+  Tunable-i `_workoutRaiseSeconds` / `_workoutHoldPulseSpeed` / `_workoutHoldPulseDuty` su zamenjeni
+  jednim `_workoutCyclesPerSecond`.
+
+**3. Kosa i brada nisu pratile telo.** Kozmetika su **statični slojevi preko animiranog tela** — to je
+radilo dok je art bio rucno autorizovan tako da lobanja ostane pixel-identicna izmedju frejmova.
+Generisani klipovi to ne rade: glava poskakuje sa dahom i okrece se ka bučici, pa se kosa odlepi.
+Crtanje kose po frejmu nije opcija (sloj se dobija kao diff prema baznoj pozi, a taj trik ne prezivljava
+PixelLab — vidi #035).
+
+Resenje: **`Editor/FrameAnchorBaker`** meri, po frejmu, koliko se glava pomerila u odnosu na staticnu
+pozu (najvisi neprozirni red + tezistе po X u pojasu ispod njega; uzorkovanje je stegnuto na sredinu
+canvasa da bucica podignuta do ramena ne odvuce teziste u stranu). Offset-i se pisu u
+`MuscleTierData._idleHeadOffsets` / `_workoutHeadOffsets` u pikselima, a `CharacterAnimator` njima
+pomera Hair/Beard/Blink slojeve. Bake se vrti na svakom rebuild-u scene, odmah posle `GetOrCreateTier`.
+Izmereno: glava padne do 4 px i pomeri se ~3.8 px u stranu tokom curl-a.
+
+**Novi curl (zahtev korisnika): jedna pa druga ruka, gleda u bucicu koju podize.**
+- img2img **ne ume** da doda bucice u ruke (na `init_strength` 200 jedva se naziru, a telo se raspadne).
+  Umesto toga: `animate_image` sa akcijom „podize bucicu sa poda", pa se **poslednji frejm te animacije**
+  koristi kao baza sa bucicama u obe ruke. Iz te baze ide curl (8 frejmova = 2 gen), pa su bucice
+  prisutne u SVAKOM frejmu i petlja nema pop.
+- Naizmenicnost se mora traziti **negativno**: opis redosleda nije bio dovoljan (3 od 6 tierova je
+  diglo obe ruke odjednom), tek „ONLY ONE arm moves at a time … never both arms at once" je proslo.
+- Animator preskace indeks 0 workout klipa — to je staticna poza bez bucica, koja bi jednom po petlji
+  ispustila tegove iz ruku.
+
+**Usput:** ikonice povecane (dugmad 0.42/0.56 -> 0.56/0.72 precnika, redovi 96 -> 120 px, gains 72 -> 96)
+— na starim frakcijama je pixel-art motiv bio necitljiv na telefonu.
+
+**Novi test:** `T13 head anchors per frame` — broj offset-a mora da odgovara broju frejmova, i workout
+track ne sme biti sav nula. Bitno jer `CharacterBuilder` **tiho odustaje** od kompenzacije kad se
+brojevi ne slazu (bolje nego pomerati kozmetiku pogresnim brojevima), pa bi ustajao bake prosao bez
+ijednog upozorenja — kosa bi se samo opet odlepila. Negativna kontrola: nuliranje
+`_workoutHeadOffsets` na tier1 obara tacno tu jednu proveru (`FAIL — 312 checks, 1 failures`).
+
+**Verifikacija:** 0 `error CS` · `15 sprites ready (0 generated, 15 kept)` · `88 png import settings applied` ·
+`6 backgrounds` · `18 icons ready` · `frame anchors baked on 6 tier(s)` · `_gameConfig wired on 13/13` ·
+`Scene built and saved` · `SystemsSmokeTest PASS — 312 checks, 0 failures`.
+
+**Gotcha:** `animate_image` naplacuje po `ceil(w*h*frames/65536)` — 96×144×8 = 2 generacije, a 4 frejma
+1. Ali **frejmovi preko cetvrtog ne stizu inline** — ko ih ne preuzme po indeksu, tiho dobije krnji klip.

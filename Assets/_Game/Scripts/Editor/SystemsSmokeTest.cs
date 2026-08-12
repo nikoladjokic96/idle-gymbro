@@ -68,6 +68,7 @@ namespace IdleGymBro.EditorTools
             Run("T10 offline earnings scale", TestOfflineEarningsScaleWithEffectiveRate);
             Run("T11 achievements vs prestige", TestAchievementProgressSurvivesPrestige);
             Run("T12 idle clip per tier", TestEveryTierHasAnIdleClip);
+            Run("T13 head anchors per frame", TestHeadAnchorsMatchFrames);
 
             EventBus.Clear();
 
@@ -469,6 +470,51 @@ namespace IdleGymBro.EditorTools
                             $"{frame.pixelsPerUnit} vs {tier.BodySprite.pixelsPerUnit}");
                     }
                 }
+            }
+        }
+
+        // The hair/beard/blink layers are single static sprites riding on an animated head, kept in
+        // place by one baked offset per frame. CharacterBuilder drops the whole compensation when
+        // the counts disagree — safer than sliding cosmetics by stale numbers — so a stale bake
+        // would not throw or log; the hair would just quietly detach again. This is the only thing
+        // that notices.
+        private static void TestHeadAnchorsMatchFrames()
+        {
+            MuscleTierData[] tiers = LoadAll<MuscleTierData>(TiersFolder).OrderBy(t => t.TotalEarnedThreshold).ToArray();
+
+            if (!Check(tiers.Length > 0, "T13 muscle tiers exist"))
+            {
+                return;
+            }
+
+            foreach (MuscleTierData tier in tiers)
+            {
+                int idleFrames = tier.IdleFrames?.Length ?? 0;
+                int workFrames = tier.WorkoutFrames?.Length ?? 0;
+                int idleOffsets = tier.IdleHeadOffsets?.Length ?? 0;
+                int workOffsets = tier.WorkoutHeadOffsets?.Length ?? 0;
+
+                Check(idleOffsets == idleFrames,
+                    $"T13 {tier.name}: idle head offsets match frame count",
+                    $"{idleOffsets} offsets vs {idleFrames} frames");
+                Check(workOffsets == workFrames,
+                    $"T13 {tier.name}: workout head offsets match frame count",
+                    $"{workOffsets} offsets vs {workFrames} frames");
+
+                // An all-zero track means the bake ran but measured nothing — e.g. the head band
+                // landed on empty canvas — and would silently disable the compensation.
+                bool anyMovement = false;
+                foreach (Vector2 o in tier.WorkoutHeadOffsets ?? new Vector2[0])
+                {
+                    if (o.sqrMagnitude > 0.001f)
+                    {
+                        anyMovement = true;
+                        break;
+                    }
+                }
+
+                Check(workFrames == 0 || anyMovement,
+                    $"T13 {tier.name}: workout head actually moves (offsets not all zero)");
             }
         }
 

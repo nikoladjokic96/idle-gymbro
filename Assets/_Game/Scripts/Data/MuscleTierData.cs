@@ -21,17 +21,30 @@ namespace IdleGymBro.Data
         private Sprite _headSprite; // may be null for MVP (head shared)
 
         // Idle breathing clip for this tier, played ping-pong (0,1,2,1,…) so N frames cover a full
-        // inhale AND exhale. Authored so ONLY the torso changes between frames — head, hips and
-        // legs are pixel-identical — which is what lets the hair/beard/shorts layers stay static
-        // and still line up on every frame.
+        // inhale AND exhale.
         [SerializeField]
         private Sprite[] _idleFrames;
 
-        // Workout clip, played while the player holds the screen. A bicep curl: ONLY the arms move,
-        // so — exactly like the breathing clip — the head, hips and legs stay pixel-identical and
-        // the static hair/beard/shorts layers keep lining up on every frame.
+        // Workout clip, played on a loop while the player holds the screen: an alternating dumbbell
+        // curl, one arm at a time, head turning to watch the lifting hand.
         [SerializeField]
         private Sprite[] _workoutFrames;
+
+        // Where this frame's head sits relative to the head in BodySprite, IN PIXELS (+y = up).
+        //
+        // The generated clips do not keep the head pixel-identical — it bobs with the breath and
+        // turns to watch the dumbbell — so the hair/beard/blink layers, which are single static
+        // sprites, would float off the skull. These offsets let the animator carry those layers
+        // along with the head instead of authoring a cosmetic sprite per frame (which the layer
+        // system cannot produce: PixelLab has no way to isolate "just the hair" for a given pose).
+        //
+        // Index-aligned with _idleFrames / _workoutFrames. Baked by Editor/FrameAnchorBaker; an
+        // empty or mismatched array simply means "no compensation" and the layers stay put.
+        [SerializeField]
+        private Vector2[] _idleHeadOffsets;
+
+        [SerializeField]
+        private Vector2[] _workoutHeadOffsets;
 
         public int Tier => _tier;
         public string DisplayName => _displayName;
@@ -40,5 +53,7 @@ namespace IdleGymBro.Data
         public Sprite HeadSprite => _headSprite;
         public Sprite[] IdleFrames => _idleFrames;
         public Sprite[] WorkoutFrames => _workoutFrames;
+        public Vector2[] IdleHeadOffsets => _idleHeadOffsets;
+        public Vector2[] WorkoutHeadOffsets => _workoutHeadOffsets;
     }
 }

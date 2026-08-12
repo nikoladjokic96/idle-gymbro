@@ -107,26 +107,17 @@ namespace IdleGymBro.Data
         [Range(0f, 0.5f)]
         private float _idleCycleVariation = 0.18f;
 
-        [Header("Character Animation — workout hold")]
-        // Time to raise the arms into the held contraction (and to lower them again on release).
+        [Header("Character Animation — workout loop")]
+        // Full alternating curls per second (one cycle = right arm up and down, then left).
+        // Replaces the old raise-and-hold tuning: that eased the arms into a static pose over
+        // WorkoutRaiseSeconds and back out again, which read as the character lagging behind the
+        // player's input instead of doing reps.
         [SerializeField]
         [Min(0.05f)]
-        private float _workoutRaiseSeconds = 0.32f;
-
-        // While held, the pose drops back one frame for a short beat each cycle so the contraction
-        // pulses instead of freezing. Frames snap (never blend) here — see CharacterAnimator.
-        [SerializeField]
-        [Min(0.05f)]
-        private float _workoutHoldPulseSpeed = 1.4f; // pulses per second
-
-        [SerializeField]
-        [Range(0.05f, 0.5f)]
-        private float _workoutHoldPulseDuty = 0.28f; // fraction of each cycle spent eased back
+        private float _workoutCyclesPerSecond = 0.75f;
 
         public float IdleCycleVariation => _idleCycleVariation;
-        public float WorkoutRaiseSeconds => _workoutRaiseSeconds;
-        public float WorkoutHoldPulseSpeed => _workoutHoldPulseSpeed;
-        public float WorkoutHoldPulseDuty => _workoutHoldPulseDuty;
+        public float WorkoutCyclesPerSecond => _workoutCyclesPerSecond;
 
         [SerializeField]
         [Min(0.02f)]

@@ -30,9 +30,7 @@ MonoBehaviour:
   _idleTrainingWindowSeconds: 1.2
   _idleTiredRateMultiplier: 0.55
   _idleCycleVariation: 0.18
-  _workoutRaiseSeconds: 0.32
-  _workoutHoldPulseSpeed: 1.4
-  _workoutHoldPulseDuty: 0.28
+  _workoutCyclesPerSecond: 0.75
   _blinkDurationSeconds: 0.11
   _blinkIntervalMinSeconds: 2.5
   _blinkIntervalMaxSeconds: 6.5

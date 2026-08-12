@@ -7,15 +7,18 @@ namespace IdleGymBro.Character
 {
     // Plays the character's clips as real sprite frames:
     //   * idle    — breathing, when the player is not holding the screen
-    //   * workout — bicep curls, while the player holds it
+    //   * workout — an alternating dumbbell curl, looping while the player holds it
     //
     // An earlier version faked breathing by scaling the root transform; it read as the character
     // inflating and deflating, because a uniform scale moves the head and legs too. It also punched
     // the scale on every rep, which at 4 reps/second just twitched. Both are gone: what the player
     // sees now is drawn art, not a transform trick.
     //
-    // Playback is PING-PONG (0,1,2,1,…): the authored frames cover half the motion (the inhale, the
-    // way up), and replaying them backwards gives the other half free — half the art per cycle.
+    // FRAMES SNAP. Nothing cross-fades. An earlier version faded the next frame in over the current
+    // one, which suited the painted 848x1264 art, where consecutive frames differed by a thin band
+    // of torso outline. The pixel-art clips differ across the whole body, so the fade drew two
+    // bodies at once — the "ghosting" this replaced. Pixel art snaps; that is how 2D animation
+    // reads, and it is why the blend renderer is gone entirely.
     //
     // Clips live on MuscleTierData, so every muscle tier breathes and curls with its own silhouette,
     // and CharacterBuilder swaps both clips when the tier changes.
@@ -28,12 +31,11 @@ namespace IdleGymBro.Character
         [SerializeField]
         private CharacterBuilder _characterBuilder;
 
-        private float _phase;
+        private float _phase;         // idle breath cycle, 0..1
+        private float _workoutPhase;  // curl cycle, 0..1
         private float _timeSinceRep = 999f;
         private float _blinkTimer;
         private float _nextBlinkAt = 3f;
-        private float _workoutBlend;      // 0 = arms down, 1 = fully raised and held
-        private float _holdPhase;         // drives the tremor at the top of the hold
         private float _cycleVariation = 1f;
         private bool _tired;
         private bool _missingConfigLogged;
@@ -89,82 +91,58 @@ namespace IdleGymBro.Character
             float dt = Time.deltaTime;
             _timeSinceRep += dt;
 
-            AdvanceIdleClip(dt);
+            AdvanceBody(dt);
             UpdateBlink(dt);
         }
 
-        private void AdvanceIdleClip(float dt)
+        private void AdvanceBody(float dt)
         {
             SpriteRenderer renderer = _characterBuilder != null ? _characterBuilder.BodyRenderer : null;
-            SpriteRenderer blend = _characterBuilder != null ? _characterBuilder.BodyBlendRenderer : null;
 
             if (renderer == null)
             {
                 return;
             }
 
-            Sprite[] workout = _characterBuilder != null ? _characterBuilder.CurrentWorkoutFrames : null;
-            Sprite[] idle = _characterBuilder != null ? _characterBuilder.CurrentIdleFrames : null;
+            Sprite[] workout = _characterBuilder.CurrentWorkoutFrames;
+            Sprite[] idle = _characterBuilder.CurrentIdleFrames;
 
             bool training = _timeSinceRep < _gameConfig.IdleTrainingWindowSeconds;
-            bool canWork = workout != null && workout.Length >= 2;
 
-            // Holding the screen RAISES the arms and keeps them there; it does not rep up and down.
-            // A repeating curl loop read as a machine, so the hold is the pose and the only motion
-            // on top of it is a small tremor, the way a real held contraction shakes.
-            float target = training && canWork ? 1f : 0f;
-            float raiseSpeed = 1f / Mathf.Max(0.05f, _gameConfig.WorkoutRaiseSeconds);
-            _workoutBlend = Mathf.MoveTowards(_workoutBlend, target, dt * raiseSpeed);
-
-            if (_workoutBlend > 0f && canWork)
+            // The curl LOOPS while training rather than easing into a held pose. The previous
+            // raise-and-hold read as lag: the arms took WorkoutRaiseSeconds to arrive and the same
+            // again to drop, so the character was always catching up to the input instead of
+            // working. A loop starts on the first rep and is obviously "doing reps".
+            if (training && workout != null && workout.Length >= 2)
             {
-                PlayHeldWorkout(workout, renderer, blend, dt);
+                _workoutPhase += dt * _gameConfig.WorkoutCyclesPerSecond;
+                _workoutPhase -= Mathf.Floor(_workoutPhase);
+
+                // Skips index 0 — that is the tier's static, dumbbell-less pose, which belongs to
+                // the transition into the clip and would drop the weights for one frame per loop.
+                int span = workout.Length - 1;
+                int index = 1 + Mathf.Clamp(Mathf.FloorToInt(_workoutPhase * span), 0, span - 1);
+                Show(renderer, workout, index, _characterBuilder.CurrentWorkoutHeadOffsets);
                 return;
             }
 
+            _workoutPhase = 0f;
+
+            // A tier with no idle clip holds its static pose — explicitly, because the body may
+            // have stopped on a raised-dumbbell workout frame and would otherwise stay frozen there.
             if (idle == null || idle.Length < 2)
             {
-                return; // tier without an authored clip simply holds its static pose
+                if (_characterBuilder.CurrentBodySprite != null)
+                {
+                    renderer.sprite = _characterBuilder.CurrentBodySprite;
+                    ApplyHeadOffset(_characterBuilder.HairRenderer, Vector2.zero);
+                    ApplyHeadOffset(_characterBuilder.BeardRenderer, Vector2.zero);
+                    ApplyHeadOffset(_characterBuilder.BlinkRenderer, Vector2.zero);
+                }
+
+                return;
             }
 
-            PlayIdleLoop(idle, renderer, blend, dt);
-        }
-
-        // Position along the workout frames is the raise amount itself: 0 = arms down (frame 0),
-        // 1 = fully raised (last frame).
-        //
-        // Frames SNAP here — deliberately. The arms travel a long way between poses, so
-        // cross-fading them draws the lower frame's arms at full opacity with the next frame's
-        // arms appearing on top: the character visibly grows a second pair of arms. Blending only
-        // works when consecutive frames barely differ, which is true of the breathing clip and
-        // false of this one. Snapping through 4 frames in WorkoutRaiseSeconds (~10 fps) is how 2D
-        // animation actually reads.
-        private void PlayHeldWorkout(Sprite[] frames, SpriteRenderer renderer, SpriteRenderer blend, float dt)
-        {
-            int top = frames.Length - 1;
-            int index = Mathf.Clamp(Mathf.RoundToInt(Mathf.SmoothStep(0f, 1f, _workoutBlend) * top), 0, top);
-
-            // Once fully raised he holds the pose, easing back one frame for a short beat each
-            // cycle — a held contraction that pulses instead of freezing. Also a snap, for the
-            // same reason as above.
-            if (_workoutBlend >= 1f && top >= 1)
-            {
-                _holdPhase += dt * _gameConfig.WorkoutHoldPulseSpeed;
-                _holdPhase -= Mathf.Floor(_holdPhase);
-
-                index = _holdPhase > 1f - _gameConfig.WorkoutHoldPulseDuty ? top - 1 : top;
-            }
-
-            renderer.sprite = frames[index];
-
-            if (blend != null)
-            {
-                SetAlpha(blend, 0f); // nothing may linger on top of a snapped frame
-            }
-        }
-
-        private void PlayIdleLoop(Sprite[] frames, SpriteRenderer renderer, SpriteRenderer blend, float dt)
-        {
             float rate = _gameConfig.IdleBreathCyclesPerSecond * _cycleVariation;
 
             if (_tired)
@@ -181,34 +159,47 @@ namespace IdleGymBro.Character
                 _cycleVariation = Random.Range(1f - _gameConfig.IdleCycleVariation, 1f + _gameConfig.IdleCycleVariation);
             }
 
-            // Ping-pong: N frames produce 2N-2 steps (3 frames -> 0,1,2,1).
-            int steps = frames.Length * 2 - 2;
-            float position = _phase * steps;
-            int step = Mathf.Clamp(Mathf.FloorToInt(position), 0, steps - 1);
-            float t = position - step;
-
-            int a = PingPongIndex(step, frames.Length, steps);
-            int b = PingPongIndex(step + 1, frames.Length, steps);
-            ApplyPair(frames[a], frames[b], t, renderer, blend);
+            // Ping-pong: N frames produce 2N-2 steps (3 frames -> 0,1,2,1), so the authored half of
+            // the breath covers the whole cycle.
+            int steps = idle.Length * 2 - 2;
+            int step = Mathf.Clamp(Mathf.FloorToInt(_phase * steps), 0, steps - 1);
+            Show(renderer, idle, PingPongIndex(step, idle.Length, steps), _characterBuilder.CurrentIdleHeadOffsets);
         }
 
-        // Cross-fade: the lower frame stays fully opaque and the next one fades in over it.
-        // Fading BOTH would make the body translucent for half of every step.
-        //
-        // ONLY safe for the breathing clip, where consecutive frames differ by a few thousand
-        // pixels of torso outline. Applied to a clip whose limbs travel (the workout curl) it
-        // renders the old arms and the new arms at once — see PlayHeldWorkout.
-        private static void ApplyPair(Sprite a, Sprite b, float t, SpriteRenderer renderer, SpriteRenderer blend)
+        // Sets the body frame and slides the layers that sit on the skull to match it. Without this
+        // the hair stays where the static pose put it while the head bobs and turns underneath.
+        private void Show(SpriteRenderer renderer, Sprite[] frames, int index, Vector2[] headOffsets)
         {
-            renderer.sprite = a;
-
-            if (blend == null)
+            if (frames == null || index < 0 || index >= frames.Length)
             {
                 return;
             }
 
-            blend.sprite = b;
-            SetAlpha(blend, Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t)));
+            renderer.sprite = frames[index];
+
+            Vector2 offset = headOffsets != null && index < headOffsets.Length ? headOffsets[index] : Vector2.zero;
+
+            ApplyHeadOffset(_characterBuilder.HairRenderer, offset);
+            ApplyHeadOffset(_characterBuilder.BeardRenderer, offset);
+            ApplyHeadOffset(_characterBuilder.BlinkRenderer, offset);
+        }
+
+        private static void ApplyHeadOffset(SpriteRenderer renderer, Vector2 offset)
+        {
+            if (renderer == null)
+            {
+                return;
+            }
+
+            Transform t = renderer.transform;
+            Vector3 p = t.localPosition;
+
+            if (Mathf.Approximately(p.x, offset.x) && Mathf.Approximately(p.y, offset.y))
+            {
+                return;
+            }
+
+            t.localPosition = new Vector3(offset.x, offset.y, p.z);
         }
 
         private static int PingPongIndex(int step, int frameCount, int steps)

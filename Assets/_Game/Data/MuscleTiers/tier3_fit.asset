@@ -27,3 +27,21 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 5a75ec35acf67d14f882a95383d31d46, type: 3}
   - {fileID: 21300000, guid: a50c734a30393cc4d852db0ea3fe2fb6, type: 3}
   - {fileID: 21300000, guid: 646095bd1fe844a4d99c61f9cbd1a693, type: 3}
+  - {fileID: 21300000, guid: 83591c6dc02a9b34aafb756b5e0e3cc5, type: 3}
+  - {fileID: 21300000, guid: 19f724f04c93fb244a6bbe4e11899cb5, type: 3}
+  - {fileID: 21300000, guid: 9c1a8e6347e83784a8a3e01d2eff0b43, type: 3}
+  - {fileID: 21300000, guid: ee1f5daa7b5da5f43a0763636f7dca25, type: 3}
+  _idleHeadOffsets:
+  - {x: 0, y: 0}
+  - {x: 0, y: 1}
+  - {x: -0.08495331, y: 2}
+  - {x: 0.00422287, y: 2}
+  _workoutHeadOffsets:
+  - {x: 2.0909615, y: -1}
+  - {x: 2.6883888, y: -2}
+  - {x: 2.828617, y: -3}
+  - {x: 3.4874802, y: -3}
+  - {x: 3.5683784, y: -3}
+  - {x: 2.8246536, y: -2}
+  - {x: 1.4037895, y: -1}
+  - {x: 0.62280273, y: -1}
