@@ -375,23 +375,25 @@ namespace IdleGymBro.EditorTools
             // Narrower and shorter than the full-width slab it replaces: the counter is a readout,
             // not a header, and 320px of chrome across the top was eating the character.
             var topBar = CreateImage("TopBar", canvasGo.transform, UiKit("bar_pixel") ?? uiSprite, PanelColor);
-            SetRect(topBar.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -118f), new Vector2(760f, 156f));
+            // 560 wide, centred: the corner buttons occupy x 20-240 and 840-1060 of the 1080 design
+            // space, so anything wider than this runs underneath them. Sized to the gap, not guessed.
+            SetRect(topBar.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -96f), new Vector2(560f, 132f));
             topBar.raycastTarget = false;
 
             var gainsIcon = CreateImage("GainsIcon", topBar.transform, LoadIcon("gains"), IconTint);
-            SetRect(gainsIcon.rectTransform, new Vector2(0f, 0.5f), new Vector2(74f, 16f), new Vector2(84f, 84f));
+            SetRect(gainsIcon.rectTransform, new Vector2(0f, 0.5f), new Vector2(58f, 0f), new Vector2(76f, 76f));
             gainsIcon.preserveAspect = true;
             gainsIcon.raycastTarget = false;
 
             // --- Gains text ---
-            var gainsText = CreateText("GainsText", topBar.transform, "0", 56f, TextAlignmentOptions.Left);
-            SetRect(gainsText.rectTransform, new Vector2(0f, 0.5f), new Vector2(400f, 16f), new Vector2(500f, 70f));
+            var gainsText = CreateText("GainsText", topBar.transform, "0", 49f, TextAlignmentOptions.Left);
+            SetRect(gainsText.rectTransform, new Vector2(0f, 0.5f), new Vector2(320f, 22f), new Vector2(380f, 56f));
             var gainsCounterJuice = gainsText.gameObject.AddComponent<GainsCounterJuice>();
             AssignRef(gainsCounterJuice, "_target", gainsText.rectTransform);
 
             // --- Passive income rate ---
             var passiveRateText = CreateText("PassiveRateText", topBar.transform, "0/s", 32f, TextAlignmentOptions.Left);
-            SetRect(passiveRateText.rectTransform, new Vector2(0f, 0.5f), new Vector2(400f, -30f), new Vector2(500f, 40f));
+            SetRect(passiveRateText.rectTransform, new Vector2(0f, 0.5f), new Vector2(320f, -28f), new Vector2(380f, 36f));
 
             // --- Energy bar ---
             var energyBarBg = CreateImage("EnergyBarBG", canvasGo.transform, uiSprite, new Color(0.06f, 0.07f, 0.10f, 0.95f));

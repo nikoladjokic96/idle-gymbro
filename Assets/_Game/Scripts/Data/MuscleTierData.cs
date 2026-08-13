@@ -58,6 +58,15 @@ namespace IdleGymBro.Data
         [SerializeField]
         private Vector2[] _workoutHeadOffsets;
 
+        // Same idea for the HIPS, driving the shorts. The garment is one sprite over an animated
+        // body, so without this it hangs in mid-air while the legs shift under it — "the shorts do
+        // not move with the legs".
+        [SerializeField]
+        private Vector2[] _idleHipOffsets;
+
+        [SerializeField]
+        private Vector2[] _workoutHipOffsets;
+
         // The dumbbells, lifted out of each workout frame so they can be drawn ABOVE the shorts.
         // They are painted into the body art, and the shorts are a layer on top of the body, so the
         // garment was covering the iron. Index-aligned with _workoutFrames; baked by
@@ -75,6 +84,8 @@ namespace IdleGymBro.Data
         public Sprite[] WorkoutFrames => _workoutFrames;
         public Vector2[] IdleHeadOffsets => _idleHeadOffsets;
         public Vector2[] WorkoutHeadOffsets => _workoutHeadOffsets;
+        public Vector2[] IdleHipOffsets => _idleHipOffsets;
+        public Vector2[] WorkoutHipOffsets => _workoutHipOffsets;
         public Sprite[] WorkoutHeldFrames => _workoutHeldFrames;
     }
 }

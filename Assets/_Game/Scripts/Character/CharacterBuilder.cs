@@ -68,6 +68,13 @@ namespace IdleGymBro.Character
 
         public Vector2[] CurrentWorkoutHeadOffsets { get; private set; }
 
+        // Hip offsets, driving the Shorts layer so the garment travels with the legs.
+        public Vector2[] CurrentIdleHipOffsets { get; private set; }
+
+        public Vector2[] CurrentWorkoutHipOffsets { get; private set; }
+
+        public SpriteRenderer ShortsRenderer => _renderers.TryGetValue(CharacterLayer.Shorts, out SpriteRenderer r) ? r : null;
+
         private void Awake()
         {
             foreach (CharacterLayer layer in Enum.GetValues(typeof(CharacterLayer)))
@@ -187,6 +194,8 @@ namespace IdleGymBro.Character
             CurrentWorkoutFrames = BuildClip(tier, tier.WorkoutFrames);
             CurrentIdleHeadOffsets = BuildOffsets(tier, tier.IdleFrames, tier.IdleHeadOffsets);
             CurrentWorkoutHeadOffsets = BuildOffsets(tier, tier.WorkoutFrames, tier.WorkoutHeadOffsets);
+            CurrentIdleHipOffsets = BuildOffsets(tier, tier.IdleFrames, tier.IdleHipOffsets);
+            CurrentWorkoutHipOffsets = BuildOffsets(tier, tier.WorkoutFrames, tier.WorkoutHipOffsets);
             CurrentWorkoutHeldFrames = BuildHeldClip(tier, tier.WorkoutFrames, tier.WorkoutHeldFrames);
 
             if (_renderers.TryGetValue(CharacterLayer.Body, out SpriteRenderer bodyRenderer))

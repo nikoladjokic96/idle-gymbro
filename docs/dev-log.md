@@ -749,3 +749,25 @@ pogresnom trenutku.
 
 **Verifikacija:** 0 `error CS` · `18 shorts sprites` · `250 png import settings re-applied` ·
 `wired 14/14` · `Scene built and saved` · `SystemsSmokeTest PASS — 541 checks, 0 failures`.
+
+**NALOG #043** — sorc prati noge, gornji brojac izlazi ispod dugmadi.
+
+**Sorc „ne mrda u odnosu na noge".** Bio je JEDAN staticni sprite preko animiranog tela — isti kvar
+koji je kosa imala pre `FrameAnchorBaker`-a, samo na kukovima. Sada se pece i **hip anchor po frejmu**
+(`_idleHipOffsets` / `_workoutHipOffsets`), a `CharacterAnimator` njime pomera Shorts sloj isto kao
+sto vec pomera Hair/Beard/Blink.
+- Kukovi se mere kao **teziste gaćica** (niz od bar 5 navy piksela), jer ih svaki tier crta i pomeraju
+  se sa nogama.
+- ⚠️ Prvo merenje je davalo pomeraj od 6 px na jednom frejmu — **bucica** je upala u uzorak, posto deli
+  paletu sa gaćicama. Uzorkovanje je stegnuto na centralne kolone (isti `CentreBandHalfWidth` koji
+  vec cuva merenje glave), i vrednosti su pale na uverljivih ±3.8 px.
+> Ostaje ograničenje: ovo pomera sloj, ne menja mu OBLIK. Kada se noge razdvoje vise nego sto sorc
+> moze da isprati translacijom, jedini pun odgovor je sorc po frejmu (18 → ~378 sprite-ova).
+
+**Gornji brojac je bio ispod dugmadi.** Traka od 760 px centrirana u dizajn prostoru od 1080 px ide
+od 160 do 920, a uglovna dugmad zauzimaju 20–240 i 840–1060 — dakle preklapanje sa obe strane.
+Sirina je sada **izracunata iz te praznine, ne procenjena**: 560 px (260–820), visina 132, ikonica
+levo, broj i `/s` u koloni pored.
+
+**Verifikacija:** 0 `error CS` · `frame anchors baked on 6 tier(s)` · `wired 14/14` ·
+`Scene built and saved` · `SystemsSmokeTest PASS — 541 checks, 0 failures`.

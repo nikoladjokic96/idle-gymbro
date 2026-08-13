@@ -122,7 +122,7 @@ namespace IdleGymBro.Character
                 // the transition into the clip and would drop the weights for one frame per loop.
                 int span = workout.Length - 1;
                 int index = 1 + Mathf.Clamp(Mathf.FloorToInt(_workoutPhase * span), 0, span - 1);
-                Show(renderer, workout, index, _characterBuilder.CurrentWorkoutHeadOffsets);
+                Show(renderer, workout, index, _characterBuilder.CurrentWorkoutHeadOffsets, _characterBuilder.CurrentWorkoutHipOffsets);
                 ShowHeldItem(index);
                 return;
             }
@@ -165,12 +165,12 @@ namespace IdleGymBro.Character
             // the breath covers the whole cycle.
             int steps = idle.Length * 2 - 2;
             int step = Mathf.Clamp(Mathf.FloorToInt(_phase * steps), 0, steps - 1);
-            Show(renderer, idle, PingPongIndex(step, idle.Length, steps), _characterBuilder.CurrentIdleHeadOffsets);
+            Show(renderer, idle, PingPongIndex(step, idle.Length, steps), _characterBuilder.CurrentIdleHeadOffsets, _characterBuilder.CurrentIdleHipOffsets);
         }
 
         // Sets the body frame and slides the layers that sit on the skull to match it. Without this
         // the hair stays where the static pose put it while the head bobs and turns underneath.
-        private void Show(SpriteRenderer renderer, Sprite[] frames, int index, Vector2[] headOffsets)
+        private void Show(SpriteRenderer renderer, Sprite[] frames, int index, Vector2[] headOffsets, Vector2[] hipOffsets)
         {
             if (frames == null || index < 0 || index >= frames.Length)
             {
@@ -184,6 +184,11 @@ namespace IdleGymBro.Character
             ApplyHeadOffset(_characterBuilder.HairRenderer, offset);
             ApplyHeadOffset(_characterBuilder.BeardRenderer, offset);
             ApplyHeadOffset(_characterBuilder.BlinkRenderer, offset);
+
+            // The shorts ride the hips for the same reason the hair rides the skull: one static
+            // sprite over an animated body reads as pasted on the moment the body moves under it.
+            Vector2 hip = hipOffsets != null && index < hipOffsets.Length ? hipOffsets[index] : Vector2.zero;
+            ApplyHeadOffset(_characterBuilder.ShortsRenderer, hip);
         }
 
         // Re-draws this frame's dumbbells above the shorts. Index -1 clears the layer, which is what

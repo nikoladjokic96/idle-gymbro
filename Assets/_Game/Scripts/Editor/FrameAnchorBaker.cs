@@ -54,9 +54,16 @@ namespace IdleGymBro.EditorTools
                     continue;
                 }
 
+                if (!TryMeasureHips(tier.BodySprite, out Vector2 baseHips))
+                {
+                    baseHips = Vector2.zero;
+                }
+
                 var so = new SerializedObject(tier);
                 WriteOffsets(so, "_idleHeadOffsets", tier.IdleFrames, baseAnchor);
                 WriteOffsets(so, "_workoutHeadOffsets", tier.WorkoutFrames, baseAnchor);
+                WriteHipOffsets(so, "_idleHipOffsets", tier.IdleFrames, baseHips);
+                WriteHipOffsets(so, "_workoutHipOffsets", tier.WorkoutFrames, baseHips);
                 so.ApplyModifiedProperties();
                 EditorUtility.SetDirty(tier);
                 baked++;
@@ -89,6 +96,111 @@ namespace IdleGymBro.EditorTools
 
                 prop.GetArrayElementAtIndex(i).vector2Value = offset;
             }
+        }
+
+        private static void WriteHipOffsets(SerializedObject so, string propertyName, Sprite[] frames, Vector2 baseHips)
+        {
+            SerializedProperty prop = so.FindProperty(propertyName);
+
+            if (prop == null)
+            {
+                return;
+            }
+
+            int count = frames?.Length ?? 0;
+            prop.arraySize = count;
+
+            for (int i = 0; i < count; i++)
+            {
+                Vector2 offset = Vector2.zero;
+
+                if (frames[i] != null && TryMeasureHips(frames[i], out Vector2 hips))
+                {
+                    offset = hips - baseHips;
+                }
+
+                prop.GetArrayElementAtIndex(i).vector2Value = offset;
+            }
+        }
+
+        // Where the hips sit in this frame: the centre of the navy briefs, which every tier draws
+        // and which moves with the legs. Measured the same way ShortsGenerator finds the waist — a
+        // RUN of navy pixels, so the 1px body outline (the same darkest navy) cannot trigger it.
+        private static bool TryMeasureHips(Sprite sprite, out Vector2 anchor)
+        {
+            anchor = Vector2.zero;
+
+            if (!TryLoad(sprite, out Color[] pixels, out int w, out int h))
+            {
+                return false;
+            }
+
+            double sumX = 0d;
+            double sumY = 0d;
+            int n = 0;
+
+            // Centre columns only. The dumbbells share the briefs palette, so a weight held out to
+            // the side would drag the centroid several pixels and the shorts would lurch with it.
+            int xMin = Mathf.Clamp(Mathf.RoundToInt(w * (0.5f - CentreBandHalfWidth)), 0, w - 1);
+            int xMax = Mathf.Clamp(Mathf.RoundToInt(w * (0.5f + CentreBandHalfWidth)), 0, w - 1);
+
+            for (int y = 0; y < h; y++)
+            {
+                int run = 0;
+
+                for (int x = xMin; x <= xMax; x++)
+                {
+                    Color c = pixels[y * w + x];
+                    bool navy = c.a > AlphaFloor && c.b - c.r > 0.09f && c.b - c.g > 0.05f && c.b > 0.20f && c.b < 0.60f;
+                    run = navy ? run + 1 : 0;
+
+                    if (run >= 5)
+                    {
+                        sumX += x;
+                        sumY += y;
+                        n++;
+                    }
+                }
+            }
+
+            if (n == 0)
+            {
+                return false;
+            }
+
+            anchor = new Vector2((float)(sumX / n), (float)(sumY / n));
+            return true;
+        }
+
+        private static bool TryLoad(Sprite sprite, out Color[] pixels, out int w, out int h)
+        {
+            pixels = null;
+            w = 0;
+            h = 0;
+
+            string path = AssetDatabase.GetAssetPath(sprite);
+            string absolute = path.StartsWith("Assets/")
+                ? Path.Combine(Application.dataPath, path.Substring("Assets/".Length))
+                : path;
+
+            if (!File.Exists(absolute))
+            {
+                return false;
+            }
+
+            var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+
+            if (!tex.LoadImage(File.ReadAllBytes(absolute)))
+            {
+                Object.DestroyImmediate(tex);
+                return false;
+            }
+
+            w = tex.width;
+            h = tex.height;
+            pixels = tex.GetPixels();
+            Object.DestroyImmediate(tex);
+            return true;
         }
 
         // Reads the PNG off disk rather than the imported Sprite: sprite textures are not
