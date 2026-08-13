@@ -38,9 +38,12 @@ namespace IdleGymBro.UI
             // Fallback label set in Awake, NOT Start: BoosterManager.Start() publishes the
             // initial ready-state event (with the "Nx" suffix) before this object's Start
             // would run, and that richer label must not be stomped afterwards.
+            // The icon already says which booster this is; the label carries only live state
+            // (multiplier, countdown, whether an ad is required). Repeating the name under every
+            // button is the caption clutter the reference UI does without.
             if (_label != null && _booster != null)
             {
-                _label.text = (_booster.RequiresAd ? "AD " : string.Empty) + _booster.DisplayName;
+                _label.text = (_booster.RequiresAd ? "AD " : string.Empty) + $"{_booster.Multiplier}x";
             }
         }
 
@@ -128,7 +131,7 @@ namespace IdleGymBro.UI
                     // Spelled out, not an arrow glyph: the pixel font has no ▶, and a bitmap font draws
                     // a missing glyph as nothing at all.
                     string prefix = _booster.RequiresAd ? "AD " : string.Empty;
-                    _label.text = $"{prefix}{_booster.DisplayName}\n{_booster.Multiplier}x";
+                    _label.text = $"{prefix}{_booster.Multiplier}x";
                 }
 
                 if (_button != null)

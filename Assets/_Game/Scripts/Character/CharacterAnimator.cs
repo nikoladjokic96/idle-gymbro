@@ -123,10 +123,12 @@ namespace IdleGymBro.Character
                 int span = workout.Length - 1;
                 int index = 1 + Mathf.Clamp(Mathf.FloorToInt(_workoutPhase * span), 0, span - 1);
                 Show(renderer, workout, index, _characterBuilder.CurrentWorkoutHeadOffsets);
+                ShowHeldItem(index);
                 return;
             }
 
             _workoutPhase = 0f;
+            ShowHeldItem(-1); // idle: the weights are back on the floor
 
             // A tier with no idle clip holds its static pose — explicitly, because the body may
             // have stopped on a raised-dumbbell workout frame and would otherwise stay frozen there.
@@ -182,6 +184,21 @@ namespace IdleGymBro.Character
             ApplyHeadOffset(_characterBuilder.HairRenderer, offset);
             ApplyHeadOffset(_characterBuilder.BeardRenderer, offset);
             ApplyHeadOffset(_characterBuilder.BlinkRenderer, offset);
+        }
+
+        // Re-draws this frame's dumbbells above the shorts. Index -1 clears the layer, which is what
+        // the idle clip needs: the static pose holds nothing.
+        private void ShowHeldItem(int index)
+        {
+            SpriteRenderer held = _characterBuilder != null ? _characterBuilder.HeldItemRenderer : null;
+
+            if (held == null)
+            {
+                return;
+            }
+
+            Sprite[] frames = _characterBuilder.CurrentWorkoutHeldFrames;
+            held.sprite = frames != null && index >= 0 && index < frames.Length ? frames[index] : null;
         }
 
         private static void ApplyHeadOffset(SpriteRenderer renderer, Vector2 offset)

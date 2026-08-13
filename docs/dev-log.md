@@ -670,3 +670,31 @@ isto mesto gde referenca drzi svoj MAX, pa se cita kao svojstvo celog panela a n
 
 **Verifikacija:** 0 `error CS` · `18 shorts sprites ready` · `pixel font: 58 glyphs` ·
 `_gameConfig wired on 14/14` · `Scene built and saved` · `SystemsSmokeTest PASS — 390 checks, 0 failures`.
+
+**NALOG #040** — bucice u svoj sloj, sorc opet pune duzine, HUD bez natpisa.
+
+**Bucice vise ne prolaze kroz sorc — resen je REDOSLED, ne duzina.** Tegovi su naslikani U telo, a
+sorc je sloj iznad tela, pa je odeca crtala preko gvozdja. U #039 je to zaobidjeno skracivanjem sorca
+(izgubila se duzina); sada `Editor/HeldItemExtractor` izvlaci tegove iz svakog workout frejma u
+zaseban sprite koji `CharacterBuilder` crta na `sortingOrder = Shorts + 5`. Isti pikseli, isto mesto,
+jedan sloj vise — tamo gde sorc ne dodiruje gvozdje kopije se poklapaju i nista se ne menja.
+Sorc je vracen na punu duzinu (`HemLimitFromWorkoutFrames` obrisan).
+
+Prepoznavanje gvozdja je proslo kroz dve popravke:
+1. „tamno u frejmu" je hvatalo i **gacice** → dodato „a nije bilo tamno u staticnoj pozi".
+2. To i dalje nije bilo dovoljno: model **precrta pojas za piksel-dva** izmedju frejmova, pa je ta
+   ivica izasla kao plocа velicine sorca koja se crta PREKO sorca. Prvo resenje (pravougaonik oko
+   gacica) jeste to sredilo, ali je **pojelo bucice** koje u donjem polozaju leze uz kukove.
+   Konacno: **maska oblika** — svi tamni pikseli staticne poze, prosireni za 3 px.
+   Boja ne pomaze: izmereno na tier5, gacice `38,41,63` naspram gvozdja `46,55,76`.
+
+**HUD bez natpisa.** Ikonica vec kaze koji je booster; ispod nje stoji samo zivo stanje
+(`AD 2x`, odbrojavanje), ne i naziv. Isti pristup kao u referenci (Medieval Idle Prayer): natpisi
+nestaju, brojevi ostaju.
+
+**Ostaje otvoreno:** na tierovima 2/3/5 curl podize **samo jednu** ruku — druga samo drzi teg.
+Isti promasaj kao ranije na 1/4/6, samo u drugom smeru; regenerise se sa eksplicitnim „u prvoj
+polovini desna, u drugoj LEVA".
+
+**Verifikacija:** 0 `error CS` · `48 held-item sprites ready` · `18 shorts sprites ready` ·
+`wired 14/14` · `Scene built and saved` · `SystemsSmokeTest PASS — 390 checks, 0 failures`.

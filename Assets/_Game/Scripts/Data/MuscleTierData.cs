@@ -46,6 +46,13 @@ namespace IdleGymBro.Data
         [SerializeField]
         private Vector2[] _workoutHeadOffsets;
 
+        // The dumbbells, lifted out of each workout frame so they can be drawn ABOVE the shorts.
+        // They are painted into the body art, and the shorts are a layer on top of the body, so the
+        // garment was covering the iron. Index-aligned with _workoutFrames; baked by
+        // Editor/HeldItemExtractor.
+        [SerializeField]
+        private Sprite[] _workoutHeldFrames;
+
         public int Tier => _tier;
         public string DisplayName => _displayName;
         public double TotalEarnedThreshold => _totalEarnedThreshold;
@@ -55,5 +62,6 @@ namespace IdleGymBro.Data
         public Sprite[] WorkoutFrames => _workoutFrames;
         public Vector2[] IdleHeadOffsets => _idleHeadOffsets;
         public Vector2[] WorkoutHeadOffsets => _workoutHeadOffsets;
+        public Sprite[] WorkoutHeldFrames => _workoutHeldFrames;
     }
 }

@@ -44,6 +44,12 @@ namespace IdleGymBro.Character
 
         public SpriteRenderer BeardRenderer => _renderers.TryGetValue(CharacterLayer.Beard, out SpriteRenderer r) ? r : null;
 
+        // Draws the dumbbells one step above Shorts (10) so the garment can no longer cover them,
+        // and below Shoes (20) so nothing else changes order.
+        public SpriteRenderer HeldItemRenderer { get; private set; }
+
+        public Sprite[] CurrentWorkoutHeldFrames { get; private set; }
+
         public Sprite BlinkSprite => _blinkSprite;
 
         // The active tier's static pose, so the animator can fall back to it instead of leaving the
@@ -72,6 +78,11 @@ namespace IdleGymBro.Character
 
                 _renderers[layer] = renderer;
             }
+
+            var heldGo = new GameObject("Layer_HeldItem");
+            heldGo.transform.SetParent(transform, false);
+            HeldItemRenderer = heldGo.AddComponent<SpriteRenderer>();
+            HeldItemRenderer.sortingOrder = (int)CharacterLayer.Shorts + 5;
         }
 
         private void OnEnable()
@@ -160,6 +171,7 @@ namespace IdleGymBro.Character
             CurrentWorkoutFrames = BuildClip(tier, tier.WorkoutFrames);
             CurrentIdleHeadOffsets = BuildOffsets(tier, tier.IdleFrames, tier.IdleHeadOffsets);
             CurrentWorkoutHeadOffsets = BuildOffsets(tier, tier.WorkoutFrames, tier.WorkoutHeadOffsets);
+            CurrentWorkoutHeldFrames = BuildHeldClip(tier, tier.WorkoutFrames, tier.WorkoutHeldFrames);
 
             if (_renderers.TryGetValue(CharacterLayer.Body, out SpriteRenderer bodyRenderer))
             {
@@ -198,6 +210,29 @@ namespace IdleGymBro.Character
                     {
                         clip.Add(frame);
                     }
+                }
+            }
+
+            return clip.Count > 1 ? clip.ToArray() : null;
+        }
+
+        // Mirrors BuildClip index-for-index: a leading null for the static pose (which holds no
+        // weights), then one held-item sprite per surviving frame. A missing or mismatched array
+        // simply means "no separate iron layer", and the frames render as they always did.
+        private static Sprite[] BuildHeldClip(MuscleTierData tier, Sprite[] frames, Sprite[] heldFrames)
+        {
+            if (tier == null || frames == null || heldFrames == null || heldFrames.Length != frames.Length)
+            {
+                return null;
+            }
+
+            var clip = new List<Sprite> { null };
+
+            for (int i = 0; i < frames.Length; i++)
+            {
+                if (frames[i] != null)
+                {
+                    clip.Add(heldFrames[i]);
                 }
             }
 

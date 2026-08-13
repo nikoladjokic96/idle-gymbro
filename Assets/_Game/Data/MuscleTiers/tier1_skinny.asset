@@ -45,3 +45,12 @@ MonoBehaviour:
   - {x: 2.2274246, y: -3}
   - {x: 0.8148041, y: -2}
   - {x: -0.8712082, y: -1}
+  _workoutHeldFrames:
+  - {fileID: 21300000, guid: 2c59cb5b402576e4ebe2189290009655, type: 3}
+  - {fileID: 21300000, guid: bc67eb8e5f49ec74b95676c196b7b5dd, type: 3}
+  - {fileID: 21300000, guid: 12dff726de212994ab9bbc625de6687f, type: 3}
+  - {fileID: 21300000, guid: a7c929f30f5c8e94b9e2f6eafdefc36c, type: 3}
+  - {fileID: 21300000, guid: 73b60a4ca08e6ff4ea1472ab16971fe6, type: 3}
+  - {fileID: 21300000, guid: 5000f5c79ba8e134a9dd7f7cc7c6423f, type: 3}
+  - {fileID: 21300000, guid: 4c6fe6a2a95f33c48bbb89d5c1e21596, type: 3}
+  - {fileID: 21300000, guid: 232418254b4e01048a4a35fc46250012, type: 3}

@@ -73,26 +73,11 @@ namespace IdleGymBro.EditorTools
                     continue;
                 }
 
+                // Full length again. The shorts used to be cut short to stay clear of the dumbbells,
+                // because the weights are painted into the body and the shorts are a layer above it.
+                // HeldItemExtractor now re-draws the iron ABOVE the shorts instead, so the garment no
+                // longer has to dodge it and can be an actual pair of shorts.
                 int hem = Mathf.Max(0, briefsBottom - Mathf.RoundToInt(body.height * HemDropFraction));
-
-                // Never reach the dumbbells: they live in the body sprite, so the shorts layer would
-                // simply cover them.
-                Color[] waistRow = body.GetPixels();
-
-                if (TryRuns(waistRow, body.width, waistTop, out List<(int L, int R)> waistRuns) && waistRuns.Count > 0)
-                {
-                    (int L, int R) hips = Widest(waistRuns);
-                    int limit = HemLimitFromWorkoutFrames(tier, body.width, body.height, briefsBottom, hips.L, hips.R);
-
-                    if (limit > 0)
-                    {
-                        hem = Mathf.Max(hem, limit + 2);
-                    }
-                }
-
-                // A garment that ends level with the briefs is not a pair of shorts; if the weights
-                // sit that high, keep a minimum length and accept a pixel of overlap.
-                hem = Mathf.Min(hem, briefsBottom - 4);
 
                 foreach (Style style in Styles)
                 {
@@ -276,51 +261,6 @@ namespace IdleGymBro.EditorTools
             }
 
             return best;
-        }
-
-        // How low the shorts may reach before they start covering a dumbbell.
-        //
-        // The dumbbells are painted INTO the workout frames, so they are part of the body sprite and
-        // the shorts layer (sortingOrder 10) draws straight over them — the weights appeared to pass
-        // behind the legs. Rather than guess a shorter hem, measure it: find the highest dark,
-        // non-skin pixel that appears beside the legs in any workout frame and stop above it.
-        private static int HemLimitFromWorkoutFrames(int tier, int w, int h, int briefsBottom, int hipL, int hipR)
-        {
-            int limit = 0;
-
-            for (int f = 1; f <= 8; f++)
-            {
-                Texture2D frame = Load($"{ArtFolder}/body_tier{tier}_work{f}.png");
-
-                if (frame == null || frame.width != w || frame.height != h)
-                {
-                    if (frame != null) { Object.DestroyImmediate(frame); }
-                    continue;
-                }
-
-                Color[] px = frame.GetPixels();
-
-                // Only the columns the shorts are actually drawn in. Widening the search to the
-                // whole thigh made every tier report a collision — the dumbbells hang OUTSIDE the
-                // hips — and the shorts were shortened to trunks for no reason.
-                for (int y = 0; y < briefsBottom; y++)      // below the briefs only
-                {
-                    for (int x = Mathf.Max(0, hipL - 1); x <= Mathf.Min(w - 1, hipR + 1); x++)
-                    {
-                        Color c = px[y * w + x];
-
-                        // Dark and not skin-toned: the iron of a dumbbell, never a thigh.
-                        if (c.a > 0.5f && c.r < 0.45f && c.b >= c.r - 0.02f && y > limit)
-                        {
-                            limit = y;
-                        }
-                    }
-                }
-
-                Object.DestroyImmediate(frame);
-            }
-
-            return limit;
         }
 
         private static void Write(string path, Color[] pixels, int w, int h)

@@ -72,6 +72,10 @@ namespace IdleGymBro.EditorTools
             // would be written as null and the icon would just vanish from the UI.
             Debug.Log($"[CoreLoopSceneBootstrap] {ConfigureIconImporters()} icons ready.");
 
+            // Lifts the dumbbells out of the workout frames into their own sprites so they can be
+            // drawn ABOVE the shorts. Runs before GetOrCreateTier, which wires them onto the tiers.
+            Debug.Log($"[CoreLoopSceneBootstrap] {HeldItemExtractor.Extract()} held-item sprites ready.");
+
             // Upgrades = muscle groups trained (§5 gym meme identity); consumables live as
             // boosters instead (see BoosterData below). Tune values in the .asset inspectors later.
             var upgradeList = new System.Collections.Generic.List<UpgradeData>
@@ -192,6 +196,7 @@ namespace IdleGymBro.EditorTools
             // Shorts are cut from each tier's own hips, so they must be regenerated whenever the
             // bodies change — and before the cosmetics below pick the per-tier sprites up.
             Debug.Log($"[CoreLoopSceneBootstrap] {ShortsGenerator.Generate()} shorts sprites ready.");
+
 
             // Default cosmetics (free, unlocked from the start; wardrobe/shop is post-MVP).
             var cosmetics = new CosmeticData[]
@@ -1503,7 +1508,10 @@ namespace IdleGymBro.EditorTools
 
         // Discovers "<body>_<suffix>1.png", "_<suffix>2.png", … next to the tier's static body
         // sprite and fills the given frame array with them, stopping at the first gap.
-        private static void AssignFrames(SerializedObject tierSo, string propertyName, string bodySpritePath, string suffix)
+        // `tail` lets a parallel track be wired from the same numbering — the held-item sprites are
+        // body_tierN_workM_held.png, one per workout frame — so both arrays stay index-aligned even
+        // if a frame in the middle is ever missing.
+        private static void AssignFrames(SerializedObject tierSo, string propertyName, string bodySpritePath, string suffix, string tail = "")
         {
             SerializedProperty frames = tierSo.FindProperty(propertyName);
 
@@ -1517,14 +1525,15 @@ namespace IdleGymBro.EditorTools
 
             for (int i = 1; ; i++)
             {
-                var sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{withoutExtension}_{suffix}{i}.png");
-
-                if (sprite == null)
+                // The scan always walks the BASE track, so a held-item sprite that failed to
+                // extract leaves a null hole in place rather than truncating the array and
+                // silently de-syncing it from the frames it describes.
+                if (AssetDatabase.LoadAssetAtPath<Sprite>($"{withoutExtension}_{suffix}{i}.png") == null)
                 {
                     break;
                 }
 
-                found.Add(sprite);
+                found.Add(AssetDatabase.LoadAssetAtPath<Sprite>($"{withoutExtension}_{suffix}{i}{tail}.png"));
             }
 
             frames.arraySize = found.Count;
@@ -1566,6 +1575,8 @@ namespace IdleGymBro.EditorTools
             // pose. Missing files are simply skipped, so a tier with no clip holds its static sprite.
             AssignFrames(so, "_idleFrames", bodySpritePath, "idle");
             AssignFrames(so, "_workoutFrames", bodySpritePath, "work");
+            // The dumbbells lifted out of each workout frame, drawn above the shorts.
+            AssignFrames(so, "_workoutHeldFrames", bodySpritePath, "work", "_held");
             so.ApplyModifiedProperties();
 
             AssetDatabase.SaveAssets();
