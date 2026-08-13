@@ -72,9 +72,23 @@ namespace IdleGymBro.EditorTools
             // would be written as null and the icon would just vanish from the UI.
             Debug.Log($"[CoreLoopSceneBootstrap] {ConfigureIconImporters()} icons ready.");
 
+            // Mirrors the authored curl into the other arm first, so the held-item pass below sees
+            // all 16 frames and every one of them gets its dumbbells.
+            Debug.Log($"[CoreLoopSceneBootstrap] {CurlMirrorGenerator.Mirror()} mirrored curl frames ready.");
+
             // Lifts the dumbbells out of the workout frames into their own sprites so they can be
             // drawn ABOVE the shorts. Runs before GetOrCreateTier, which wires them onto the tiers.
             Debug.Log($"[CoreLoopSceneBootstrap] {HeldItemExtractor.Extract()} held-item sprites ready.");
+
+            // Shorts are cut from each tier own hips, so they must be regenerated whenever the
+            // bodies change.
+            Debug.Log($"[CoreLoopSceneBootstrap] {ShortsGenerator.Generate()} shorts sprites ready.");
+
+            // Second import pass. Everything written just above was created AFTER
+            // PlaceholderArtGenerator.Generate() had already configured the folder, so without this
+            // the new PNGs keep Unity defaults (PPU 100, auto-cropped Multiple rect) until the next
+            // build — and the tier assets wired below would bind those broken sub-sprites.
+            Debug.Log($"[CoreLoopSceneBootstrap] {PlaceholderArtGenerator.ConfigureAll()} png import settings re-applied.");
 
             // Upgrades = muscle groups trained (§5 gym meme identity); consumables live as
             // boosters instead (see BoosterData below). Tune values in the .asset inspectors later.
@@ -193,9 +207,6 @@ namespace IdleGymBro.EditorTools
             // animation frame for new art and the hair stops matching it until this runs again.
             Debug.Log($"[CoreLoopSceneBootstrap] frame anchors baked on {FrameAnchorBaker.Bake()} tier(s).");
 
-            // Shorts are cut from each tier's own hips, so they must be regenerated whenever the
-            // bodies change — and before the cosmetics below pick the per-tier sprites up.
-            Debug.Log($"[CoreLoopSceneBootstrap] {ShortsGenerator.Generate()} shorts sprites ready.");
 
 
             // Default cosmetics (free, unlocked from the start; wardrobe/shop is post-MVP).

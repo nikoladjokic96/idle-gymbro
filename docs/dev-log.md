@@ -698,3 +698,27 @@ polovini desna, u drugoj LEVA".
 
 **Verifikacija:** 0 `error CS` · `48 held-item sprites ready` · `18 shorts sprites ready` ·
 `wired 14/14` · `Scene built and saved` · `SystemsSmokeTest PASS — 390 checks, 0 failures`.
+
+**NALOG #041** — naizmenicni curl kroz ogledalo + red izvrsavanja generatora.
+
+**Model ne ume da naizmenicno dize ruke.** Generisani klip uvek podize SAMO jednu ruku; druga drzi
+teg ceo ciklus (provereno na svih 6 tierova). Dva re-roll-a sa sve eksplicitnijim promptom su bila
+**gora**: jedan je vratio „obe ruke odjednom", drugi je prestao da dize bilo sta. Oba vracena iz git-a.
+
+Resenje bez ijedne generacije: **`Editor/CurlMirrorGenerator` preslikava autorskih 8 frejmova po X**
+i pise ih kao frejmove 9–16. Lik je celav, front-view i skoro simetrican, pa je ogledalo doslovno rep
+druge ruke — ukljucujuci i okret glave, koji se preslika da prati bucicu koja je sada gore. Klip od
+16 frejmova je pravi naizmenicni ciklus.
+
+**Red izvrsavanja generatora — tih kvar koji je ovo otkrilo.** `PlaceholderArtGenerator.Generate()`
+(koji kroz `ConfigureAllInFolder` podesava importere za CEO folder) radi na pocetku bootstrap-a, a
+mirror/held/shorts pisu nove PNG-ove POSLE njega. Ti fajlovi su zato ostajali na Unity default-u
+(PPU 100, auto-cropped `Multiple` rect), pa je `AssignFrames` vezivao **pokvarene pod-sprite-ove**:
+`34x129` umesto `96x144`. Ranije se nije primetilo samo zato sto su sorc fajlovi vec postojali od
+proslog build-a. Popravka: svi art generatori su pomereni **pre** kreiranja tierova, a odmah za njima
+ide drugi prolaz `PlaceholderArtGenerator.ConfigureAll()` (novi javni ulaz).
+> Test T12 je ovo uhvatio odmah — 96 padova sa tacnim dimenzijama u poruci.
+
+**Verifikacija:** 0 `error CS` · `48 mirrored curl frames` · `96 held-item sprites` ·
+`18 shorts sprites` · `250 png import settings re-applied` · `wired 14/14` · `Scene built and saved` ·
+`SystemsSmokeTest PASS — 534 checks, 0 failures`.

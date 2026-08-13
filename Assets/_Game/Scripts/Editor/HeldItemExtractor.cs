@@ -24,7 +24,7 @@ namespace IdleGymBro.EditorTools
     {
         private const string ArtFolder = "Assets/_Game/Art/Character/Placeholders";
         private const int TierCount = 6;
-        private const int MaxFrames = 8;
+        private const int MaxFrames = 16; // 8 authored + 8 mirrored (CurlMirrorGenerator)
 
         [MenuItem("IdleGymBro/Extract Held Items")]
         public static void ExtractMenu()

@@ -186,6 +186,15 @@ namespace IdleGymBro.EditorTools
             ConfigureImporter(path);
         }
 
+        // Public so the bootstrap can re-run it AFTER the generators that write new PNGs
+        // (mirrored curl frames, held items, per-tier shorts). Generate() runs first, to guarantee
+        // the base sprites exist at all — which means anything created after it would otherwise
+        // land with Unity defaults (PPU 100, auto-cropped Multiple rect) until the NEXT build.
+        public static int ConfigureAll()
+        {
+            return ConfigureAllInFolder();
+        }
+
         private static int ConfigureAllInFolder()
         {
             string absoluteFolder = Path.Combine(Application.dataPath, OutputFolder.Substring("Assets/".Length));
