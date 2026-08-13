@@ -15,6 +15,7 @@ MonoBehaviour:
   _tier: 1
   _displayName: Skinny
   _totalEarnedThreshold: 0
+  _bodyLevelThreshold: 0
   _bodySprite: {fileID: 21300000, guid: 17937d6241608cd4d910f61a5aeea6dd, type: 3}
   _headSprite: {fileID: 0}
   _idleFrames:

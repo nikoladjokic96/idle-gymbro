@@ -72,6 +72,7 @@ namespace IdleGymBro.EditorTools
             Run("T14 shorts cut per tier", TestShortsAreCutPerTier);
             Run("T15 pixel font resolves", TestPixelFontResolvesCharacters);
             Run("T16 upgrade rest timer", TestUpgradeCooldownGatesPurchases);
+            Run("T17 tier follows body levels", TestTierFollowsBodyLevels);
 
             EventBus.Clear();
 
@@ -715,6 +716,39 @@ namespace IdleGymBro.EditorTools
             ClearCooldown(rig);
             Check(!rig.Cooldown.IsActive, "T16 clears once the deadline passes");
             Check(rig.Upgrades.TryBuy("chest", 1) == 1, "T16 buying resumes after the rest");
+        }
+
+        // The physique now tracks BODY upgrade levels, not lifetime gains. Worth pinning: the old
+        // driver made tiers arrive in a rush early and never again, and nothing else in the suite
+        // would notice a silent revert — the character would simply grow at the wrong time.
+        private static void TestTierFollowsBodyLevels()
+        {
+            using var rig = Rig.Build();
+            rig.Boot();
+
+            MuscleTierData[] tiers = LoadAll<MuscleTierData>(TiersFolder).OrderBy(t => t.BodyLevelThreshold).ToArray();
+
+            if (!Check(tiers.Length >= 2, "T17 at least two tiers configured"))
+            {
+                return;
+            }
+
+            Check(tiers[0].BodyLevelThreshold == 0, "T17 the first tier starts at zero body levels");
+            Check(rig.Character.CurrentTier == tiers[0].Tier, "T17 cold start sits on the first tier");
+
+            // Earning alone must NOT grow the character any more.
+            Grant(1e12);
+            Check(rig.Character.CurrentTier == tiers[0].Tier, "T17 raw gains do not advance the tier");
+
+            // Buying body levels must.
+            BuyLevels(rig, "chest", tiers[1].BodyLevelThreshold);
+            Check(rig.Upgrades.TotalLevelsIn(UpgradeCategory.Body) >= tiers[1].BodyLevelThreshold, "T17 body target reached");
+            Check(rig.Character.CurrentTier == tiers[1].Tier, "T17 body levels advance the tier");
+
+            // Macros and gear are body work in name only — they must not inflate the physique.
+            int before = rig.Character.CurrentTier;
+            BuyLevels(rig, "protein", 20);
+            Check(rig.Character.CurrentTier == before, "T17 macros do not advance the tier");
         }
 
         // ---------------------------------------------------------------- helpers

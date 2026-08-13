@@ -15,6 +15,7 @@ MonoBehaviour:
   _tier: 3
   _displayName: Fit
   _totalEarnedThreshold: 25000
+  _bodyLevelThreshold: 45
   _bodySprite: {fileID: 21300000, guid: 0cd3cd4ce3a56c442a49df0186c4facd, type: 3}
   _headSprite: {fileID: 0}
   _idleFrames:

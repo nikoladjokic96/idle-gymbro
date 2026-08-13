@@ -722,3 +722,30 @@ ide drugi prolaz `PlaceholderArtGenerator.ConfigureAll()` (novi javni ulaz).
 **Verifikacija:** 0 `error CS` · `48 mirrored curl frames` · `96 held-item sprites` ·
 `18 shorts sprites` · `250 png import settings re-applied` · `wired 14/14` · `Scene built and saved` ·
 `SystemsSmokeTest PASS — 534 checks, 0 failures`.
+
+**NALOG #042** — sorc prestaje da bude nalepnica, tier prati TRENING umesto zarade, manji brojac.
+
+**1. Sorc je delovao „nalepljeno" jer je bio ravan blok.** Sada uzima **osvetljenje od tela ispod**:
+za svaki piksel se poredi luma tela sa prosekom pod odecom i boja se gura ka svojoj svetloj/tamnoj
+varijanti (kvantovano na tri stepena — glatko senčenje na 96×144 bio bi sum, pixel art hoce trake).
+Tkanina sada obavija isti volumen koji art vec opisuje, i proreze za noge se konacno vide.
+
+**2. Tier vise ne prati zaradu nego BODY nivoe.** Bio je vezan za `TotalEarned`, koji raste
+eksponencijalno — pa je fizika jurila ispred treninga: tierovi su stizali u naletu na pocetku i posle
+nikad. Sada `MuscleTierData._bodyLevelThreshold` i `CharacterBuilder` racuna
+`UpgradeManager.TotalLevelsIn(Body)`. Pragovi: **0 / 15 / 45 / 110 / 260 / 600** nivoa.
+Monotonost — ono sto je kod `TotalEarned` zapravo bilo bitno — ostaje: nivoi se ne vracaju, pa lik ne
+moze da smrsa (prestige resetuje run u celini, tier ukljucen).
+> Usput ispravljeno: SVE lokacije su imale isti `BodyLevelTarget` (100 iz default-a), pa bi svaka
+> posle prve bila **odmah zadovoljena** po toj osi. Sada eskaliraju: 100 / 260 / 520 / 900 / 1500 / 2400,
+> a makroi 5 / 14 / 28 / 48 / 74 / 110.
+
+**3. Gornji brojac** — 1020×320 preko celog ekrana svelo se na 760×156 traku (`bar_pixel`), sa
+ikonicom levo i brojem/rate-om u koloni pored, umesto centriranog teksta preko pola ekrana.
+
+**Novi test T17** — tier prati body nivoe: sirova zarada ga NE pomera, body nivoi da, a makroi ne.
+Bitno jer nista drugo u paketu ne bi primetilo tihi povratak na staru vezu — lik bi samo rastao u
+pogresnom trenutku.
+
+**Verifikacija:** 0 `error CS` · `18 shorts sprites` · `250 png import settings re-applied` ·
+`wired 14/14` · `Scene built and saved` · `SystemsSmokeTest PASS — 541 checks, 0 failures`.

@@ -15,6 +15,7 @@ MonoBehaviour:
   _tier: 6
   _displayName: Enhanced
   _totalEarnedThreshold: 500000000
+  _bodyLevelThreshold: 600
   _bodySprite: {fileID: 21300000, guid: c6e8140f3ced759489c6fdd0fcb37f1c, type: 3}
   _headSprite: {fileID: 0}
   _idleFrames:

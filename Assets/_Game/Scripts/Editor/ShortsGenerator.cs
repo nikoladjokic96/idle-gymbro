@@ -173,6 +173,10 @@ namespace IdleGymBro.EditorTools
 
             (int L, int R) hips = Widest(waistRuns);
 
+            // Average brightness of the body the garment will cover, so shading is relative to this
+            // tier's own skin tone instead of an absolute guess.
+            float meanLuma = MeanLuma(src, w, hem, waistTop, hips.L, hips.R);
+
             for (int y = hem; y <= waistTop; y++)
             {
                 if (!TryRuns(src, w, y, out List<(int L, int R)> runs))
@@ -210,6 +214,13 @@ namespace IdleGymBro.EditorTools
                         {
                             c = style.Stripe;                 // side stripe
                         }
+                        else
+                        {
+                            // Take the LIGHTING from the body underneath. A flat fill reads as a
+                            // sticker laid over the sprite; borrowing the leg's own light and shade
+                            // makes the cloth wrap the same volume the pixel art already describes.
+                            c = Shade(c, src[y * w + x], meanLuma);
+                        }
 
                         outPixels[y * w + x] = c;
                     }
@@ -217,6 +228,58 @@ namespace IdleGymBro.EditorTools
             }
 
             return outPixels;
+        }
+
+        private static float Luma(Color c)
+        {
+            return 0.299f * c.r + 0.587f * c.g + 0.114f * c.b;
+        }
+
+        private static float MeanLuma(Color[] src, int w, int yFrom, int yTo, int xFrom, int xTo)
+        {
+            float sum = 0f;
+            int n = 0;
+
+            for (int y = yFrom; y <= yTo; y++)
+            {
+                for (int x = xFrom; x <= xTo; x++)
+                {
+                    Color c = src[y * w + x];
+
+                    if (c.a > 0.5f)
+                    {
+                        sum += Luma(c);
+                        n++;
+                    }
+                }
+            }
+
+            return n > 0 ? sum / n : 0.5f;
+        }
+
+        // Pushes the garment colour towards its own light/dark by however far the body pixel under
+        // it sits from the average. Quantised to three steps: smooth shading on a 96x144 sprite
+        // would just be noise, and pixel art wants bands.
+        private static Color Shade(Color garment, Color body, float meanLuma)
+        {
+            if (body.a <= 0.5f)
+            {
+                return garment;
+            }
+
+            float delta = Luma(body) - meanLuma;
+            float step = delta > 0.07f ? 0.16f : delta < -0.07f ? -0.20f : 0f;
+
+            if (step == 0f)
+            {
+                return garment;
+            }
+
+            return new Color(
+                Mathf.Clamp01(garment.r + step * 0.9f),
+                Mathf.Clamp01(garment.g + step * 0.9f),
+                Mathf.Clamp01(garment.b + step * 0.9f),
+                1f);
         }
 
         // All opaque horizontal runs in a row.

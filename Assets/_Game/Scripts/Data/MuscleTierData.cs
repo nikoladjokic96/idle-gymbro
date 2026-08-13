@@ -14,6 +14,18 @@ namespace IdleGymBro.Data
         [SerializeField]
         private double _totalEarnedThreshold;
 
+        // Total levels across the BODY upgrades needed for this tier.
+        //
+        // Replaces lifetime gains as the driver. Gains grow exponentially, so tiers arrived in a
+        // rush early on and then never again — the physique raced ahead of the training. Body
+        // levels are bought one at a time and rise roughly linearly, so the silhouette now grows in
+        // step with the work the player is actually doing.
+        //
+        // Still monotonic, which is what mattered about TotalEarned: levels are never refunded, so
+        // the character cannot shrink (prestige resets the run wholesale, tier included).
+        [SerializeField]
+        private int _bodyLevelThreshold;
+
         [SerializeField]
         private Sprite _bodySprite;
 
@@ -56,6 +68,7 @@ namespace IdleGymBro.Data
         public int Tier => _tier;
         public string DisplayName => _displayName;
         public double TotalEarnedThreshold => _totalEarnedThreshold;
+        public int BodyLevelThreshold => _bodyLevelThreshold;
         public Sprite BodySprite => _bodySprite;
         public Sprite HeadSprite => _headSprite;
         public Sprite[] IdleFrames => _idleFrames;

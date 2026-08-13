@@ -17,3 +17,5 @@ MonoBehaviour:
   _totalLevelsToComplete: 160
   _globalMultiplier: 5
   _backgroundSprite: {fileID: 21300000, guid: 6eeefae8e1f3a614785db5d205947b04, type: 3}
+  _bodyLevelTarget: 520
+  _macroLevelTarget: 28

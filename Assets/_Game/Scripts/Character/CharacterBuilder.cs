@@ -8,7 +8,8 @@ using IdleGymBro.Economy;
 namespace IdleGymBro.Character
 {
     // Builds the world-space character as a stack of SpriteRenderer child layers, applies the
-    // muscle tier driven by lifetime earned gains (never shrinks on spend), and equips the
+    // muscle tier driven by total BODY upgrade levels (never shrinks, since levels are never
+    // refunded), and equips the
     // default cosmetics. Renderers are created at runtime so no scene wiring is required.
     public class CharacterBuilder : MonoBehaviour
     {
@@ -25,6 +26,7 @@ namespace IdleGymBro.Character
         // What is currently worn on each layer, so a tier change can re-cut the garment.
         private readonly Dictionary<CharacterLayer, CosmeticData> _equipped = new Dictionary<CharacterLayer, CosmeticData>();
 
+        private UpgradeManager _upgrades;
         private int _currentTierIndex = -1;
         private bool _missingTiersLogged;
 
@@ -87,13 +89,13 @@ namespace IdleGymBro.Character
 
         private void OnEnable()
         {
-            EventBus.Subscribe<GainsChangedEvent>(HandleGainsChanged);
+            EventBus.Subscribe<UpgradePurchasedEvent>(HandleUpgradePurchased);
             EventBus.Subscribe<CosmeticEquippedEvent>(HandleCosmeticEquipped);
         }
 
         private void OnDisable()
         {
-            EventBus.Unsubscribe<GainsChangedEvent>(HandleGainsChanged);
+            EventBus.Unsubscribe<UpgradePurchasedEvent>(HandleUpgradePurchased);
             EventBus.Unsubscribe<CosmeticEquippedEvent>(HandleCosmeticEquipped);
         }
 
@@ -103,7 +105,7 @@ namespace IdleGymBro.Character
             // (execution order +1000) republishes GainsChangedEvent after Start, so a loaded
             // TotalEarned re-applies the correct tier automatically. Cosmetics are driven by
             // WardrobeManager via CosmeticEquippedEvent (published in its Start/restore).
-            HandleGainsChanged(new GainsChangedEvent(0d, 0d));
+            ApplyTier();
         }
 
         // Sets the sprite for one layer whenever the wardrobe equips a cosmetic there, and remembers
@@ -136,23 +138,37 @@ namespace IdleGymBro.Character
             }
         }
 
-        private void HandleGainsChanged(GainsChangedEvent e)
+        private void HandleUpgradePurchased(UpgradePurchasedEvent e)
+        {
+            ApplyTier();
+        }
+
+        // The physique follows the BODY upgrades, not lifetime gains: gains grow exponentially, so
+        // tiers used to arrive in a rush and then never again.
+        private void ApplyTier()
         {
             if (!ValidateTiers())
             {
                 return;
             }
 
-            // Pick the tier with the HIGHEST threshold <= TotalEarned, independent of array order
+            if (_upgrades == null)
+            {
+                _upgrades = FindAnyObjectByType<UpgradeManager>();
+            }
+
+            int bodyLevels = _upgrades != null ? _upgrades.TotalLevelsIn(UpgradeCategory.Body) : 0;
+
+            // Pick the tier with the HIGHEST threshold <= bodyLevels, independent of array order
             // (inspector reordering must never silently select a lower tier).
             int idx = -1;
-            double bestThreshold = double.NegativeInfinity;
+            int bestThreshold = int.MinValue;
             for (int i = 0; i < _tiers.Length; i++)
             {
-                if (_tiers[i] != null && e.TotalEarned >= _tiers[i].TotalEarnedThreshold && _tiers[i].TotalEarnedThreshold > bestThreshold)
+                if (_tiers[i] != null && bodyLevels >= _tiers[i].BodyLevelThreshold && _tiers[i].BodyLevelThreshold > bestThreshold)
                 {
                     idx = i;
-                    bestThreshold = _tiers[i].TotalEarnedThreshold;
+                    bestThreshold = _tiers[i].BodyLevelThreshold;
                 }
             }
 

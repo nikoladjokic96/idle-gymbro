@@ -15,6 +15,7 @@ MonoBehaviour:
   _tier: 2
   _displayName: Slim Fit
   _totalEarnedThreshold: 1000
+  _bodyLevelThreshold: 15
   _bodySprite: {fileID: 21300000, guid: 78f164c1d012c5d44bc736ac230569d5, type: 3}
   _headSprite: {fileID: 0}
   _idleFrames:

@@ -168,12 +168,12 @@ namespace IdleGymBro.EditorTools
             // same pattern as muscle-tier thresholds. Ordered by TotalLevelsToComplete ascending.
             var locations = new LocationData[]
             {
-                GetOrCreateLocation("home", "Home Workout", 25, 1f, $"{BackgroundArtFolder}/bg_home.png"),
-                GetOrCreateLocation("street", "Street Workout", 75, 2f, $"{BackgroundArtFolder}/bg_street.png"),
-                GetOrCreateLocation("basic_gym", "Basic Gym", 160, 5f, $"{BackgroundArtFolder}/bg_basic_gym.png"),
-                GetOrCreateLocation("hardcore_gym", "Hardcore Gym", 300, 12f, $"{BackgroundArtFolder}/bg_hardcore_gym.png"),
-                GetOrCreateLocation("beach", "Venice Beach", 500, 30f, $"{BackgroundArtFolder}/bg_beach.png"),
-                GetOrCreateLocation("olympia", "Mr. Olympia", 800, 75f, $"{BackgroundArtFolder}/bg_olympia.png"),
+                GetOrCreateLocation("home", "Home Workout", 25, 1f, 100, 5, $"{BackgroundArtFolder}/bg_home.png"),
+                GetOrCreateLocation("street", "Street Workout", 75, 2f, 260, 14, $"{BackgroundArtFolder}/bg_street.png"),
+                GetOrCreateLocation("basic_gym", "Basic Gym", 160, 5f, 520, 28, $"{BackgroundArtFolder}/bg_basic_gym.png"),
+                GetOrCreateLocation("hardcore_gym", "Hardcore Gym", 300, 12f, 900, 48, $"{BackgroundArtFolder}/bg_hardcore_gym.png"),
+                GetOrCreateLocation("beach", "Venice Beach", 500, 30f, 1500, 74, $"{BackgroundArtFolder}/bg_beach.png"),
+                GetOrCreateLocation("olympia", "Mr. Olympia", 800, 75f, 2400, 110, $"{BackgroundArtFolder}/bg_olympia.png"),
             };
 
             // Achievements (§12 retention). Type index = AchievementType declaration order:
@@ -194,12 +194,12 @@ namespace IdleGymBro.EditorTools
                 // headSpritePath is null: the painted tier bodies already include the head, so a
                 // separate Head layer would draw a second face on top of the first. Pass a path
                 // again only if head art is ever split back out into its own layer.
-                GetOrCreateTier("tier1_skinny", 1, "Skinny", 0d, $"{CharacterArtFolder}/body_tier1.png", null),
-                GetOrCreateTier("tier2_slim_fit", 2, "Slim Fit", 1000d, $"{CharacterArtFolder}/body_tier2.png", null),
-                GetOrCreateTier("tier3_fit", 3, "Fit", 25000d, $"{CharacterArtFolder}/body_tier3.png", null),
-                GetOrCreateTier("tier4_jacked", 4, "Jacked", 500000d, $"{CharacterArtFolder}/body_tier4.png", null),
-                GetOrCreateTier("tier5_mass_monster", 5, "Mass Monster", 10000000d, $"{CharacterArtFolder}/body_tier5.png", null),
-                GetOrCreateTier("tier6_enhanced", 6, "Enhanced", 500000000d, $"{CharacterArtFolder}/body_tier6.png", null),
+                GetOrCreateTier("tier1_skinny", 1, "Skinny", 0, $"{CharacterArtFolder}/body_tier1.png", null),
+                GetOrCreateTier("tier2_slim_fit", 2, "Slim Fit", 15, $"{CharacterArtFolder}/body_tier2.png", null),
+                GetOrCreateTier("tier3_fit", 3, "Fit", 45, $"{CharacterArtFolder}/body_tier3.png", null),
+                GetOrCreateTier("tier4_jacked", 4, "Jacked", 110, $"{CharacterArtFolder}/body_tier4.png", null),
+                GetOrCreateTier("tier5_mass_monster", 5, "Mass Monster", 260, $"{CharacterArtFolder}/body_tier5.png", null),
+                GetOrCreateTier("tier6_enhanced", 6, "Enhanced", 600, $"{CharacterArtFolder}/body_tier6.png", null),
             };
 
             // Must follow GetOrCreateTier: the bake reads each tier's frame arrays, which are only
@@ -372,24 +372,26 @@ namespace IdleGymBro.EditorTools
             // A surface behind the readouts. Without it the counter is bare text floating on the
             // artwork: it competes with the background for contrast and stops being legible the
             // moment a location's background is bright.
-            var topBar = CreateImage("TopBar", canvasGo.transform, uiSprite, PanelColor);
-            SetRect(topBar.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -215f), new Vector2(1020f, 320f));
+            // Narrower and shorter than the full-width slab it replaces: the counter is a readout,
+            // not a header, and 320px of chrome across the top was eating the character.
+            var topBar = CreateImage("TopBar", canvasGo.transform, UiKit("bar_pixel") ?? uiSprite, PanelColor);
+            SetRect(topBar.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -118f), new Vector2(760f, 156f));
             topBar.raycastTarget = false;
 
             var gainsIcon = CreateImage("GainsIcon", topBar.transform, LoadIcon("gains"), IconTint);
-            SetRect(gainsIcon.rectTransform, new Vector2(0.5f, 1f), new Vector2(-200f, -80f), new Vector2(112f, 112f));
+            SetRect(gainsIcon.rectTransform, new Vector2(0f, 0.5f), new Vector2(74f, 16f), new Vector2(84f, 84f));
             gainsIcon.preserveAspect = true;
             gainsIcon.raycastTarget = false;
 
             // --- Gains text ---
-            var gainsText = CreateText("GainsText", canvasGo.transform, "0", 80f, TextAlignmentOptions.Center);
-            SetRect(gainsText.rectTransform, new Vector2(0.5f, 1f), new Vector2(40f, -140f), new Vector2(620f, 110f));
+            var gainsText = CreateText("GainsText", topBar.transform, "0", 56f, TextAlignmentOptions.Left);
+            SetRect(gainsText.rectTransform, new Vector2(0f, 0.5f), new Vector2(400f, 16f), new Vector2(500f, 70f));
             var gainsCounterJuice = gainsText.gameObject.AddComponent<GainsCounterJuice>();
             AssignRef(gainsCounterJuice, "_target", gainsText.rectTransform);
 
             // --- Passive income rate ---
-            var passiveRateText = CreateText("PassiveRateText", canvasGo.transform, "0/s", 40f, TextAlignmentOptions.Center);
-            SetRect(passiveRateText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -240f), new Vector2(700f, 50f));
+            var passiveRateText = CreateText("PassiveRateText", topBar.transform, "0/s", 32f, TextAlignmentOptions.Left);
+            SetRect(passiveRateText.rectTransform, new Vector2(0f, 0.5f), new Vector2(400f, -30f), new Vector2(500f, 40f));
 
             // --- Energy bar ---
             var energyBarBg = CreateImage("EnergyBarBG", canvasGo.transform, uiSprite, new Color(0.06f, 0.07f, 0.10f, 0.95f));
@@ -1457,7 +1459,7 @@ namespace IdleGymBro.EditorTools
 
         private const string LocationsFolder = "Assets/_Game/Data/Locations";
 
-        private static LocationData GetOrCreateLocation(string id, string displayName, int totalLevels, float multiplier, string backgroundSpritePath)
+        private static LocationData GetOrCreateLocation(string id, string displayName, int totalLevels, float multiplier, int bodyTarget, int macroTarget, string backgroundSpritePath)
         {
             if (!AssetDatabase.IsValidFolder(LocationsFolder))
             {
@@ -1477,6 +1479,10 @@ namespace IdleGymBro.EditorTools
             so.FindProperty("_displayName").stringValue = displayName;
             so.FindProperty("_totalLevelsToComplete").intValue = totalLevels;
             so.FindProperty("_globalMultiplier").floatValue = multiplier;
+            // Escalating per location: a single shared target would leave every location after the
+            // first already satisfied on that axis the moment you arrived.
+            so.FindProperty("_bodyLevelTarget").intValue = bodyTarget;
+            so.FindProperty("_macroLevelTarget").intValue = macroTarget;
             so.FindProperty("_backgroundSprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(backgroundSpritePath);
             so.ApplyModifiedProperties();
 
@@ -1557,7 +1563,7 @@ namespace IdleGymBro.EditorTools
 
         private const string MuscleTiersFolder = "Assets/_Game/Data/MuscleTiers";
 
-        private static MuscleTierData GetOrCreateTier(string fileName, int tier, string displayName, double threshold, string bodySpritePath, string headSpritePath)
+        private static MuscleTierData GetOrCreateTier(string fileName, int tier, string displayName, int bodyLevelThreshold, string bodySpritePath, string headSpritePath)
         {
             if (!AssetDatabase.IsValidFolder(MuscleTiersFolder))
             {
@@ -1575,7 +1581,7 @@ namespace IdleGymBro.EditorTools
             var so = new SerializedObject(tierAsset);
             so.FindProperty("_tier").intValue = tier;
             so.FindProperty("_displayName").stringValue = displayName;
-            so.FindProperty("_totalEarnedThreshold").doubleValue = threshold;
+            so.FindProperty("_bodyLevelThreshold").intValue = bodyLevelThreshold;
             so.FindProperty("_bodySprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(bodySpritePath);
             // Null when the body art already contains the head (see call site).
             so.FindProperty("_headSprite").objectReferenceValue = string.IsNullOrEmpty(headSpritePath)
